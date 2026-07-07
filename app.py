@@ -11,22 +11,21 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Socket connect timeout (seconds) for the port checker
 PORT_CHECK_TIMEOUT = 3.0
-
-# Speed test tuning
-SPEEDTEST_CHUNK_SIZE = 256 * 1024       # 256 KB per streamed chunk
-SPEEDTEST_MAX_MB = 50                   # hard ceiling per download request
+SPEEDTEST_CHUNK_SIZE = 256 * 1024       
+SPEEDTEST_MAX_MB = 500  
 
 app = Flask(__name__)
-
-# Reject any request body over this size outright (covers the upload test too).
 app.config["MAX_CONTENT_LENGTH"] = (SPEEDTEST_MAX_MB + 4) * 1024 * 1024
 
-
 # ---------------------------------------------------------------------------
-# Helpers
+# Google Drive ლინკები დიდი ფაილებისთვის
 # ---------------------------------------------------------------------------
+DRIVE_LINKS = {
+    "SADP.exe": "https://drive.google.com/file/d/165ZxEDG5HcpFB7u8j8Kqub-Kd51qGHMO/view?usp=sharing",
+    "iVMS-4200(V3.14.0.6_E).exe": "https://drive.google.com/file/d/1ChI7JzihloyM7_4I7SuQYi0fSIatW1s8/view?usp=sharing",
+    "EZStation_B1130.3.18.3(IN).exe": "https://drive.google.com/file/d/1Mzso5hA06xwNd6b-7_a6BbnlTZJhLETF/view?usp=sharing"
+}
 
 def human_size(num_bytes: int) -> str:
     step = 1024.0
@@ -37,18 +36,34 @@ def human_size(num_bytes: int) -> str:
     return f"{num_bytes:.1f} PB"
 
 
-# ---------------------------------------------------------------------------
-# Pages
-# ---------------------------------------------------------------------------
-
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# ---------------------------------------------------------------------------
-# API: Port checker
-# ---------------------------------------------------------------------------
+@app.route("/api/upload", methods=["POST"])
+def api_upload_real_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file:
+        filename = secure_filename(file.filename)
+        if not filename:
+            filename = file.filename
+            
+        destination = os.path.join(UPLOAD_DIR, filename)
+        file.save(destination)
+        
+        return jsonify({
+            "success": True,
+            "message": f"File {filename} uploaded successfully.",
+            "filename": filename
+        }), 200
+
 
 @app.route("/api/portcheck", methods=["POST"])
 def api_portcheck():
@@ -67,7 +82,6 @@ def api_portcheck():
     if not (1 <= port <= 65535):
         return jsonify({"error": "Port must be between 1 and 65535."}), 400
 
-    # Resolve hostname -> IP
     try:
         resolved_ip = socket.gethostbyname(host)
     except socket.gaierror:
@@ -103,10 +117,6 @@ def api_portcheck():
     })
 
 
-# ---------------------------------------------------------------------------
-# API: File repository
-# ---------------------------------------------------------------------------
-
 @app.route("/api/files")
 def api_files():
     files = []
@@ -114,26 +124,39 @@ def api_files():
         full_path = os.path.join(UPLOAD_DIR, name)
         if os.path.isfile(full_path):
             stat = os.stat(full_path)
+            
+            if name in DRIVE_LINKS:
+                download_url = DRIVE_LINKS[name]
+                is_cloud = True
+            else:
+                download_url = f"/download/{name}"
+                is_cloud = False
+                
             files.append({
                 "name": name,
                 "size": human_size(stat.st_size),
                 "size_bytes": stat.st_size,
                 "modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M"),
+                "download_url": download_url,
+                "is_cloud": is_cloud
             })
     return jsonify({"files": files})
 
 
 @app.route("/download/<path:filename>")
 def download_file(filename):
-    safe_name = secure_filename(filename)
-    if not safe_name or not os.path.isfile(os.path.join(UPLOAD_DIR, safe_name)):
+    filename = os.path.basename(filename)
+    full_path = os.path.join(UPLOAD_DIR, filename)
+    
+    resolved_path = os.path.abspath(full_path)
+    if not resolved_path.startswith(os.path.abspath(UPLOAD_DIR)):
+        abort(403)
+        
+    if not os.path.isfile(resolved_path):
         abort(404)
-    return send_from_directory(UPLOAD_DIR, safe_name, as_attachment=True)
+        
+    return send_from_directory(UPLOAD_DIR, filename, as_attachment=True)
 
-
-# ---------------------------------------------------------------------------
-# API: Speed test
-# ---------------------------------------------------------------------------
 
 @app.route("/api/speedtest/ping")
 def api_speedtest_ping():
@@ -165,12 +188,6 @@ def api_speedtest_download():
         "X-Speedtest-Bytes": str(total_bytes),
     }
     return Response(stream_with_context(generate()), headers=headers)
-
-
-@app.route("/api/speedtest/upload", methods=["POST"])
-def api_speedtest_upload():
-    data = request.get_data()
-    return jsonify({"received_bytes": len(data)})
 
 
 @app.errorhandler(RequestEntityTooLarge)
