@@ -13,13 +13,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 PORT_CHECK_TIMEOUT = 3.0
 SPEEDTEST_CHUNK_SIZE = 256 * 1024       
-SPEEDTEST_MAX_MB = 500  
+SPEEDTEST_MAX_MB = 500  # ლიმიტი გავზარდოთ 500 მბ-მდე დიდი პროგრამებისთვის (მაგ. iVMS)
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = (SPEEDTEST_MAX_MB + 4) * 1024 * 1024
 
 # ---------------------------------------------------------------------------
-# Google Drive ლინკები დიდი ფაილებისთვის
+# Google Drive ლინკების მატრიცა დიდი ფაილებისთვის
 # ---------------------------------------------------------------------------
 DRIVE_LINKS = {
     "SADP.exe": "https://drive.google.com/file/d/165ZxEDG5HcpFB7u8j8Kqub-Kd51qGHMO/view?usp=sharing",
@@ -41,6 +41,9 @@ def index():
     return render_template("index.html")
 
 
+# ---------------------------------------------------------------------------
+# API: ფაილების ატვირთვის ფუნქცია (ლოკალურად)
+# ---------------------------------------------------------------------------
 @app.route("/api/upload", methods=["POST"])
 def api_upload_real_file():
     if 'file' not in request.files:
@@ -65,6 +68,9 @@ def api_upload_real_file():
         }), 200
 
 
+# ---------------------------------------------------------------------------
+# API: Port checker
+# ---------------------------------------------------------------------------
 @app.route("/api/portcheck", methods=["POST"])
 def api_portcheck():
     data = request.get_json(silent=True) or {}
@@ -90,7 +96,7 @@ def api_portcheck():
             "port": port,
             "status": "error",
             "message": "Could not resolve host.",
-        }), 200
+        }) or {}, 200
 
     start = time.monotonic()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -117,6 +123,9 @@ def api_portcheck():
     })
 
 
+# ---------------------------------------------------------------------------
+# API: ფაილების სია დრაივის ბმულების ინტეგრაციით
+# ---------------------------------------------------------------------------
 @app.route("/api/files")
 def api_files():
     files = []
@@ -125,6 +134,7 @@ def api_files():
         if os.path.isfile(full_path):
             stat = os.stat(full_path)
             
+            # შემოწმება არის თუ არა ფაილი დრაივის სიაში
             if name in DRIVE_LINKS:
                 download_url = DRIVE_LINKS[name]
                 is_cloud = True
@@ -143,11 +153,14 @@ def api_files():
     return jsonify({"files": files})
 
 
+# ---------------------------------------------------------------------------
+# API: ფაილის გადმოწერა (გასწორებული ფრჩხილებიანი ფაილებისთვის)
+# ---------------------------------------------------------------------------
 @app.route("/download/<path:filename>")
 def download_file(filename):
-    filename = os.path.basename(filename)
     full_path = os.path.join(UPLOAD_DIR, filename)
     
+    # უსაფრთხოების შემოწმება (Directory Traversal-ის პრევენცია)
     resolved_path = os.path.abspath(full_path)
     if not resolved_path.startswith(os.path.abspath(UPLOAD_DIR)):
         abort(403)
@@ -158,6 +171,9 @@ def download_file(filename):
     return send_from_directory(UPLOAD_DIR, filename, as_attachment=True)
 
 
+# ---------------------------------------------------------------------------
+# API: Speed test
+# ---------------------------------------------------------------------------
 @app.route("/api/speedtest/ping")
 def api_speedtest_ping():
     resp = jsonify({"pong": True, "t": time.time()})
