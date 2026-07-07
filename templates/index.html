@@ -136,21 +136,28 @@
   </section>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- 01 // CCTV UTILITIES -->
+    <!-- 01 // PORT CHECKER (ახლა უკვე ზედა დიდ პანელშია) -->
     <section class="panel rounded-lg p-6 relative overflow-hidden flex flex-col justify-between">
       <div>
         <div class="flex items-center justify-between mb-4">
-          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">01 // CCTV UTILITIES</span>
-          <span class="font-mono text-[10px] text-slate-600">HIKVISION</span>
+          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">01 // PORT CHECKER</span>
+          <span class="font-mono text-[10px] text-slate-600">CONNECTION DIAGNOSTICS</span>
         </div>
-        <p class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-1">Storage & Bandwidth Management</p>
-        <span class="font-mono text-xl font-bold text-slate-100 tracking-tight">Hikvision Designer Toolkit</span>
+        
+        <p class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-3">Target Socket Probe</p>
+        
+        <div class="flex gap-3 mb-3">
+          <input id="ws-host" type="text" placeholder="example.com or IP" class="bg-base-900 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+          <input id="ws-port" type="text" placeholder="8000" value="8000" class="bg-base-900 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 w-24 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+        </div>
+        
+        <div id="ws-result" class="font-mono text-xs text-slate-500 min-h-[20px] mt-2 bg-base-950/40 p-2 rounded border border-base-border/30">Ready to probe</div>
       </div>
+      
       <div class="mt-6">
-        <a href="https://hitools.hikvision.com/HiToolsDesigner/#/toolBox?site=en" target="_blank"
-           class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3.5 rounded-md transition text-center block">
-          Open Storage Calculator
-        </a>
+        <button onclick="probePortWS()" id="ws-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3.5 rounded-md transition text-center">
+          Check Port
+        </button>
       </div>
     </section>
 
@@ -201,22 +208,19 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- ლოკალური ვებსოკეტ პორტ ჩეკერი -->
+      <!-- CCTV UTILITIES (ჩამოტანილი პატარა ველად) -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div>
-          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">Port Checker</span>
-          <div class="flex gap-2 mb-1.5">
-            <input id="ws-host" type="text" placeholder="example.com or IP" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-            <input id="ws-port" type="text" placeholder="8000" value="8000" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-16 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-          </div>
-          <div id="ws-result" class="font-mono text-[10px] text-slate-500 min-h-[16px] truncate">Ready to probe</div>
+          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-1">CCTV Utilities</span>
+          <span class="font-mono text-[9px] text-slate-600 uppercase block mb-3">Hikvision</span>
+          <p class="font-mono text-xs text-slate-400 leading-normal mb-2">Storage & Bandwidth Management Toolkit.</p>
         </div>
-        <button onclick="probePortWS()" id="ws-btn" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
-          Check
-        </button>
+        <a href="https://hitools.hikvision.com/HiToolsDesigner/#/toolBox?site=en" target="_blank" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-2 rounded transition text-center block">
+          Open Calculator
+        </a>
       </div>
 
-      <!-- განახლებული სუბნეტ კალკულატორი ტექსტური ინპუტით -->
+      <!-- IPv4 სუბნეტ კალკულატორი -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div>
           <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">IPv4 Subnet Calculator</span>
@@ -236,7 +240,7 @@
         </button>
       </div>
 
-      <!-- განახლებული MAC მისამართების კონვერტორი -->
+      <!-- MAC მისამართების კონვერტორი -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div class="space-y-2">
           <span class="font-mono text-[10px] text-slate-500 uppercase block">MAC Address Converter</span>
@@ -452,7 +456,7 @@
     document.getElementById('ws-host').value = '45.9.46.76';
   }
 
-  // ლოკალური ვებსოკეტ პორტ ჩეკერი
+  // ლოკალური ვებსოკეტ პორტ ჩეკერი (განახლებული დიდი ველისთვის)
   function probePortWS() {
     let host = document.getElementById('ws-host').value.trim();
     const port = document.getElementById('ws-port').value.trim();
@@ -460,14 +464,14 @@
     const btn = document.getElementById('ws-btn');
 
     if (!host || !port) {
-      resultDiv.className = "font-mono text-[10px] text-amber-500 truncate";
+      resultDiv.className = "font-mono text-xs text-amber-500";
       resultDiv.textContent = "⚠️ Please enter both target and port.";
       return;
     }
 
     btn.disabled = true;
     btn.textContent = "PROBING...";
-    resultDiv.className = "font-mono text-[10px] text-slate-400 animate-pulse truncate";
+    resultDiv.className = "font-mono text-xs text-slate-400 animate-pulse";
     resultDiv.textContent = `⚡ Testing via Timed WebSocket...`;
 
     host = host.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
@@ -476,20 +480,20 @@
     
     const timeout = setTimeout(() => {
       socket.close();
-      resultDiv.className = "font-mono text-[10px] text-rose-500 truncate";
+      resultDiv.className = "font-mono text-xs text-rose-500";
       resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED (Timeout)`;
       btn.disabled = false;
-      btn.textContent = "Check";
+      btn.textContent = "Check Port";
     }, 4500);
 
     socket.onopen = function() {
       clearTimeout(timeout);
       socket.close();
       const elapsed = Date.now() - startTime;
-      resultDiv.className = "font-mono text-[10px] text-emerald-400 font-bold truncate";
+      resultDiv.className = "font-mono text-xs text-emerald-400 font-bold";
       resultDiv.textContent = `🟢 Port ${port} is OPEN (${elapsed}ms)`;
       btn.disabled = false;
-      btn.textContent = "Check";
+      btn.textContent = "Check Port";
     };
 
     socket.onerror = function() {
@@ -497,14 +501,14 @@
       socket.close();
       const elapsed = Date.now() - startTime;
       if (elapsed < 1200) {
-        resultDiv.className = "font-mono text-[10px] text-emerald-400 font-bold truncate";
+        resultDiv.className = "font-mono text-xs text-emerald-400 font-bold";
         resultDiv.textContent = `🟢 Port ${port} responded (likely OPEN)`;
       } else {
-        resultDiv.className = "font-mono text-[10px] text-rose-500 truncate";
+        resultDiv.className = "font-mono text-xs text-rose-500";
         resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED`;
       }
       btn.disabled = false;
-      btn.textContent = "Check";
+      btn.textContent = "Check Port";
     };
   }
 
