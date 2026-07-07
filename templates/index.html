@@ -362,7 +362,6 @@
       document.getElementById('geo-ip-display').textContent = data.ip;
       document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
     } catch (error) {
-      // Fallback ლოკალზე ფაილიდან გაშვებისას ან API შეცდომისას
       document.getElementById('geo-ip-display').textContent = '45.9.46.76';
       document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
     }
