@@ -193,7 +193,7 @@
     </section>
   </div>
 
-  <!-- 03 // CORE NETWORK TOOLS (პორტ ჩეკერი + ახალი შიდა სუბნეტ კალკულატორი) -->
+  <!-- 03 // CORE NETWORK TOOLS -->
   <section class="panel rounded-lg p-6 relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
       <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // CORE NETWORK TOOLS</span>
@@ -216,27 +216,16 @@
         </button>
       </div>
 
-      <!-- ახალი ჩაშენებული სუბნეტ კალკულატორი (ფერებში და სტილში) -->
+      <!-- განახლებული სუბნეტ კალკულატორი ტექსტური ინპუტით (ყველა ნიღბის მხარდაჭერით) -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[160px]">
         <div>
           <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">IPv4 Subnet Calculator</span>
           <div class="flex gap-2 mb-1.5">
-            <input id="sub-ip" type="text" placeholder="45.9.46.76" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-            <select id="sub-mask" class="bg-base-900 border border-base-border rounded px-1 py-1 text-[11px] font-mono text-slate-200 w-20 focus:outline-none focus:border-cyan-glow/40">
-              <option value="32">/32</option>
-              <option value="31">/31</option>
-              <option value="30" selected>/30</option>
-              <option value="29">/29</option>
-              <option value="28">/28</option>
-              <option value="27">/27</option>
-              <option value="26">/26</option>
-              <option value="25">/26</option>
-              <option value="24">/24</option>
-              <option value="23">/23</option>
-              <option value="22">/22</option>
-              <option value="16">/16</option>
-              <option value="8">/8</option>
-            </select>
+            <input id="sub-ip" type="text" placeholder="e.g. 192.168.1.1" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+            <div class="relative flex items-center shrink-0 w-16">
+              <span class="absolute left-2 font-mono text-xs text-slate-500">/</span>
+              <input id="sub-mask" type="text" placeholder="30" value="30" class="bg-base-900 border border-base-border rounded pl-5 pr-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600 text-center">
+            </div>
           </div>
           <div id="sub-result" class="font-mono text-[10px] text-slate-400 mt-1 space-y-0.5 overflow-y-auto max-h-[64px] leading-tight">
             Enter network credentials.
@@ -247,7 +236,7 @@
         </button>
       </div>
 
-      <!-- DNS პანელი უცვლელია -->
+      <!-- DNS პანელი -->
       <a href="https://dnschecker.org/" target="_blank" class="bg-base-950/50 hover:bg-base-800/60 border border-base-border hover:border-cyan-glow/50 p-4 rounded-md transition group flex flex-col justify-between min-h-[160px]">
         <div>
           <span class="font-mono text-[10px] text-slate-500 uppercase block">DNS Propagation</span>
@@ -258,7 +247,7 @@
     </div>
   </section>
 
-  <!-- სრული ფაილების რეპოზიტორია (External Cloud Drive) -->
+  <!-- სრული ფაილების რეპოზიტორია -->
   <section class="panel rounded-lg p-6">
     <div class="flex items-center justify-between mb-5">
       <span class="font-mono text-[10px] text-cyan-glow tracking-widest">04 // SYSADMIN FILE REPOSITORY</span>
@@ -423,9 +412,8 @@
       const ipData = await response.json();
       document.getElementById('geo-ip-display').textContent = ipData.ip;
 
-      // ვავსებთ მიმდინარე IP-ს ორივე ხელსაწყოს ველში
+      // პორტ ჩეკერში IP-ის ავტომატური შევსება რჩება
       document.getElementById('ws-host').value = ipData.ip;
-      document.getElementById('sub-ip').value = ipData.ip;
 
       const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
       const geoData = await geoResponse.json();
@@ -446,7 +434,6 @@
     document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
     document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
     document.getElementById('ws-host').value = '45.9.46.76';
-    document.getElementById('sub-ip').value = '45.9.46.76';
   }
 
   // ლოკალური ვებსოკეტ პორტ ჩეკერი
@@ -505,27 +492,35 @@
     };
   }
 
-  // ახალი შიდა სუბნეტ კალკულატორი
+  // სუბნეტ კალკულატორი ტექსტური ინპუტით (მუშაობს /1-დან /32-მდე)
   function calculateSubnet() {
     const ipStr = document.getElementById('sub-ip').value.trim();
-    const maskStr = document.getElementById('sub-mask').value;
+    const maskStr = document.getElementById('sub-mask').value.trim();
     const resultDiv = document.getElementById('sub-result');
+
+    if (!ipStr || !maskStr) {
+      resultDiv.innerHTML = "<span class='text-amber-500'>⚠️ Please fill both fields.</span>";
+      return;
+    }
 
     const ipReg = /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/;
     if (!ipReg.test(ipStr)) {
-      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Invalid IP Address format.</span>";
+      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Invalid IP format.</span>";
       return;
     }
 
     const parts = ipStr.split('.').map(Number);
     if (parts.some(p => p > 255)) {
-      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Octet value cannot exceed 255.</span>";
+      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Max octet is 255.</span>";
       return;
     }
 
     const prefix = parseInt(maskStr, 10);
+    if (isNaN(prefix) || prefix < 1 || prefix > 32) {
+      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Mask must be between 1 and 32.</span>";
+      return;
+    }
     
-    // 32-ბიტიანი ბინარული მასივის აწყობა
     let ipNum = (parts[0] << 24) >>> 0;
     ipNum += (parts[1] << 16) >>> 0;
     ipNum += (parts[2] << 8) >>> 0;
