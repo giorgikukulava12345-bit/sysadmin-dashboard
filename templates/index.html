@@ -94,7 +94,7 @@
     
     <div class="flex items-center gap-2.5 font-mono text-xs text-slate-400">
       <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
-      <span id="clock">--/--/---- --:--:--</span>
+      <span id="clock">07/07/2026 12:52:00</span>
       <span class="text-slate-600">|</span>
       <div class="flex items-center gap-1.5 bg-base-950/80 border border-base-border px-2 py-0.5 rounded text-slate-400">
         <svg class="w-4 h-3 rounded-sm" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
@@ -179,19 +179,144 @@
     </div>
   </section>
 
+  <!-- სრული ფაილების რეპოზიტორია (External Cloud Drive) -->
   <section class="panel rounded-lg p-6">
     <div class="flex items-center justify-between mb-5">
-      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">04 // FILE REPOSITORY</span>
-      <span class="font-mono text-[10px] text-slate-600">GET /api/files</span>
+      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">04 // SYSADMIN FILE REPOSITORY</span>
+      <span class="font-mono text-[10px] text-slate-600">GOOGLE DRIVE REPOSITORY</span>
     </div>
 
-    <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <p class="font-mono text-xs text-slate-600 col-span-2">Loading directory listing...</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      
+      <!-- anyconnect -->
+      <a href="https://drive.google.com/file/d/1ChI7JzihloyM7_4I7SuQYi0fSIatW1s8/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">anyconnect-win-4.9.01095-core-vpn.msi</p>
+          <p class="font-mono text-[10px] text-slate-500">14.9 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- cpuz -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">cpuz_x64.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">3.6 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- CrystalDiskInfo -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">CrystalDiskInfo8_3_1.zip</p>
+          <p class="font-mono text-[10px] text-slate-500">5.4 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- EZStation -->
+      <a href="https://drive.google.com/file/d/1Mzso5hA06xwNd6b-7_a6BbnlTZJhLETF/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">EZStation_B1130.3.18.3(IN).exe</p>
+          <p class="font-mono text-[10px] text-slate-500">145.2 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- iVMS-4200 -->
+      <a href="https://drive.google.com/file/d/1ChI7JzihloyM7_4I7SuQYi0fSIatW1s8/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">iVMS-4200(V3.14.0.6_E).exe</p>
+          <p class="font-mono text-[10px] text-slate-500">331.8 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- netscan -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">netscan_setup.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">12.9 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- OfficeSetup -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">OfficeSetup.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">7.2 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- putty -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">putty_0.77.msi</p>
+          <p class="font-mono text-[10px] text-slate-500">3.2 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- rufus -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">rufus-4.2p.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">1.4 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- rustdesk -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">rustdesk-1.4.9-x86_64.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">23.8 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- SADP -->
+      <a href="https://drive.google.com/file/d/165ZxEDG5HcpFB7u8j8Kqub-Kd51qGHMO/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">SADP.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">68.7 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
+      <!-- winrar -->
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm text-slate-200 truncate">winrar-x64-713.exe</p>
+          <p class="font-mono text-[10px] text-slate-500">3.6 MB · Cloud Storage</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
+      </a>
+
     </div>
 
-    <p class="font-mono text-[10px] text-slate-600 mt-4 pt-4 border-t border-base-border">
-      Files served dynamically from <span class="text-slate-400">Local uploads / Google Drive</span>.
-    </p>
+    <!-- მუდმივი ბმული Google Drive საქაღალდეზე ახალი ფაილების მარტივად ჩასაყრელად -->
+    <div class="mt-4 pt-4 border-t border-base-border flex justify-end">
+      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 text-cyan-glow font-mono text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded transition flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 15c.5-1.1.8-2.3.8-3.5 0-4.4-3.6-8-8-8s-8 3.6-8 8c0 1.2.3 2.4.8 3.5"/><path d="M12 12v9"/><path d="m9 18 3 3 3-3"/></svg>
+        Open Main Drive Folder ↗
+      </a>
+    </div>
   </section>
 
 </main>
@@ -201,9 +326,6 @@
 </footer>
 
 <script>
-  const API_HOST = window.location.origin;
-
-  // ---------- Clock with Date ----------
   function formatLocalClock(date) {
     return date.toLocaleString('en-GB', {
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -218,38 +340,6 @@
   }
   tickClock();
   setInterval(tickClock, 1000);
-
-  // ---------- File Repository Icons ----------
-  function fileIcon() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
-  }
-
-  // ---------- Load Files დინამიურად (Local + Drive მხარდაჭერით) ----------
-  async function loadFiles() {
-    const el = document.getElementById('fileList');
-    if (!el) return;
-    try {
-      const res = await fetch(`${API_HOST}/api/files`);
-      const data = await res.json();
-      if (!data.files || !data.files.length) {
-        el.innerHTML = `<p class="font-mono text-xs text-slate-600 col-span-2">// uploads/ is empty.</p>`;
-        return;
-      }
-      el.innerHTML = data.files.map(f => `
-        <a href="${f.is_cloud ? f.download_url : API_HOST + f.download_url}" target="${f.is_cloud ? '_blank' : '_self'}" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
-          ${fileIcon()}
-          <div class="flex-1 min-w-0">
-            <p class="font-mono text-sm text-slate-200 truncate">${f.name}</p>
-            <p class="font-mono text-[10px] text-slate-500">${f.size} · ${f.is_cloud ? 'Cloud Drive' : 'Local Server'}</p>
-          </div>
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
-        </a>`).join('');
-    } catch (e) {
-      el.innerHTML = `<p class="font-mono text-xs text-rose-400 col-span-2">// Failed to load file list.</p>`;
-    }
-  }
-
-  loadFiles();
 </script>
 
 </body>
