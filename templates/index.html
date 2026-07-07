@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>OPS-01 · SysAdmin Dashboard</title>
+<title>NOC CONSOLE · Network Operations Center</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -87,15 +87,23 @@
         </svg>
       </div>
       <div>
-        <h1 class="font-mono text-sm font-bold text-slate-100 tracking-widest">OPS-01</h1>
-        <p class="font-mono text-[10px] text-slate-500 -mt-0.5">SYSADMIN CONSOLE</p>
+        <h1 class="font-mono text-sm font-bold text-slate-100 tracking-widest">NOC // CONSOLE</h1>
+        <p class="font-mono text-[10px] text-slate-500 -mt-0.5">NETWORK OPERATIONS CENTER</p>
       </div>
     </div>
-    <div class="flex items-center gap-2 font-mono text-xs text-slate-400">
+    
+    <div class="flex items-center gap-2.5 font-mono text-xs text-slate-400">
       <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
-      <span id="clock">--:--:--</span>
+      <span id="clock">--/--/---- --:--:--</span>
       <span class="text-slate-600">|</span>
-      <span class="text-slate-500" id="tzLabel">LOCAL</span>
+      <div class="flex items-center gap-1.5 bg-base-950/80 border border-base-border px-2 py-0.5 rounded text-slate-400">
+        <svg class="w-4 h-3 rounded-sm" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+          <rect width="30" height="20" fill="#fff"/>
+          <path d="M13 0h4v20h-4zM0 8h30v4H0z" fill="#ff0000"/>
+          <path d="M6 3.5h1v2H6zm-0.5.5h2v1h-2zM23 3.5h1v2h-1zm-0.5.5h2v1h-2zM6 14.5h1v2H6zm-0.5.5h2v1h-2zM23 14.5h1v2h-1zm-0.5.5h2v1h-2z" fill="#ff0000"/>
+        </svg>
+        <span class="text-[11px] font-bold text-slate-400 tracking-wide">GE // TBILISI</span>
+      </div>
     </div>
   </div>
 </header>
@@ -124,13 +132,13 @@
       <div>
         <div class="flex items-center justify-between mb-4">
           <span class="font-mono text-[10px] text-cyan-glow tracking-widest">02 // BANDWIDTH BENCHMARK</span>
-          <span class="font-mono text-[10px] text-slate-600">FAST_COM</span>
+          <span class="font-mono text-[10px] text-slate-600">OOKLA_SPEEDTEST</span>
         </div>
-        <p class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-1">Internet Throughput Measurement</p>
-        <span class="font-mono text-xl font-bold text-slate-100 tracking-tight">Fast.com Speed Analyzer</span>
+        <p class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-1">Local & Global Throughput</p>
+        <span class="font-mono text-xl font-bold text-slate-100 tracking-tight">Speedtest.net Analyzer</span>
       </div>
       <div class="mt-6">
-        <a href="https://fast.com/" target="_blank"
+        <a href="https://www.speedtest.net/" target="_blank"
            class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3.5 rounded-md transition text-center block">
           Run Speedtest
         </a>
@@ -177,30 +185,33 @@
       <span class="font-mono text-[10px] text-slate-600">GET /api/files</span>
     </div>
 
-    <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1">
+    <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <p class="font-mono text-xs text-slate-600 col-span-2">Loading directory listing...</p>
     </div>
 
     <p class="font-mono text-[10px] text-slate-600 mt-4 pt-4 border-t border-base-border">
-      Files served from <span class="text-slate-400">/uploads</span> on the server.
+      Files served dynamically from <span class="text-slate-400">Local uploads / Google Drive</span>.
     </p>
   </section>
 
 </main>
 
 <footer class="max-w-7xl mx-auto px-6 pb-8">
-  <p class="font-mono text-[10px] text-slate-700 text-center">OPS-01 SYSADMIN CONSOLE · Flask + Tailwind · internal use only</p>
+  <p class="font-mono text-[10px] text-slate-700 text-center">NOC CONSOLE · Network Operations Center · internal use only</p>
 </footer>
 
 <script>
   const API_HOST = window.location.origin;
 
-  // ---------- Clock ----------
+  // ---------- Clock with Date ----------
   function formatLocalClock(date) {
-    return date.toLocaleTimeString('en-GB', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    });
+    return date.toLocaleString('en-GB', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    }).replace(',', '');
   }
+  
   function tickClock() {
     const el = document.getElementById('clock');
     if (el) el.textContent = formatLocalClock(new Date());
@@ -208,11 +219,12 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  // ---------- File Repository ----------
+  // ---------- File Repository Icons ----------
   function fileIcon() {
     return `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
   }
 
+  // ---------- Load Files დინამიურად (Local + Drive მხარდაჭერით) ----------
   async function loadFiles() {
     const el = document.getElementById('fileList');
     if (!el) return;
@@ -224,11 +236,11 @@
         return;
       }
       el.innerHTML = data.files.map(f => `
-        <a href="${API_HOST}/download/${encodeURIComponent(f.name)}" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
+        <a href="${f.is_cloud ? f.download_url : API_HOST + f.download_url}" target="${f.is_cloud ? '_blank' : '_self'}" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
           ${fileIcon()}
           <div class="flex-1 min-w-0">
             <p class="font-mono text-sm text-slate-200 truncate">${f.name}</p>
-            <p class="font-mono text-[10px] text-slate-500">${f.size} · ${f.modified}</p>
+            <p class="font-mono text-[10px] text-slate-500">${f.size} · ${f.is_cloud ? 'Cloud Drive' : 'Local Server'}</p>
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
         </a>`).join('');
@@ -236,6 +248,7 @@
       el.innerHTML = `<p class="font-mono text-xs text-rose-400 col-span-2">// Failed to load file list.</p>`;
     }
   }
+
   loadFiles();
 </script>
 
