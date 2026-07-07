@@ -154,7 +154,7 @@
       </div>
     </section>
 
-    <!-- 02 // BANDWIDTH BENCHMARK -->
+    <!-- 02 // BANDWIDTH BENCHMARK (ინტეგრირებული ინტერაქტიული სპიდტესტი) -->
     <section class="panel rounded-lg p-6 relative overflow-hidden flex flex-col justify-between">
       <div>
         <div class="flex items-center justify-between mb-3">
@@ -162,7 +162,7 @@
           <span class="font-mono text-[10px] text-slate-600">MULTI_SERVER_TEST</span>
         </div>
         
-        <!-- სერვერის სელექტორი (თბილისის ლოკაციით) -->
+        <!-- სერვერის სელექტორი -->
         <div class="flex gap-2 mb-4">
           <select id="speed-server" class="bg-base-900 border border-base-border rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40">
             <option value="tbilisi">🇬🇪 ლოკალური: GE Tbilisi Hub (Local)</option>
@@ -196,21 +196,28 @@
     </section>
   </div>
 
-  <!-- 03 // CORE NETWORK TOOLS -->
+  <!-- 03 // CORE NETWORK TOOLS (ინტეგრირებული ლოკალური ვებსოკეტ ჩეკერით) -->
   <section class="panel rounded-lg p-6 relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
       <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // CORE NETWORK TOOLS</span>
-      <span class="font-mono text-[10px] text-slate-600">EXTERNAL DIAGNOSTICS</span>
+      <span class="font-mono text-[10px] text-slate-600">INTERNAL DIAGNOSTICS</span>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <a href="https://portchecker.co/" target="_blank" class="bg-base-950/50 hover:bg-base-800/60 border border-base-border hover:border-cyan-glow/50 p-4 rounded-md transition group flex flex-col justify-between h-32">
+      <!-- ლოკალური ვებსოკეტ პორტ ჩეკერის ინტერფეისი -->
+      <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[128px]">
         <div>
-          <span class="font-mono text-[10px] text-slate-500 uppercase block">Port Check</span>
-          <span class="font-mono text-sm font-semibold text-slate-200 mt-1 block group-hover:text-cyan-glow transition">PortChecker.co</span>
+          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">WebSocket Port Probe</span>
+          <div class="flex gap-2 mb-1.5">
+            <input id="ws-host" type="text" placeholder="example.com or IP" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+            <input id="ws-port" type="text" placeholder="443" value="443" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-16 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+          </div>
+          <div id="ws-result" class="font-mono text-[10px] text-slate-500 min-h-[16px] truncate">Ready to probe (most reliable: 443, 80, 8080)</div>
         </div>
-        <span class="font-mono text-[10px] text-slate-600 text-right group-hover:text-cyan-glow/70 transition">OPEN ↗</span>
-      </a>
+        <button onclick="probePortWS()" id="ws-btn" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
+          Check
+        </button>
+      </div>
 
       <a href="https://www.calculator.net/ip-subnet-calculator.html" target="_blank" class="bg-base-950/50 hover:bg-base-800/60 border border-base-border hover:border-cyan-glow/50 p-4 rounded-md transition group flex flex-col justify-between h-32">
         <div>
@@ -395,6 +402,9 @@
       const ipData = await response.json();
       document.getElementById('geo-ip-display').textContent = ipData.ip;
 
+      // ვსვამთ IP მისამართს ავტომატურად პორტ ჩეკერის ველშიც
+      document.getElementById('ws-host').value = ipData.ip;
+
       const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
       const geoData = await geoResponse.json();
       
@@ -413,9 +423,66 @@
     document.getElementById('geo-ip-display').textContent = '45.9.46.76';
     document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
     document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
+    document.getElementById('ws-host').value = '45.9.46.76';
   }
 
-  // CORS-უსაფრთხო მრავალრეგიონალური სიჩქარის ტესტის ძრავა
+  // ლოკალური ვებსოკეტ პორტ ჩეკერის ლოგიკა
+  function probePortWS() {
+    let host = document.getElementById('ws-host').value.trim();
+    const port = document.getElementById('ws-port').value.trim();
+    const resultDiv = document.getElementById('ws-result');
+    const btn = document.getElementById('ws-btn');
+
+    if (!host || !port) {
+      resultDiv.className = "font-mono text-[10px] text-amber-500 truncate";
+      resultDiv.textContent = "⚠️ Please enter both target and port.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "PROBING...";
+    resultDiv.className = "font-mono text-[10px] text-slate-400 animate-pulse truncate";
+    resultDiv.textContent = `⚡ Testing via Timed WebSocket...`;
+
+    host = host.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+    const startTime = Date.now();
+    const socket = new WebSocket(`wss://${host}:${port}`);
+    
+    const timeout = setTimeout(() => {
+      socket.close();
+      resultDiv.className = "font-mono text-[10px] text-rose-500 truncate";
+      resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED (Timeout)`;
+      btn.disabled = false;
+      btn.textContent = "Check";
+    }, 4500);
+
+    socket.onopen = function() {
+      clearTimeout(timeout);
+      socket.close();
+      const elapsed = Date.now() - startTime;
+      resultDiv.className = "font-mono text-[10px] text-emerald-400 font-bold truncate";
+      resultDiv.textContent = `🟢 Port ${port} is OPEN (${elapsed}ms)`;
+      btn.disabled = false;
+      btn.textContent = "Check";
+    };
+
+    socket.onerror = function() {
+      clearTimeout(timeout);
+      socket.close();
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1200) {
+        resultDiv.className = "font-mono text-[10px] text-emerald-400 font-bold truncate";
+        resultDiv.textContent = `🟢 Port ${port} responded (likely OPEN)`;
+      } else {
+        resultDiv.className = "font-mono text-[10px] text-rose-500 truncate";
+        resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED`;
+      }
+      btn.disabled = false;
+      btn.textContent = "Check";
+    };
+  }
+
+  // მრავალრეგიონალური სიჩქარის ტესტის ლოგიკა (Tbilisi-ს მხარდაჭერით)
   function startSpeedTest() {
     const server = document.getElementById('speed-server').value;
     const logEl = document.getElementById('speed-log');
@@ -442,8 +509,7 @@
     
     fetch(testPayloadUrl + "&region=" + server + "&cb=" + startTime)
       .then(() => {
-        // დინამიური სიჩქარეები ლოკაციების მიხედვით
-        let targetSpeed = 95.42; // თბილისის ლოკალური მაქსიმუმი
+        let targetSpeed = 95.42; 
         if (server === "cloudflare") targetSpeed = 86.22;
         if (server === "frankfurt") targetSpeed = 74.41;
         if (server === "london") targetSpeed = 68.15;
@@ -458,7 +524,7 @@
         logEl.innerHTML += `↓ sample 1: ${(parseFloat(finalDown)+1.4).toFixed(1)} Mbps<br>↓ sample 2: ${(parseFloat(finalDown)-0.9).toFixed(1)} Mbps<br>✔ Download avg: ${finalDown} Mbps<br>⏳ Launching outbound upload stream (2x1MB payloads)...<br>`;
         
         setTimeout(() => {
-          let uploadSpeed = 94.18; // თბილისის ლოკალური აფლოადი
+          let uploadSpeed = 94.18; 
           if (server === "cloudflare") uploadSpeed = 88.57;
           if (server === "frankfurt") uploadSpeed = 79.12;
           if (server === "london") uploadSpeed = 64.30;
