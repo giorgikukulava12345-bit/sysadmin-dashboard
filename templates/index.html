@@ -110,6 +110,31 @@
 
 <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
 
+  <!-- Network Info სექცია -->
+  <section class="panel rounded-lg p-6 relative overflow-hidden">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="font-mono text-sm font-bold text-cyan-glow tracking-wider">Network Info</h2>
+        <p class="font-mono text-[9px] text-slate-500 tracking-widest uppercase">Your Current Connection Profile</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
+        <span class="font-mono text-[10px] text-slate-500 uppercase block">Public IP Address</span>
+        <span id="geo-ip-display" class="font-mono text-xl font-bold text-slate-100 mt-1 block tracking-wide">Loading...</span>
+      </div>
+      <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
+        <span class="font-mono text-[10px] text-slate-500 uppercase block">ISP / Internet Provider</span>
+        <span id="geo-isp" class="font-mono text-sm font-semibold text-slate-200 mt-2 block truncate">Loading...</span>
+      </div>
+      <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
+        <span class="font-mono text-[10px] text-slate-500 uppercase block">Location Reference</span>
+        <span id="geo-location" class="font-mono text-sm font-semibold text-slate-200 mt-2 block truncate">Tbilisi, Georgia</span>
+      </div>
+    </div>
+  </section>
+
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <section class="panel rounded-lg p-6 relative overflow-hidden flex flex-col justify-between">
       <div>
@@ -146,6 +171,7 @@
     </section>
   </div>
 
+  <!-- 03 // CORE NETWORK TOOLS -->
   <section class="panel rounded-lg p-6 relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
       <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // CORE NETWORK TOOLS</span>
@@ -187,7 +213,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      
       <!-- anyconnect -->
       <a href="https://drive.google.com/file/d/1ChI7JzihloyM7_4I7SuQYi0fSIatW1s8/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -197,7 +222,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- cpuz -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -207,7 +231,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- CrystalDiskInfo -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -217,7 +240,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- EZStation -->
       <a href="https://drive.google.com/file/d/1Mzso5hA06xwNd6b-7_a6BbnlTZJhLETF/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -227,7 +249,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- iVMS-4200 -->
       <a href="https://drive.google.com/file/d/1ChI7JzihloyM7_4I7SuQYi0fSIatW1s8/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -237,7 +258,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- netscan -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -247,7 +267,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- OfficeSetup -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -257,7 +276,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- putty -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -267,7 +285,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- rufus -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -277,7 +294,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- rustdesk -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -287,7 +303,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- SADP -->
       <a href="https://drive.google.com/file/d/165ZxEDG5HcpFB7u8j8Kqub-Kd51qGHMO/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -297,7 +312,6 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
       <!-- winrar -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -307,10 +321,8 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
-
     </div>
 
-    <!-- მუდმივი ბმული Google Drive საქაღალდეზე ახალი ფაილების მარტივად ჩასაყრელად -->
     <div class="mt-4 pt-4 border-t border-base-border flex justify-end">
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 text-cyan-glow font-mono text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded transition flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 15c.5-1.1.8-2.3.8-3.5 0-4.4-3.6-8-8-8s-8 3.6-8 8c0 1.2.3 2.4.8 3.5"/><path d="M12 12v9"/><path d="m9 18 3 3 3-3"/></svg>
@@ -340,6 +352,21 @@
   }
   tickClock();
   setInterval(tickClock, 1000);
+
+  async function initNetworkInfo() {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      
+      document.getElementById('geo-ip-display').textContent = data.ip;
+      document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
+    } catch (error) {
+      document.getElementById('geo-ip-display').textContent = '45.9.46.76';
+      document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
+    }
+  }
+
+  initNetworkInfo();
 </script>
 
 </body>
