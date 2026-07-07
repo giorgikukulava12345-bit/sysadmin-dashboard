@@ -204,7 +204,7 @@
       <!-- ლოკალური ვებსოკეტ პორტ ჩეკერი -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div>
-          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">WebSocket Port Probe</span>
+          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">Port Checker</span>
           <div class="flex gap-2 mb-1.5">
             <input id="ws-host" type="text" placeholder="example.com or IP" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
             <input id="ws-port" type="text" placeholder="8000" value="8000" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-16 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
@@ -236,17 +236,15 @@
         </button>
       </div>
 
-      <!-- განახლებული MAC მისამართების კონვერტორი (ჩანაცვლებული DNS-ის ნაცვლად) -->
+      <!-- განახლებული MAC მისამართების კონვერტორი -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div class="space-y-2">
           <span class="font-mono text-[10px] text-slate-500 uppercase block">MAC Address Converter</span>
           
-          <!-- ძირითადი ინპუტი -->
           <div class="flex gap-2">
             <input id="mac-input" type="text" oninput="convertMAC()" placeholder="0014.2201.2345 or 00:14:22..." class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
           </div>
 
-          <!-- შედეგების ველები მინი-ქოფირების ღილაკებით -->
           <div class="space-y-1.5 text-[11px] font-mono">
             <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
               <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Colon</span><span id="mac-colon" class="text-slate-300">-</span></div>
@@ -654,7 +652,6 @@
     const hyphenEl = document.getElementById('mac-hyphen');
     const ciscoEl = document.getElementById('mac-cisco');
 
-    // მხოლოდ ჰექსადეციმალური სიმბოლოების დატოვება
     let clean = input.replace(/[^0-9a-fA-F]/g, '');
 
     if (clean.length === 0) {
@@ -664,7 +661,6 @@
       return;
     }
 
-    // 12 სიმბოლომდე შევსება ან შეკვეცა რეალურ დროში ფორმატირებისთვის
     let upper = clean.toUpperCase();
 
     // 1. COLON ფორმატი (XX:XX:XX...)
