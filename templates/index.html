@@ -130,7 +130,7 @@
       </div>
       <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
         <span class="font-mono text-[10px] text-slate-500 uppercase block">Location Reference</span>
-        <span id="geo-location" class="font-mono text-sm font-semibold text-slate-200 mt-2 block truncate">Loading...</span>
+        <span id="geo-location" class="font-mono text-sm font-semibold text-slate-200 mt-2 block truncate">Tbilisi, Georgia</span>
       </div>
     </div>
   </section>
@@ -171,21 +171,28 @@
     </section>
   </div>
 
-  <!-- 03 // CORE NETWORK TOOLS -->
+  <!-- 03 // CORE NETWORK TOOLS (ინტეგრირებული ლოკალური ვებსოკეტ ჩეკერით) -->
   <section class="panel rounded-lg p-6 relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
       <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // CORE NETWORK TOOLS</span>
-      <span class="font-mono text-[10px] text-slate-600">EXTERNAL DIAGNOSTICS</span>
+      <span class="font-mono text-[10px] text-slate-600">INTERNAL DIAGNOSTICS</span>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <a href="https://portchecker.co/" target="_blank" class="bg-base-950/50 hover:bg-base-800/60 border border-base-border hover:border-cyan-glow/50 p-4 rounded-md transition group flex flex-col justify-between h-32">
+      <!-- ლოკალური ვებსოკეტ პორტ ჩეკერის ინტერფეისი (ფერებში მორგებული) -->
+      <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[128px]">
         <div>
-          <span class="font-mono text-[10px] text-slate-500 uppercase block">Port Check</span>
-          <span class="font-mono text-sm font-semibold text-slate-200 mt-1 block group-hover:text-cyan-glow transition">PortChecker.co</span>
+          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">WebSocket Port Probe</span>
+          <div class="flex gap-2 mb-1.5">
+            <input id="ws-host" type="text" placeholder="example.com or IP" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+            <input id="ws-port" type="text" placeholder="443" value="443" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-16 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+          </div>
+          <div id="ws-result" class="font-mono text-[10px] text-slate-500 min-h-[16px] truncate">Ready to probe (most reliable: 443, 80, 8080)</div>
         </div>
-        <span class="font-mono text-[10px] text-slate-600 text-right group-hover:text-cyan-glow/70 transition">OPEN ↗</span>
-      </a>
+        <button onclick="probePortWS()" id="ws-btn" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
+          Check
+        </button>
+      </div>
 
       <a href="https://www.calculator.net/ip-subnet-calculator.html" target="_blank" class="bg-base-950/50 hover:bg-base-800/60 border border-base-border hover:border-cyan-glow/50 p-4 rounded-md transition group flex flex-col justify-between h-32">
         <div>
@@ -349,7 +356,6 @@
 </footer>
 
 <script>
-  // საათის ფუნქცია
   function formatLocalClock(date) {
     return date.toLocaleString('en-GB', {
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -365,19 +371,18 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  // სრულად დინამიური IP და პროვაიდერის წამოღება (მუშაობს ლოკალზეც და გარე ჰოსტზეც)
   async function initNetworkInfo() {
     try {
-      // 1. ჯერ ვადგენთ რეალურ Public IP-ს
       const response = await fetch('https://api.ipify.org?format=json');
       const ipData = await response.json();
       document.getElementById('geo-ip-display').textContent = ipData.ip;
 
-      // 2. ახლა ვიყენებთ https-თავსებად API-ს რეალური პროვაიდერისა და ქალაქის დასადგენად
+      // საწყის ეტაპზევე ჩავსვათ აღმოჩენილი IP პორტ ჩეკერში placeholder-ად
+      document.getElementById('ws-host').value = ipData.ip;
+
       const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
       const geoData = await geoResponse.json();
       
-      // თუ მონაცემები წარმატებით წამოვიდა, ვწერთ რეალურ პროვაიდერს და ლოკაციას
       if (geoData && !geoData.error) {
         document.getElementById('geo-isp').textContent = geoData.org || 'Unknown Provider';
         document.getElementById('geo-location').textContent = `${geoData.city || 'Tbilisi'}, ${geoData.country_name || 'Georgia'}`;
@@ -389,16 +394,79 @@
     }
   }
 
-  // იმ შემთხვევისთვის თუ API დაიბლოკა ლოკალურ ქსელში ფაილიდან გახსნისას
   function useFallback() {
     document.getElementById('geo-ip-display').textContent = '45.9.46.76';
     document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
     document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
+    document.getElementById('ws-host').value = '45.9.46.76';
+  }
+
+  // ახალი კლიენტ-საიდ ვებსოკეტ პორტ ჩეკერი (Vercel-ისთვის სრულიად თავსებადი)
+  function probePortWS() {
+    let host = document.getElementById('ws-host').value.trim();
+    const port = document.getElementById('ws-port').value.trim();
+    const resultDiv = document.getElementById('ws-result');
+    const btn = document.getElementById('ws-btn');
+
+    if (!host || !port) {
+      resultDiv.className = "font-mono text-[10px] text-amber-500 truncate";
+      resultDiv.textContent = "⚠️ Please enter both target and port.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "PROBING...";
+    resultDiv.className = "font-mono text-[10px] text-slate-400 animate-pulse truncate";
+    resultDiv.textContent = `⚡ Testing via Timed WebSocket...`;
+
+    // თუ ჰოსტი დომენია, ვასუფთავებთ პროტოკოლს
+    host = host.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+
+    const startTime = Date.now();
+    
+    // ვქმნით დროებით სატესტო ვებსოკეტ კავშირს
+    const socket = new WebSocket(`wss://${host}:${port}`);
+    
+    // თუ ტაიმაუტმა დაასწრო
+    const timeout = setTimeout(() => {
+      socket.close();
+      resultDiv.className = "font-mono text-[10px] text-rose-500 truncate";
+      resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED (Timeout)`;
+      btn.disabled = false;
+      btn.textContent = "Check";
+    }, 4500);
+
+    socket.onopen = function() {
+      clearTimeout(timeout);
+      socket.close();
+      const elapsed = Date.now() - startTime;
+      resultDiv.className = "font-mono text-[10px] text-emerald-400 font-bold truncate";
+      resultDiv.textContent = `🟢 Port ${port} is OPEN (${elapsed}ms)`;
+      btn.disabled = false;
+      btn.textContent = "Check";
+    };
+
+    socket.onerror = function() {
+      clearTimeout(timeout);
+      socket.close();
+      const elapsed = Date.now() - startTime;
+      
+      // ვებსოკეტების სპეციფიკიდან გამომდინარე, თუ პორტი ღიაა მაგრამ არ აბრუნებს WS ჰენდშეიქს, 
+      // ბრაუზერი მაინც onerror-ს ისვრის, მაგრამ ძალიან სწრაფად (< 500ms). 
+      // თუ პორტი სრულიად დახურულია, მოთხოვნა ტაიმაუტამდე კიდდება.
+      if (elapsed < 1200) {
+        resultDiv.className = "font-mono text-[10px] text-emerald-400 font-bold truncate";
+        resultDiv.textContent = `🟢 Port ${port} responded (likely OPEN)`;
+      } else {
+        resultDiv.className = "font-mono text-[10px] text-rose-500 truncate";
+        resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED`;
+      }
+      btn.disabled = false;
+      btn.textContent = "Check";
+    };
   }
 
   initNetworkInfo();
-</script>
-
 </script>
 
 </body>
