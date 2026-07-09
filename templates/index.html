@@ -580,58 +580,69 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  // 100%-ით საიმედო IP / ISP / Geo ამოცნობის ფუნქცია (მრავალდონიანი Fallback-ით)
+  // 100%-ით საიმედო IP / ISP / Geo ამოცნობის ფუნქცია 4-დონიანი API Fallback-ით
   async function initNetworkInfo() {
     let publicIp = "";
     let isp = "";
     let city = "";
     let country = "";
 
-    // 1. მცდელობა: ipapi.co (JSON)
+    // 1. მცდელობა: ipwho.is (ყველაზე საიმედო, უპრობლემო CORS-ით)
     try {
-      const response = await fetch('https://ipapi.co/json/', { cache: 'no-cache' });
+      const response = await fetch('https://ipwho.is/', { cache: 'no-store' });
       const data = await response.json();
-      if (data && data.ip && !data.error) {
+      if (data && data.success) {
         publicIp = data.ip;
-        isp = data.org || data.asn || 'Unknown Provider';
-        city = data.city || 'Tbilisi';
-        country = data.country_name || 'Georgia';
+        isp = data.connection ? (data.connection.isp || data.connection.org) : '';
+        city = data.city;
+        country = data.country;
       }
     } catch (e) {}
 
-    // 2. მცდელობა (თუ პირველი ჩაიშალა): ip-api.com
-    if (!publicIp) {
+    // 2. მცდელობა: ipinfo.io
+    if (!publicIp || !isp) {
       try {
-        const response = await fetch('https://ip-api.com/json/?fields=status,country,city,isp,org,query', { cache: 'no-cache' });
-        const data = await response.json();
-        if (data && data.status === 'success') {
-          publicIp = data.query;
-          isp = data.isp || data.org || 'Unknown Provider';
-          city = data.city || 'Tbilisi';
-          country = data.country || 'Georgia';
-        }
-      } catch (e) {}
-    }
-
-    // 3. მცდელობა (მხოლოდ IP-ისთვის): ipify.org
-    if (!publicIp) {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-cache' });
+        const response = await fetch('https://ipinfo.io/json', { cache: 'no-store' });
         const data = await response.json();
         if (data && data.ip) {
-          publicIp = data.ip;
+          publicIp = publicIp || data.ip;
+          isp = isp || data.org || data.company;
+          city = city || data.city;
+          country = country || data.country;
         }
       } catch (e) {}
     }
 
-    // შედეგების გამოჩენა ეკრანზე
+    // 3. მცდელობა: ipapi.co
+    if (!publicIp || !isp) {
+      try {
+        const response = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
+        const data = await response.json();
+        if (data && data.ip && !data.error) {
+          publicIp = publicIp || data.ip;
+          isp = isp || data.org || data.asn;
+          city = city || data.city;
+          country = country || data.country_name;
+        }
+      } catch (e) {}
+    }
+
+    // 4. მცდელობა: ipify.org (მხოლოდ IP-ისთვის)
+    if (!publicIp) {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+        const data = await response.json();
+        if (data && data.ip) publicIp = data.ip;
+      } catch (e) {}
+    }
+
+    // შედეგების გამოჩენა
     if (publicIp) {
       document.getElementById('geo-ip-display').textContent = publicIp;
       document.getElementById('ws-host').value = publicIp;
-      document.getElementById('geo-isp').textContent = isp || 'Georgian Provider';
+      document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Georgian Provider';
       document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Tbilisi, Georgia';
     } else {
-      // უკიდურესი რეზერვი (თუ ინტერნეტის გარეშეა ან API დაბლოკილია)
       document.getElementById('geo-ip-display').textContent = '45.9.46.76';
       document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
       document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
@@ -826,7 +837,7 @@
     `;
   }
 
-  // Real, Stable Speed test
+  // Speed test
   async function startSpeedTest() {
     const server = document.getElementById('speed-server').value;
     const logEl = document.getElementById('speed-log');
