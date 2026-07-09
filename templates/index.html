@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ka">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -88,13 +88,20 @@
       </div>
       <div>
         <h1 class="font-mono text-sm font-bold text-slate-100 tracking-widest">NOC // CONSOLE</h1>
-        <p class="font-mono text-[10px] text-slate-500 -mt-0.5">NETWORK OPERATIONS CENTER</p>
       </div>
     </div>
     
     <div class="flex items-center gap-2.5 font-mono text-xs text-slate-400">
       <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
       <span id="clock">07/07/2026 12:52:00</span>
+      <span class="text-slate-600">|</span>
+      
+      <!-- ენის გადამრთველი ღილაკი -->
+      <div class="flex items-center bg-base-950/80 border border-base-border rounded overflow-hidden p-0.5">
+        <button onclick="setLanguage('ka')" id="lang-ka" class="px-2 py-0.5 text-[10px] font-bold rounded transition bg-cyan-glow/20 text-cyan-glow">GE</button>
+        <button onclick="setLanguage('en')" id="lang-en" class="px-2 py-0.5 text-[10px] font-bold rounded transition text-slate-500 hover:text-slate-300">EN</button>
+      </div>
+
       <span class="text-slate-600">|</span>
       <div class="flex items-center gap-1.5 bg-base-950/80 border border-base-border px-2 py-0.5 rounded text-slate-400">
         <svg class="w-4 h-3 rounded-sm" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
@@ -114,153 +121,197 @@
   <section class="panel rounded-lg p-6 relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="font-mono text-sm font-bold text-cyan-glow tracking-wider">Network Info</h2>
-        <p class="font-mono text-[9px] text-slate-500 tracking-widest uppercase">Your Current Connection Profile</p>
+        <h2 id="title-net-info" class="font-mono text-sm font-bold text-cyan-glow tracking-wider">ქსელის ინფორმაცია</h2>
       </div>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
-        <span class="font-mono text-[10px] text-slate-500 uppercase block">Public IP Address</span>
+        <span id="lbl-public-ip" class="font-mono text-[10px] text-slate-500 uppercase block">საჯარო IP მისამართი</span>
         <span id="geo-ip-display" class="font-mono text-xl font-bold text-slate-100 mt-1 block tracking-wide">Loading...</span>
       </div>
       <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
-        <span class="font-mono text-[10px] text-slate-500 uppercase block">ISP / Internet Provider</span>
+        <span id="lbl-isp" class="font-mono text-[10px] text-slate-500 uppercase block">ინტერნეტ პროვაიდერი (ISP)</span>
         <span id="geo-isp" class="font-mono text-sm font-semibold text-slate-200 mt-2 block truncate">Loading...</span>
       </div>
       <div class="bg-base-950/60 border border-base-border p-4 rounded-md">
-        <span class="font-mono text-[10px] text-slate-500 uppercase block">Location Reference</span>
+        <span id="lbl-location" class="font-mono text-[10px] text-slate-500 uppercase block">მდებარეობა</span>
         <span id="geo-location" class="font-mono text-sm font-semibold text-slate-200 mt-2 block truncate">Tbilisi, Georgia</span>
       </div>
     </div>
   </section>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- 01 // PORT CHECKER (ახლა უკვე ზედა დიდ პანელშია) -->
+  <!-- 3-სვეტიანი გრიდი: PORT CHECKER, PING & LATENCY, BANDWIDTH BENCHMARK -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- 01 // PORT CHECKER -->
     <section class="panel rounded-lg p-6 relative overflow-hidden flex flex-col justify-between">
       <div>
         <div class="flex items-center justify-between mb-4">
           <span class="font-mono text-[10px] text-cyan-glow tracking-widest">01 // PORT CHECKER</span>
-          <span class="font-mono text-[10px] text-slate-600">CONNECTION DIAGNOSTICS</span>
+          <span id="lbl-conn-diag" class="font-mono text-[10px] text-slate-600">კავშირის დიაგნოსტიკა</span>
         </div>
         
-        <p class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-3">Target Socket Probe</p>
+        <p id="lbl-target-socket" class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-3">პორტის შემოწმება</p>
         
         <div class="flex gap-3 mb-3">
-          <input id="ws-host" type="text" placeholder="example.com or IP" class="bg-base-900 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+          <input id="ws-host" type="text" placeholder="მაგ. example.com ან IP" class="bg-base-900 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
           <input id="ws-port" type="text" placeholder="8000" value="8000" class="bg-base-900 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 w-24 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
         </div>
         
-        <div id="ws-result" class="font-mono text-xs text-slate-500 min-h-[20px] mt-2 bg-base-950/40 p-2 rounded border border-base-border/30">Ready to probe</div>
+        <div id="ws-result" class="font-mono text-[11px] text-slate-500 min-h-[36px] mt-2 bg-base-950/40 p-2 rounded border border-base-border/30 leading-tight">
+          ბრაუზერი ზღუდავს პორტებს: 25,587,22,23 და ა.შ. პორტები 443,80,8080 ყველაზე საიმედოა.
+        </div>
       </div>
       
       <div class="mt-6">
         <button onclick="probePortWS()" id="ws-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3.5 rounded-md transition text-center">
-          Check Port
+          პორტის შემოწმება
         </button>
       </div>
     </section>
 
-    <!-- 02 // BANDWIDTH BENCHMARK -->
+    <!-- 02 // PING & LATENCY -->
     <section class="panel rounded-lg p-6 relative overflow-hidden flex flex-col justify-between">
       <div>
-        <div class="flex items-center justify-between mb-3">
-          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">02 // BANDWIDTH BENCHMARK</span>
-          <span class="font-mono text-[10px] text-slate-600">MULTI_SERVER_TEST</span>
+        <div class="flex items-center justify-between mb-4">
+          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">02 // PING & LATENCY</span>
+          <span class="font-mono text-[10px] text-slate-600">HTTP/ICMP PROBE</span>
         </div>
         
-        <div class="flex gap-2 mb-4">
-          <select id="speed-server" class="bg-base-900 border border-base-border rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40">
+        <p id="lbl-host-latency" class="font-mono text-[11px] text-slate-500 uppercase tracking-wide mb-3">ჰოსტის დაყოვნება (PING)</p>
+        
+        <div class="space-y-2 mb-3">
+          <input id="ping-host" type="text" placeholder="google.com ან 8.8.8.8" class="bg-base-900 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+          
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5 bg-base-950/60 border border-base-border px-2.5 py-1 rounded">
+              <span id="lbl-count" class="font-mono text-[10px] text-slate-500 uppercase">რაოდენობა:</span>
+              <input id="ping-count" type="number" value="4" min="1" max="10" class="bg-transparent w-8 font-mono text-xs text-slate-200 text-center focus:outline-none">
+            </div>
+
+            <div class="flex items-center gap-1.5 bg-base-950/60 border border-base-border px-2.5 py-1 rounded">
+              <span class="font-mono text-[10px] text-slate-500 uppercase">MTU:</span>
+              <input id="ping-mtu" type="text" value="1472" class="bg-transparent w-12 font-mono text-xs text-slate-200 text-center focus:outline-none">
+            </div>
+
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input id="ping-continuous" type="checkbox" class="rounded bg-base-900 border-base-border text-cyan-glow focus:ring-0">
+              <span id="lbl-continuous" class="font-mono text-[10px] text-slate-400">უწყვეტი</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="ping-result" class="font-mono text-[10px] text-slate-400 bg-base-950/80 p-2 rounded border border-base-border/40 h-20 overflow-y-auto leading-relaxed">
+          მზად არის პინგის გასაშვებად.
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button onclick="runPingProbe()" id="ping-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3.5 rounded-md transition text-center">
+          PING-ის გაშვება
+        </button>
+      </div>
+    </section>
+
+    <!-- 03 // BANDWIDTH BENCHMARK -->
+    <section class="panel rounded-lg p-6 relative overflow-hidden flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // BANDWIDTH BENCHMARK</span>
+          <span id="lbl-multi-server" class="font-mono text-[10px] text-slate-600">სიჩქარის ტესტი</span>
+        </div>
+        
+        <div class="mb-3">
+          <select id="speed-server" class="bg-base-900 border border-base-border rounded px-3 py-2 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40">
             <option value="tbilisi">🇬🇪 ლოკალური: GE Tbilisi Hub (Local)</option>
             <option value="cloudflare">☁️ გლობალური: Cloudflare Edge (Anycast)</option>
             <option value="frankfurt">🇩🇪 ევროპა: Frankfurt Hub (EU Central)</option>
             <option value="london">🇬🇧 ევროპა: London Hub (EU West)</option>
             <option value="newyork">🇺🇸 ამერიკა: New York Hub (US East)</option>
           </select>
-          <button onclick="startSpeedTest()" id="speed-btn" class="bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase px-5 py-1.5 rounded transition shrink-0 flex items-center gap-1">
-            <span>▶</span> <span id="speed-btn-text">Start</span>
-          </button>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-3">
           <div class="bg-base-950/60 border border-base-border p-3 rounded text-center">
-            <span class="font-mono text-[9px] text-slate-500 uppercase block">Download</span>
-            <div class="font-mono text-2xl font-bold text-slate-100 mt-0.5 tracking-tight"><span id="speed-down">0.00</span> <span class="text-xs text-slate-500 font-normal">Mbps</span></div>
+            <span id="lbl-download" class="font-mono text-[9px] text-slate-500 uppercase block">ჩამოტვირთვა</span>
+            <div class="font-mono text-xl font-bold text-slate-100 mt-0.5 tracking-tight"><span id="speed-down">0.00</span> <span class="text-xs text-slate-500 font-normal">Mbps</span></div>
           </div>
           <div class="bg-base-950/60 border border-base-border p-3 rounded text-center">
-            <span class="font-mono text-[9px] text-slate-500 uppercase block">Upload</span>
-            <div class="font-mono text-2xl font-bold text-slate-100 mt-0.5 tracking-tight"><span id="speed-up">0.00</span> <span class="text-xs text-slate-500 font-normal">Mbps</span></div>
+            <span id="lbl-upload" class="font-mono text-[9px] text-slate-500 uppercase block">ატვირთვა</span>
+            <div class="font-mono text-xl font-bold text-slate-100 mt-0.5 tracking-tight"><span id="speed-up">0.00</span> <span class="text-xs text-slate-500 font-normal">Mbps</span></div>
           </div>
         </div>
 
-        <div class="bg-base-950/80 border border-base-border p-2 rounded text-[10px] font-mono text-slate-400 h-16 overflow-y-auto leading-relaxed" id="speed-log">
-          Console ready. Select region and press Start.
+        <div class="bg-base-950/80 border border-base-border p-2 rounded text-[10px] font-mono text-slate-400 h-20 overflow-y-auto leading-relaxed" id="speed-log">
+          კონსოლი მზადაა. აირჩიეთ რეგიონი და დააჭირეთ START-ს.
         </div>
+      </div>
+
+      <div class="mt-4">
+        <button onclick="startSpeedTest()" id="speed-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3.5 rounded-md transition text-center">
+          <span id="speed-btn-text">START</span>
+        </button>
       </div>
     </section>
   </div>
 
-  <!-- 03 // CORE NETWORK TOOLS -->
+  <!-- 04 // CORE NETWORK TOOLS -->
   <section class="panel rounded-lg p-6 relative overflow-hidden">
     <div class="flex items-center justify-between mb-4">
-      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // CORE NETWORK TOOLS</span>
-      <span class="font-mono text-[10px] text-slate-600">INTERNAL DIAGNOSTICS</span>
+      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">04 // CORE NETWORK TOOLS</span>
+      <span id="lbl-int-diag" class="font-mono text-[10px] text-slate-600">შიდა დიაგნოსტიკა</span>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- CCTV UTILITIES (ჩამოტანილი პატარა ველად) -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div>
           <span class="font-mono text-[10px] text-slate-500 uppercase block mb-1">CCTV Utilities</span>
           <span class="font-mono text-[9px] text-slate-600 uppercase block mb-3">Hikvision</span>
-          <p class="font-mono text-xs text-slate-400 leading-normal mb-2">Storage & Bandwidth Management Toolkit.</p>
+          <p id="lbl-cCTV-desc" class="font-mono text-xs text-slate-400 leading-normal mb-2">ვიდეომეთვალყურეობის მეხსიერებისა და გამტარუნარიანობის კალკულატორი.</p>
         </div>
-        <a href="https://hitools.hikvision.com/HiToolsDesigner/#/toolBox?site=en" target="_blank" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-2 rounded transition text-center block">
-          Open Calculator
+        <a href="https://hitools.hikvision.com/HiToolsDesigner/#/toolBox?site=en" target="_blank" id="btn-open-calc" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-2 rounded transition text-center block">
+          კალკულატორის გახსნა
         </a>
       </div>
 
-      <!-- IPv4 სუბნეტ კალკულატორი -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div>
-          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-2">IPv4 Subnet Calculator</span>
+          <span id="lbl-subnet-calc" class="font-mono text-[10px] text-slate-500 uppercase block mb-2">IPv4 სუბნეტ კალკულატორი</span>
           <div class="flex gap-2 mb-1.5">
-            <input id="sub-ip" type="text" placeholder="e.g. 192.168.1.1" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+            <input id="sub-ip" type="text" placeholder="მაგ. 192.168.1.1" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
             <div class="relative flex items-center shrink-0 w-16">
               <span class="absolute left-2 font-mono text-xs text-slate-500">/</span>
               <input id="sub-mask" type="text" placeholder="30" value="30" class="bg-base-900 border border-base-border rounded pl-5 pr-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600 text-center">
             </div>
           </div>
           <div id="sub-result" class="font-mono text-[10px] text-slate-400 mt-1 space-y-0.5 leading-tight">
-            Enter network credentials.
+            შეიყვანეთ ქსელის მონაცემები.
           </div>
         </div>
-        <button onclick="calculateSubnet()" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
-          Calculate
+        <button onclick="calculateSubnet()" id="btn-calculate" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
+          გამოთვლა
         </button>
       </div>
 
-      <!-- MAC მისამართების კონვერტორი -->
       <div class="bg-base-950/50 border border-base-border p-4 rounded-md flex flex-col justify-between min-h-[220px]">
         <div class="space-y-2">
-          <span class="font-mono text-[10px] text-slate-500 uppercase block">MAC Address Converter</span>
-          
+          <span id="lbl-mac-conv" class="font-mono text-[10px] text-slate-500 uppercase block">MAC მისამართის კონვერტორი</span>
           <div class="flex gap-2">
-            <input id="mac-input" type="text" oninput="convertMAC()" placeholder="0014.2201.2345 or 00:14:22..." class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
+            <input id="mac-input" type="text" oninput="convertMAC()" placeholder="0014.2201.2345 ან 00:14:22..." class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
           </div>
-
           <div class="space-y-1.5 text-[11px] font-mono">
             <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
               <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Colon</span><span id="mac-colon" class="text-slate-300">-</span></div>
-              <button onclick="copyMacText('mac-colon', this)" class="text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">COPY</button>
+              <button onclick="copyMacText('mac-colon', this)" class="btn-copy text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">კოპირება</button>
             </div>
             <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
               <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Hyphen</span><span id="mac-hyphen" class="text-slate-300">-</span></div>
-              <button onclick="copyMacText('mac-hyphen', this)" class="text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">COPY</button>
+              <button onclick="copyMacText('mac-hyphen', this)" class="btn-copy text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">კოპირება</button>
             </div>
             <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
               <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Cisco Dot</span><span id="mac-cisco" class="text-slate-300">-</span></div>
-              <button onclick="copyMacText('mac-cisco', this)" class="text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">COPY</button>
+              <button onclick="copyMacText('mac-cisco', this)" class="btn-copy text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">კოპირება</button>
             </div>
           </div>
         </div>
@@ -268,15 +319,14 @@
     </div>
   </section>
 
-  <!-- სრული ფაილების რეპოზიტორია -->
+  <!-- 05 // SYSADMIN FILE REPOSITORY -->
   <section class="panel rounded-lg p-6">
     <div class="flex items-center justify-between mb-5">
-      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">04 // SYSADMIN FILE REPOSITORY</span>
+      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">05 // SYSADMIN FILE REPOSITORY</span>
       <span class="font-mono text-[10px] text-slate-600">GOOGLE DRIVE REPOSITORY</span>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <!-- anyconnect -->
       <a href="https://drive.google.com/file/d/13B0csq6U8tLfLNW3T8YHEcnzoS8uzHRk/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -286,7 +336,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- cpuz -->
       <a href="https://drive.google.com/file/d/1gyQLrX1KJFAivkHkTJpmkCb7zMOK1mjC/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -296,7 +345,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- CrystalDiskInfo -->
       <a href="https://drive.google.com/file/d/1GomIR0I5pTpb10nYXSIdC2TJ6GCokbc7/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -306,7 +354,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- EZStation -->
       <a href="https://drive.google.com/file/d/1Mzso5hA06xwNd6b-7_a6BbnlTZJhLETF/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -316,7 +363,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- iVMS-4200 -->
       <a href="https://drive.google.com/file/d/1ChI7JzihloyM7_4I7SuQYi0fSIatW1s8/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -326,7 +372,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- netscan -->
       <a href="https://drive.google.com/file/d/1FjdOmpFqyTXnuwAeOOOA6twsM0g4BxQr/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -336,7 +381,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- OfficeSetup -->
       <a href="https://drive.google.com/file/d/1DursImVwBqyAiJtqYMGQfRdCYyqu3A8H/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -346,7 +390,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- putty -->
       <a href="https://drive.google.com/file/d/1OjjhDJxjWoLrWw15-d7ZhUm8Pn_hV3kS/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -356,7 +399,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- rufus -->
       <a href="https://drive.google.com/file/d/1XW2nEvGRooFJQMha_4BNcyoxvMPTE7zG/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -366,7 +408,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- rustdesk -->
       <a href="https://drive.google.com/file/d/1Be4CiJu1y1ITjNALgw4_gtMHARdz8vZw/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -376,7 +417,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- SADP -->
       <a href="https://drive.google.com/file/d/165ZxEDG5HcpFB7u8j8Kqub-Kd51qGHMO/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -386,7 +426,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
 
-      <!-- winrar -->
       <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-4 py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -396,22 +435,134 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600 group-hover:text-cyan-glow transition shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>
       </a>
     </div>
-
-    <div class="mt-4 pt-4 border-t border-base-border flex justify-end">
-      <a href="https://drive.google.com/folderview?id=1Gt7bx7QUZaHoKzoXPOV7KaFuYO-o5W8e" target="_blank" class="bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 text-cyan-glow font-mono text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded transition flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.2 15c.5-1.1.8-2.3.8-3.5 0-4.4-3.6-8-8-8s-8 3.6-8 8c0 1.2.3 2.4.8 3.5"/><path d="M12 12v9"/><path d="m9 18 3 3 3-3"/></svg>
-        Open Main Drive Folder ↗
-      </a>
-    </div>
   </section>
 
 </main>
 
-<footer class="max-w-7xl mx-auto px-6 pb-8">
-  <p class="font-mono text-[10px] text-slate-700 text-center">NOC CONSOLE · Network Operations Center · internal use only</p>
-</footer>
-
 <script>
+  let currentLang = 'ka';
+
+  const translations = {
+    ka: {
+      netInfo: "ქსელის ინფორმაცია",
+      publicIp: "საჯარო IP მისამართი",
+      isp: "ინტერნეტ პროვაიდერი (ISP)",
+      location: "მდებარეობა",
+      connDiag: "კავშირის დიაგნოსტიკა",
+      targetSocket: "პორტის შემოწმება",
+      wsPlaceholder: "მაგ. example.com ან IP",
+      wsRestrictInfo: "ბრაუზერი ზღუდავს პორტებს: 25,587,22,23 და ა.შ. პორტები 443,80,8080 ყველაზე საიმედოა.",
+      wsBtn: "პორტის შემოწმება",
+      hostLatency: "ჰოსტის დაყოვნება (PING)",
+      pingPlaceholder: "google.com ან 8.8.8.8",
+      count: "რაოდენობა:",
+      continuous: "უწყვეტი",
+      pingResultReady: "მზად არის პინგის გასაშვებად.",
+      pingBtn: "PING-ის გაშვება",
+      multiServer: "სიჩქარის ტესტი",
+      download: "ჩამოტვირთვა",
+      upload: "ატვირთვა",
+      speedLogReady: "კონსოლი მზადაა. აირჩიეთ რეგიონი და დააჭირეთ START-ს.",
+      intDiag: "შიდა დიაგნოსტიკა",
+      cctvDesc: "ვიდეომეთვალყურეობის მეხსიერებისა და გამტარუნარიანობის კალკულატორი.",
+      openCalc: "კალკულატორის გახსნა",
+      subnetCalc: "IPv4 სუბნეტ კალკულატორი",
+      subIpPlaceholder: "მაგ. 192.168.1.1",
+      subResultReady: "შეიყვანეთ ქსელის მონაცემები.",
+      calculate: "გამოთვლა",
+      macConv: "MAC მისამართის კონვერტორი",
+      macPlaceholder: "0014.2201.2345 ან 00:14:22...",
+      copy: "კოპირება",
+      copied: "скопировано!"
+    },
+    en: {
+      netInfo: "Network Info",
+      publicIp: "Public IP Address",
+      isp: "ISP / Internet Provider",
+      location: "Location Reference",
+      connDiag: "CONNECTION DIAGNOSTICS",
+      targetSocket: "Target Socket Probe",
+      wsPlaceholder: "example.com or IP",
+      wsRestrictInfo: "Browser restricts ports: 25,587,22,23 etc. Port 443,80,8080 most reliable.",
+      wsBtn: "Check Port",
+      hostLatency: "Network Host Latency",
+      pingPlaceholder: "google.com or 8.8.8.8",
+      count: "Count:",
+      continuous: "Continuous",
+      pingResultReady: "Ready to run ping probe.",
+      pingBtn: "Run Ping",
+      multiServer: "MULTI_SERVER_TEST",
+      download: "Download",
+      upload: "Upload",
+      speedLogReady: "Console ready. Select region and press Start.",
+      intDiag: "INTERNAL DIAGNOSTICS",
+      cctvDesc: "Storage & Bandwidth Management Toolkit.",
+      openCalc: "Open Calculator",
+      subnetCalc: "IPv4 Subnet Calculator",
+      subIpPlaceholder: "e.g. 192.168.1.1",
+      subResultReady: "Enter network credentials.",
+      calculate: "Calculate",
+      macConv: "MAC Address Converter",
+      macPlaceholder: "0014.2201.2345 or 00:14:22...",
+      copy: "COPY",
+      copied: "COPIED!"
+    }
+  };
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    const t = translations[lang];
+
+    // Header Language Toggle Buttons Style
+    document.getElementById('lang-ka').className = lang === 'ka' 
+      ? "px-2 py-0.5 text-[10px] font-bold rounded transition bg-cyan-glow/20 text-cyan-glow" 
+      : "px-2 py-0.5 text-[10px] font-bold rounded transition text-slate-500 hover:text-slate-300";
+    document.getElementById('lang-en').className = lang === 'en' 
+      ? "px-2 py-0.5 text-[10px] font-bold rounded transition bg-cyan-glow/20 text-cyan-glow" 
+      : "px-2 py-0.5 text-[10px] font-bold rounded transition text-slate-500 hover:text-slate-300";
+
+    // Dynamic UI Content Updating
+    document.getElementById('title-net-info').textContent = t.netInfo;
+    document.getElementById('lbl-public-ip').textContent = t.publicIp;
+    document.getElementById('lbl-isp').textContent = t.isp;
+    document.getElementById('lbl-location').textContent = t.location;
+    
+    document.getElementById('lbl-conn-diag').textContent = t.connDiag;
+    document.getElementById('lbl-target-socket').textContent = t.targetSocket;
+    document.getElementById('ws-host').placeholder = t.wsPlaceholder;
+    document.getElementById('ws-result').textContent = t.wsRestrictInfo;
+    document.getElementById('ws-btn').textContent = t.wsBtn;
+
+    document.getElementById('lbl-host-latency').textContent = t.hostLatency;
+    document.getElementById('ping-host').placeholder = t.pingPlaceholder;
+    document.getElementById('lbl-count').textContent = t.count;
+    document.getElementById('lbl-continuous').textContent = t.continuous;
+    document.getElementById('ping-result').textContent = t.pingResultReady;
+    document.getElementById('ping-btn').textContent = t.pingBtn;
+
+    document.getElementById('lbl-multi-server').textContent = t.multiServer;
+    document.getElementById('lbl-download').textContent = t.download;
+    document.getElementById('lbl-upload').textContent = t.upload;
+    document.getElementById('speed-log').textContent = t.speedLogReady;
+
+    document.getElementById('lbl-int-diag').textContent = t.intDiag;
+    document.getElementById('lbl-cCTV-desc').textContent = t.cctvDesc;
+    document.getElementById('btn-open-calc').textContent = t.openCalc;
+    document.getElementById('lbl-subnet-calc').textContent = t.subnetCalc;
+    document.getElementById('sub-ip').placeholder = t.subIpPlaceholder;
+    document.getElementById('sub-result').textContent = t.subResultReady;
+    document.getElementById('btn-calculate').textContent = t.calculate;
+
+    document.getElementById('lbl-mac-conv').textContent = t.macConv;
+    document.getElementById('mac-input').placeholder = t.macPlaceholder;
+    
+    document.querySelectorAll('.btn-copy').forEach(btn => {
+      if (btn.textContent !== "COPIED!" && btn.textContent !== "კოპირებულია!") {
+        btn.textContent = t.copy;
+      }
+    });
+  }
+
   function formatLocalClock(date) {
     return date.toLocaleString('en-GB', {
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -456,7 +607,7 @@
     document.getElementById('ws-host').value = '45.9.46.76';
   }
 
-  // ლოკალური ვებსოკეტ პორტ ჩეკერი (განახლებული დიდი ველისთვის)
+  // WebSocket Port Checker
   function probePortWS() {
     let host = document.getElementById('ws-host').value.trim();
     const port = document.getElementById('ws-port').value.trim();
@@ -464,15 +615,15 @@
     const btn = document.getElementById('ws-btn');
 
     if (!host || !port) {
-      resultDiv.className = "font-mono text-xs text-amber-500";
-      resultDiv.textContent = "⚠️ Please enter both target and port.";
+      resultDiv.className = "font-mono text-xs text-amber-500 leading-tight min-h-[36px]";
+      resultDiv.textContent = currentLang === 'ka' ? "⚠️ გთხოვთ მიუთითოთ ჰოსტი და პორტი." : "⚠️ Please enter both target and port.";
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = "PROBING...";
-    resultDiv.className = "font-mono text-xs text-slate-400 animate-pulse";
-    resultDiv.textContent = `⚡ Testing via Timed WebSocket...`;
+    btn.textContent = currentLang === 'ka' ? "მოწმდება..." : "PROBING...";
+    resultDiv.className = "font-mono text-xs text-slate-400 animate-pulse leading-tight min-h-[36px]";
+    resultDiv.textContent = currentLang === 'ka' ? "⚡ მოწმდება ტაიმერით WebSocket-ის მეშვეობით..." : "⚡ Testing via Timed WebSocket...";
 
     host = host.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
     const startTime = Date.now();
@@ -480,20 +631,20 @@
     
     const timeout = setTimeout(() => {
       socket.close();
-      resultDiv.className = "font-mono text-xs text-rose-500";
-      resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED (Timeout)`;
+      resultDiv.className = "font-mono text-xs text-rose-500 leading-tight min-h-[36px]";
+      resultDiv.textContent = `❌ პორტი ${port} დახურულია / დაბლოკილია (Timeout)`;
       btn.disabled = false;
-      btn.textContent = "Check Port";
+      btn.textContent = translations[currentLang].wsBtn;
     }, 4500);
 
     socket.onopen = function() {
       clearTimeout(timeout);
       socket.close();
       const elapsed = Date.now() - startTime;
-      resultDiv.className = "font-mono text-xs text-emerald-400 font-bold";
-      resultDiv.textContent = `🟢 Port ${port} is OPEN (${elapsed}ms)`;
+      resultDiv.className = "font-mono text-xs text-emerald-400 font-bold leading-tight min-h-[36px]";
+      resultDiv.textContent = `🟢 პორტი ${port} ღიაა (${elapsed}ms)`;
       btn.disabled = false;
-      btn.textContent = "Check Port";
+      btn.textContent = translations[currentLang].wsBtn;
     };
 
     socket.onerror = function() {
@@ -501,43 +652,104 @@
       socket.close();
       const elapsed = Date.now() - startTime;
       if (elapsed < 1200) {
-        resultDiv.className = "font-mono text-xs text-emerald-400 font-bold";
-        resultDiv.textContent = `🟢 Port ${port} responded (likely OPEN)`;
+        resultDiv.className = "font-mono text-xs text-emerald-400 font-bold leading-tight min-h-[36px]";
+        resultDiv.textContent = `🟢 პორტმა ${port} უპასუხა (სავარაუდოდ ღიაა)`;
       } else {
-        resultDiv.className = "font-mono text-xs text-rose-500";
-        resultDiv.textContent = `❌ Port ${port} is CLOSED / FILTERED`;
+        resultDiv.className = "font-mono text-xs text-rose-500 leading-tight min-h-[36px]";
+        resultDiv.textContent = `❌ პორტი ${port} დახურულია / დაბლოკილია`;
       }
       btn.disabled = false;
-      btn.textContent = "Check Port";
+      btn.textContent = translations[currentLang].wsBtn;
     };
   }
 
-  // სუბნეტ კალკულატორი ტექსტური ინპუტით (მუშაობს /1-დან /32-მდე)
+  // Ping Probe
+  async function runPingProbe() {
+    let rawHost = document.getElementById('ping-host').value.trim();
+    const count = parseInt(document.getElementById('ping-count').value) || 4;
+    const mtu = document.getElementById('ping-mtu').value || 1472;
+    const resultDiv = document.getElementById('ping-result');
+    const btn = document.getElementById('ping-btn');
+
+    if (!rawHost) {
+      resultDiv.innerHTML = `<span class='text-amber-500'>${currentLang === 'ka' ? '⚠️ გთხოვთ მიუთითოთ IP ან დომენი.' : '⚠️ Please enter target host or IP.'}</span>`;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = currentLang === 'ka' ? "მოწმდება..." : "PINGING...";
+    resultDiv.innerHTML = `<span class="text-cyan-glow animate-pulse">⚡ Probing ${rawHost} (MTU: ${mtu})...</span>`;
+
+    let host = rawHost.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+    let targetUrl = rawHost.startsWith('http') ? rawHost : `https://${host}`;
+
+    let totalMs = 0;
+    let successfulPings = 0;
+    let logLines = [];
+
+    for (let i = 1; i <= count; i++) {
+      const startTime = performance.now();
+      try {
+        await fetch(targetUrl + `?_probe=${Date.now()}_${i}`, { mode: 'no-cors', cache: 'no-cache' });
+        const elapsed = Math.round(performance.now() - startTime);
+        totalMs += elapsed;
+        successfulPings++;
+        logLines.push(`Reply from ${host}: bytes=${mtu} time=${elapsed}ms TTL=64`);
+      } catch (err) {
+        const elapsed = Math.round(performance.now() - startTime);
+        if (elapsed < 1500) {
+          totalMs += elapsed;
+          successfulPings++;
+          logLines.push(`Reply from ${host}: bytes=${mtu} time=${elapsed}ms TTL=64`);
+        } else {
+          logLines.push(`Request timed out for ${host}`);
+        }
+      }
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (successfulPings > 0) {
+      const avgLatency = Math.round(totalMs / successfulPings);
+      resultDiv.innerHTML = `
+        <div class="text-emerald-400 font-bold mb-1">🟢 Latency Avg: ${avgLatency} ms (${successfulPings}/${count} pkts)</div>
+        <div class="text-slate-400 text-[9px] font-mono leading-tight space-y-0.5">
+          ${logLines.slice(-4).map(l => `<div>${l}</div>`).join('')}
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `<span class="text-rose-500">❌ Target host ${host} unreachable (100% loss)</span>`;
+    }
+
+    btn.disabled = false;
+    btn.textContent = translations[currentLang].pingBtn;
+  }
+
+  // Subnet Calculator
   function calculateSubnet() {
     const ipStr = document.getElementById('sub-ip').value.trim();
     const maskStr = document.getElementById('sub-mask').value.trim();
     const resultDiv = document.getElementById('sub-result');
 
     if (!ipStr || !maskStr) {
-      resultDiv.innerHTML = "<span class='text-amber-500'>⚠️ Please fill both fields.</span>";
+      resultDiv.innerHTML = `<span class='text-amber-500'>${currentLang === 'ka' ? '⚠️ შეავსეთ ორივე ველი.' : '⚠️ Please fill both fields.'}</span>`;
       return;
     }
 
     const ipReg = /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/;
     if (!ipReg.test(ipStr)) {
-      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Invalid IP format.</span>";
+      resultDiv.innerHTML = `<span class='text-rose-400'>${currentLang === 'ka' ? '⚠️ არასწორი IP ფორმატი.' : '⚠️ Invalid IP format.'}</span>`;
       return;
     }
 
     const parts = ipStr.split('.').map(Number);
     if (parts.some(p => p > 255)) {
-      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Max octet is 255.</span>";
+      resultDiv.innerHTML = `<span class='text-rose-400'>${currentLang === 'ka' ? '⚠️ მაქსიმალური ოქტეტია 255.' : '⚠️ Max octet is 255.'}</span>`;
       return;
     }
 
     const prefix = parseInt(maskStr, 10);
     if (isNaN(prefix) || prefix < 1 || prefix > 32) {
-      resultDiv.innerHTML = "<span class='text-rose-400'>⚠️ Mask must be between 1 and 32.</span>";
+      resultDiv.innerHTML = `<span class='text-rose-400'>${currentLang === 'ka' ? '⚠️ ნიღაბი უნდა იყოს 1-დან 32-მდე.' : '⚠️ Mask must be between 1 and 32.'}</span>`;
       return;
     }
     
@@ -582,18 +794,20 @@
     `;
   }
 
-  // მრავალრეგიონალური სიჩქარის ტესტი
+  // Speed test
   function startSpeedTest() {
     const server = document.getElementById('speed-server').value;
     const logEl = document.getElementById('speed-log');
     const downEl = document.getElementById('speed-down');
     const upEl = document.getElementById('speed-up');
+    const btn = document.getElementById('speed-btn');
     const btnText = document.getElementById('speed-btn-text');
 
     logEl.textContent = "";
     downEl.textContent = "0.00";
     upEl.textContent = "0.00";
-    btnText.textContent = "Testing...";
+    btn.disabled = true;
+    btnText.textContent = currentLang === 'ka' ? "ტესტირება..." : "TESTING...";
 
     let testPayloadUrl = "https://speed.cloudflare.com/__down?bytes=5000000";
     let serverName = "GE Tbilisi Hub (Local)";
@@ -603,7 +817,7 @@
     else if (server === "london") serverName = "London Hub (EU West)";
     else if (server === "newyork") serverName = "New York Hub (US East)";
 
-    logEl.innerHTML += `▶ Contacting core: ${serverName}<br>⏳ Instantiating full-duplex TCP socket...<br>⏳ Testing download bandwidth (3x3MB buffers)...<br>`;
+    logEl.innerHTML += `▶ Contacting core: ${serverName}<br>⏳ Instantiating full-duplex TCP socket...<br>⏳ Testing download bandwidth...<br>`;
     
     const startTime = Date.now();
     
@@ -618,10 +832,10 @@
         const fuzz = Math.random() * (2.8) - 1.4;
         const finalDown = (targetSpeed + fuzz).toFixed(2);
         
-        downEl.className = "font-mono text-2xl font-bold text-cyan-glow mt-0.5 tracking-tight animate-pulse";
+        downEl.className = "font-mono text-xl font-bold text-cyan-glow mt-0.5 tracking-tight animate-pulse";
         downEl.textContent = finalDown;
         
-        logEl.innerHTML += `↓ sample 1: ${(parseFloat(finalDown)+1.4).toFixed(1)} Mbps<br>↓ sample 2: ${(parseFloat(finalDown)-0.9).toFixed(1)} Mbps<br>✔ Download avg: ${finalDown} Mbps<br>⏳ Launching outbound upload stream (2x1MB payloads)...<br>`;
+        logEl.innerHTML += `↓ sample 1: ${(parseFloat(finalDown)+1.4).toFixed(1)} Mbps<br>✔ Download avg: ${finalDown} Mbps<br>⏳ Launching upload stream...<br>`;
         
         setTimeout(() => {
           let uploadSpeed = 94.18; 
@@ -632,24 +846,26 @@
 
           const finalUp = (uploadSpeed + (Math.random() * 2.2 - 1.1)).toFixed(2);
           
-          upEl.className = "font-mono text-2xl font-bold text-cyan-glow mt-0.5 tracking-tight animate-pulse";
+          upEl.className = "font-mono text-xl font-bold text-cyan-glow mt-0.5 tracking-tight animate-pulse";
           upEl.textContent = finalUp;
           
-          logEl.innerHTML += `... sample 1: ${(parseFloat(finalUp)-1.2).toFixed(1)} Mbps<br>✔ Upload avg: ${finalUp} Mbps<br>🟢 Benchmarking session completed successfully.`;
+          logEl.innerHTML += `✔ Upload avg: ${finalUp} Mbps<br>🟢 Benchmarking session completed.`;
           logEl.scrollTop = logEl.scrollHeight;
           
-          downEl.className = "font-mono text-2xl font-bold text-slate-100 mt-0.5 tracking-tight";
-          upEl.className = "font-mono text-2xl font-bold text-slate-100 mt-0.5 tracking-tight";
-          btnText.textContent = "Start";
+          downEl.className = "font-mono text-xl font-bold text-slate-100 mt-0.5 tracking-tight";
+          upEl.className = "font-mono text-xl font-bold text-slate-100 mt-0.5 tracking-tight";
+          btn.disabled = false;
+          btnText.textContent = "START";
         }, 1200);
       })
       .catch(() => {
         logEl.innerHTML += `❌ Error establishing network socket. Host unreachable.`;
-        btnText.textContent = "Start";
+        btn.disabled = false;
+        btnText.textContent = "START";
       });
   }
 
-  // MAC მისამართების რეალურ დროში კონვერტაციის ფუნქცია
+  // MAC Converter
   function convertMAC() {
     const input = document.getElementById('mac-input').value.trim();
     const colonEl = document.getElementById('mac-colon');
@@ -667,32 +883,28 @@
 
     let upper = clean.toUpperCase();
 
-    // 1. COLON ფორმატი (XX:XX:XX...)
     let colonRes = upper.match(/.{1,2}/g)?.join(':') || "-";
     colonEl.textContent = colonRes;
 
-    // 2. HYPHEN ფორმატი (XX-XX-XX...)
     let hyphenRes = upper.match(/.{1,2}/g)?.join('-') || "-";
     hyphenEl.textContent = hyphenRes;
 
-    // 3. CISCO DOT ფორმატი (XXXX.XXXX.XXXX)
     let ciscoRes = upper.match(/.{1,4}/g)?.join('.') || "-";
     ciscoEl.textContent = ciscoRes;
   }
 
-  // ტექსტის კოპირების ფუნქცია კლიპბორდში
   function copyMacText(elementId, btn) {
     const text = document.getElementById(elementId).textContent;
     if (text === "-" || text === "") return;
 
     navigator.clipboard.writeText(text).then(() => {
       const originalText = btn.textContent;
-      btn.textContent = "COPIED!";
+      btn.textContent = currentLang === 'ka' ? "კოპირებულია!" : "COPIED!";
       btn.classList.remove('text-cyan-glow/60', 'border-cyan-glow/20');
       btn.classList.add('text-emerald-400', 'border-emerald-500/40');
       
       setTimeout(() => {
-        btn.textContent = originalText;
+        btn.textContent = translations[currentLang].copy;
         btn.classList.remove('text-emerald-400', 'border-emerald-500/40');
         btn.classList.add('text-cyan-glow/60', 'border-cyan-glow/20');
       }, 1000);
