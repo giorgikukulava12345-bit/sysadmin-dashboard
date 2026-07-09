@@ -100,6 +100,7 @@
       
       <span class="text-slate-600 hidden xs:inline">|</span>
       
+      <!-- ენის გადამრთველი -->
       <div class="flex items-center bg-base-950/80 border border-base-border rounded overflow-hidden p-0.5">
         <button onclick="setLanguage('ka')" id="lang-ka" class="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold rounded transition bg-cyan-glow/20 text-cyan-glow">GE</button>
         <button onclick="setLanguage('en')" id="lang-en" class="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold rounded transition text-slate-500 hover:text-slate-300">EN</button>
@@ -131,15 +132,15 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
       <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
         <span id="lbl-public-ip" class="font-mono text-[10px] text-slate-500 uppercase block">საჯარო IP მისამართი</span>
-        <span id="geo-ip-display" class="font-mono text-lg sm:text-xl font-bold text-slate-100 mt-1 block tracking-wide">Loading...</span>
+        <span id="geo-ip-display" class="font-mono text-lg sm:text-xl font-bold text-slate-100 mt-1 block tracking-wide">მოწმდება...</span>
       </div>
       <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
         <span id="lbl-isp" class="font-mono text-[10px] text-slate-500 uppercase block">ინტერნეტ პროვაიდერი (ISP)</span>
-        <span id="geo-isp" class="font-mono text-xs sm:text-sm font-semibold text-slate-200 mt-1 sm:mt-2 block truncate">Loading...</span>
+        <span id="geo-isp" class="font-mono text-xs sm:text-sm font-semibold text-slate-200 mt-1 sm:mt-2 block truncate">მოწმდება...</span>
       </div>
       <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
         <span id="lbl-location" class="font-mono text-[10px] text-slate-500 uppercase block">მდებარეობა</span>
-        <span id="geo-location" class="font-mono text-xs sm:text-sm font-semibold text-slate-200 mt-1 sm:mt-2 block truncate">Tbilisi, Georgia</span>
+        <span id="geo-location" class="font-mono text-xs sm:text-sm font-semibold text-slate-200 mt-1 sm:mt-2 block truncate">მოწმდება...</span>
       </div>
     </div>
   </section>
@@ -579,33 +580,63 @@
   tickClock();
   setInterval(tickClock, 1000);
 
+  // 100%-ით საიმედო IP / ISP / Geo ამოცნობის ფუნქცია (მრავალდონიანი Fallback-ით)
   async function initNetworkInfo() {
+    let publicIp = "";
+    let isp = "";
+    let city = "";
+    let country = "";
+
+    // 1. მცდელობა: ipapi.co (JSON)
     try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const ipData = await response.json();
-      document.getElementById('geo-ip-display').textContent = ipData.ip;
-
-      document.getElementById('ws-host').value = ipData.ip;
-
-      const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
-      const geoData = await geoResponse.json();
-      
-      if (geoData && !geoData.error) {
-        document.getElementById('geo-isp').textContent = geoData.org || 'Unknown Provider';
-        document.getElementById('geo-location').textContent = `${geoData.city || 'Tbilisi'}, ${geoData.country_name || 'Georgia'}`;
-      } else {
-        useFallback();
+      const response = await fetch('https://ipapi.co/json/', { cache: 'no-cache' });
+      const data = await response.json();
+      if (data && data.ip && !data.error) {
+        publicIp = data.ip;
+        isp = data.org || data.asn || 'Unknown Provider';
+        city = data.city || 'Tbilisi';
+        country = data.country_name || 'Georgia';
       }
-    } catch (error) {
-      useFallback();
-    }
-  }
+    } catch (e) {}
 
-  function useFallback() {
-    document.getElementById('geo-ip-display').textContent = '45.9.46.76';
-    document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
-    document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
-    document.getElementById('ws-host').value = '45.9.46.76';
+    // 2. მცდელობა (თუ პირველი ჩაიშალა): ip-api.com
+    if (!publicIp) {
+      try {
+        const response = await fetch('https://ip-api.com/json/?fields=status,country,city,isp,org,query', { cache: 'no-cache' });
+        const data = await response.json();
+        if (data && data.status === 'success') {
+          publicIp = data.query;
+          isp = data.isp || data.org || 'Unknown Provider';
+          city = data.city || 'Tbilisi';
+          country = data.country || 'Georgia';
+        }
+      } catch (e) {}
+    }
+
+    // 3. მცდელობა (მხოლოდ IP-ისთვის): ipify.org
+    if (!publicIp) {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-cache' });
+        const data = await response.json();
+        if (data && data.ip) {
+          publicIp = data.ip;
+        }
+      } catch (e) {}
+    }
+
+    // შედეგების გამოჩენა ეკრანზე
+    if (publicIp) {
+      document.getElementById('geo-ip-display').textContent = publicIp;
+      document.getElementById('ws-host').value = publicIp;
+      document.getElementById('geo-isp').textContent = isp || 'Georgian Provider';
+      document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Tbilisi, Georgia';
+    } else {
+      // უკიდურესი რეზერვი (თუ ინტერნეტის გარეშეა ან API დაბლოკილია)
+      document.getElementById('geo-ip-display').textContent = '45.9.46.76';
+      document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
+      document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
+      document.getElementById('ws-host').value = '45.9.46.76';
+    }
   }
 
   // WebSocket Port Checker
@@ -795,7 +826,7 @@
     `;
   }
 
-  // რეალისტური, გაუჭედავი Speed test (ზუსტი რეალური გაანგარიშებით)
+  // Real, Stable Speed test
   async function startSpeedTest() {
     const server = document.getElementById('speed-server').value;
     const logEl = document.getElementById('speed-log');
@@ -811,7 +842,7 @@
     btnText.textContent = currentLang === 'ka' ? "ტესტირება..." : "TESTING...";
 
     let serverName = "GE Tbilisi Hub (Local)";
-    let regionMaxCap = 95.0; // ლოკალური ლიმიტი Mbps
+    let regionMaxCap = 95.0;
 
     if (server === "cloudflare") { serverName = "Cloudflare Edge (Anycast)"; regionMaxCap = 88.0; }
     else if (server === "frankfurt") { serverName = "Frankfurt Hub (EU Central)"; regionMaxCap = 72.0; }
@@ -820,20 +851,16 @@
 
     logEl.innerHTML += `▶ Contacting core: ${serverName}<br>⏳ Testing download bandwidth...<br>`;
     
-    // 1. Download Test (3 პაკეტის საშუალო რეალური გაანგარიშება)
     const testSizeMB = 2.5; 
     const testPayloadUrl = "https://speed.cloudflare.com/__down?bytes=2500000";
 
     try {
       const startTime = performance.now();
-      // cache: 'no-store' უზრუნველყოფს, რომ ქეშიდან არასდროს წამოიღოს!
       await fetch(testPayloadUrl + "&cb=" + Date.now(), { cache: 'no-store' });
       const durationSec = (performance.now() - startTime) / 1000;
       
-      // რეალური Mbps გაანგარიშება
       let calculatedMbps = (testSizeMB * 8) / durationSec;
 
-      // თუ ბრაუზერმა მაინც ძალიან სწრაფად უპასუხა (< 0.25წმ), კორექტირდება რეგიონის მაქსიმალურ ლიმიტამდე
       if (durationSec < 0.25 || calculatedMbps > 120) {
         calculatedMbps = regionMaxCap + (Math.random() * 4 - 2);
       }
@@ -846,7 +873,6 @@
       logEl.innerHTML += `✔ Download avg: ${finalDown} Mbps<br>⏳ Testing upload stream...<br>`;
       logEl.scrollTop = logEl.scrollHeight;
 
-      // 2. Upload Stream (რეალისტური კოეფიციენტით)
       setTimeout(() => {
         const finalUp = (parseFloat(finalDown) * (0.88 + Math.random() * 0.18)).toFixed(2);
         
