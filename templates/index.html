@@ -164,7 +164,7 @@
         </div>
         
         <div id="ws-result" class="font-mono text-[10px] sm:text-[11px] text-slate-500 min-h-[36px] mt-2 bg-base-950/40 p-2 rounded border border-base-border/30 leading-tight">
-          ბრაუზერი ზღუდავს პორტებს: 25,587,22,23 და ა.შ. პორტები 443,80,8080 ყველაზე საიმედოა.
+          შეზღუდული პორტები: 22, 23, 25, 587. რეკომენდებულია: 80, 443, 8080.
         </div>
       </div>
       
@@ -188,7 +188,6 @@
         <div class="space-y-2 mb-3">
           <input id="ping-host" type="text" placeholder="google.com ან 8.8.8.8" class="bg-base-900 border border-base-border rounded px-2.5 py-2 text-xs sm:text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
           
-          <!-- მობილურზე Grid-ად გადაყვანილი პარამეტრები -->
           <div class="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3">
             <div class="flex items-center justify-between sm:justify-start gap-1 bg-base-950/60 border border-base-border px-2 py-1 rounded">
               <span id="lbl-count" class="font-mono text-[9px] sm:text-[10px] text-slate-500 uppercase">რაოდენობა:</span>
@@ -208,13 +207,13 @@
         </div>
 
         <div id="ping-result" class="font-mono text-[10px] text-slate-400 bg-base-950/80 p-2 rounded border border-base-border/40 h-20 overflow-y-auto leading-relaxed">
-          მზად არის პინგის გასაშვებად.
+          მზადაა ტესტირებისთვის.
         </div>
       </div>
 
       <div class="mt-4">
         <button onclick="runPingProbe()" id="ping-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3 sm:py-3.5 rounded-md transition text-center">
-          PING-ის გაშვება
+          PING შემოწმება
         </button>
       </div>
     </section>
@@ -249,7 +248,7 @@
         </div>
 
         <div class="bg-base-950/80 border border-base-border p-2 rounded text-[10px] font-mono text-slate-400 h-20 overflow-y-auto leading-relaxed" id="speed-log">
-          კონსოლი მზადაა. აირჩიეთ რეგიონი და დააჭირეთ START-ს.
+          აირჩიეთ სერვერი და დააჭირეთ START-ს.
         </div>
       </div>
 
@@ -273,7 +272,7 @@
         <div>
           <span class="font-mono text-[10px] text-slate-500 uppercase block mb-1">CCTV Utilities</span>
           <span class="font-mono text-[9px] text-slate-600 uppercase block mb-2 sm:mb-3">Hikvision</span>
-          <p id="lbl-cCTV-desc" class="font-mono text-xs text-slate-400 leading-normal mb-2">ვიდეომეთვალყურეობის მეხსიერებისა და გამტარუნარიანობის კალკულატორი.</p>
+          <p id="lbl-cCTV-desc" class="font-mono text-xs text-slate-400 leading-normal mb-2">CCTV მეხსიერების და გამტარუნარიანობის კალკულატორი.</p>
         </div>
         <a href="https://hitools.hikvision.com/HiToolsDesigner/#/toolBox?site=en" target="_blank" id="btn-open-calc" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-2 rounded transition text-center block">
           კალკულატორის გახსნა
@@ -291,7 +290,7 @@
             </div>
           </div>
           <div id="sub-result" class="font-mono text-[10px] text-slate-400 mt-1 space-y-0.5 leading-tight">
-            შეიყვანეთ ქსელის მონაცემები.
+            შეიყვანეთ IP და ნიღაბი.
           </div>
         </div>
         <button onclick="calculateSubnet()" id="btn-calculate" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
@@ -456,24 +455,24 @@
       connDiag: "კავშირის დიაგნოსტიკა",
       targetSocket: "პორტის შემოწმება",
       wsPlaceholder: "მაგ. example.com ან IP",
-      wsRestrictInfo: "ბრაუზერი ზღუდავს პორტებს: 25,587,22,23 და ა.შ. პორტები 443,80,8080 ყველაზე საიმედოა.",
+      wsRestrictInfo: "შეზღუდული პორტები: 22, 23, 25, 587. რეკომენდებულია: 80, 443, 8080.",
       wsBtn: "პორტის შემოწმება",
       hostLatency: "ჰოსტის დაყოვნება (PING)",
       pingPlaceholder: "google.com ან 8.8.8.8",
       count: "რაოდენობა:",
       continuous: "უწყვეტი",
-      pingResultReady: "მზად არის პინგის გასაშვებად.",
-      pingBtn: "PING-ის გაშვება",
+      pingResultReady: "მზადაა ტესტირებისთვის.",
+      pingBtn: "PING შემოწმება",
       multiServer: "სიჩქარის ტესტი",
       download: "ჩამოტვირთვა",
       upload: "ატვირთვა",
-      speedLogReady: "კონსოლი მზადაა. აირჩიეთ რეგიონი და დააჭირეთ START-ს.",
+      speedLogReady: "აირჩიეთ სერვერი და დააჭირეთ START-ს.",
       intDiag: "შიდა დიაგნოსტიკა",
-      cctvDesc: "ვიდეომეთვალყურეობის მეხსიერებისა და გამტარუნარიანობის კალკულატორი.",
+      cctvDesc: "CCTV მეხსიერების და გამტარუნარიანობის კალკულატორი.",
       openCalc: "კალკულატორის გახსნა",
       subnetCalc: "IPv4 სუბნეტ კალკულატორი",
       subIpPlaceholder: "მაგ. 192.168.1.1",
-      subResultReady: "შეიყვანეთ ქსელის მონაცემები.",
+      subResultReady: "შეიყვანეთ IP და ნიღაბი.",
       calculate: "გამოთვლა",
       macConv: "MAC მისამართის კონვერტორი",
       macPlaceholder: "0014.2201.2345 ან 00:14:22...",
@@ -488,7 +487,7 @@
       connDiag: "CONNECTION DIAGNOSTICS",
       targetSocket: "Target Socket Probe",
       wsPlaceholder: "example.com or IP",
-      wsRestrictInfo: "Browser restricts ports: 25,587,22,23 etc. Port 443,80,8080 most reliable.",
+      wsRestrictInfo: "Browser restricts ports: 22, 23, 25, 587. Recommended: 80, 443, 8080.",
       wsBtn: "Check Port",
       hostLatency: "Network Host Latency",
       pingPlaceholder: "google.com or 8.8.8.8",
