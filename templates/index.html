@@ -477,7 +477,11 @@
       macConv: "MAC მისამართის კონვერტორი",
       macPlaceholder: "0014.2201.2345 ან 00:14:22...",
       copy: "კოპირება",
-      copied: "კოპირებულია!"
+      copied: "კოპირებულია!",
+      portOpen: "🟢 პორტი {port} ღიაა ({ms}ms)",
+      portClosed: "❌ პორტი {port} დახურულია / დაბლოკილია",
+      portResponded: "🟢 პორტმა {port} უპასუხა (სავარაუდოდ ღიაა)",
+      probingText: "მოწმდება..."
     },
     en: {
       netInfo: "Network Info",
@@ -509,7 +513,11 @@
       macConv: "MAC Address Converter",
       macPlaceholder: "0014.2201.2345 or 00:14:22...",
       copy: "COPY",
-      copied: "COPIED!"
+      copied: "COPIED!",
+      portOpen: "🟢 Port {port} is OPEN ({ms}ms)",
+      portClosed: "❌ Port {port} is CLOSED / FILTERED",
+      portResponded: "🟢 Port {port} responded (likely OPEN)",
+      probingText: "PROBING..."
     }
   };
 
@@ -587,7 +595,7 @@
     let city = "";
     let country = "";
 
-    // 1. მცდელობა: ipwho.is (ყველაზე საიმედო, უპრობლემო CORS-ით)
+    // 1. ipwho.is (CORS უპრობლემო, მოაქვს ზუსტი პროვაიდერი)
     try {
       const response = await fetch('https://ipwho.is/', { cache: 'no-store' });
       const data = await response.json();
@@ -599,7 +607,7 @@
       }
     } catch (e) {}
 
-    // 2. მცდელობა: ipinfo.io
+    // 2. ipinfo.io
     if (!publicIp || !isp) {
       try {
         const response = await fetch('https://ipinfo.io/json', { cache: 'no-store' });
@@ -613,7 +621,7 @@
       } catch (e) {}
     }
 
-    // 3. მცდელობა: ipapi.co
+    // 3. ipapi.co
     if (!publicIp || !isp) {
       try {
         const response = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
@@ -627,7 +635,7 @@
       } catch (e) {}
     }
 
-    // 4. მცდელობა: ipify.org (მხოლოდ IP-ისთვის)
+    // 4. ipify.org (მხოლოდ IP)
     if (!publicIp) {
       try {
         const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
@@ -636,11 +644,11 @@
       } catch (e) {}
     }
 
-    // შედეგების გამოჩენა
+    // გამოჩენა ეკრანზე
     if (publicIp) {
       document.getElementById('geo-ip-display').textContent = publicIp;
       document.getElementById('ws-host').value = publicIp;
-      document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Georgian Provider';
+      document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Georgianairlink LLC';
       document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Tbilisi, Georgia';
     } else {
       document.getElementById('geo-ip-display').textContent = '45.9.46.76';
@@ -650,12 +658,13 @@
     }
   }
 
-  // WebSocket Port Checker
+  // WebSocket Port Checker (დინამიური ენის მხარდაჭერით)
   function probePortWS() {
     let host = document.getElementById('ws-host').value.trim();
     const port = document.getElementById('ws-port').value.trim();
     const resultDiv = document.getElementById('ws-result');
     const btn = document.getElementById('ws-btn');
+    const t = translations[currentLang];
 
     if (!host || !port) {
       resultDiv.className = "font-mono text-xs text-amber-500 leading-tight min-h-[36px]";
@@ -664,7 +673,7 @@
     }
 
     btn.disabled = true;
-    btn.textContent = currentLang === 'ka' ? "მოწმდება..." : "PROBING...";
+    btn.textContent = t.probingText;
     resultDiv.className = "font-mono text-xs text-slate-400 animate-pulse leading-tight min-h-[36px]";
     resultDiv.textContent = currentLang === 'ka' ? "⚡ მოწმდება ტაიმერით WebSocket-ის მეშვეობით..." : "⚡ Testing via Timed WebSocket...";
 
@@ -675,9 +684,9 @@
     const timeout = setTimeout(() => {
       socket.close();
       resultDiv.className = "font-mono text-xs text-rose-500 leading-tight min-h-[36px]";
-      resultDiv.textContent = `❌ პორტი ${port} დახურულია / დაბლოკილია (Timeout)`;
+      resultDiv.textContent = t.portClosed.replace('{port}', port);
       btn.disabled = false;
-      btn.textContent = translations[currentLang].wsBtn;
+      btn.textContent = t.wsBtn;
     }, 4500);
 
     socket.onopen = function() {
@@ -685,9 +694,9 @@
       socket.close();
       const elapsed = Date.now() - startTime;
       resultDiv.className = "font-mono text-xs text-emerald-400 font-bold leading-tight min-h-[36px]";
-      resultDiv.textContent = `🟢 პორტი ${port} ღიაა (${elapsed}ms)`;
+      resultDiv.textContent = t.portOpen.replace('{port}', port).replace('{ms}', elapsed);
       btn.disabled = false;
-      btn.textContent = translations[currentLang].wsBtn;
+      btn.textContent = t.wsBtn;
     };
 
     socket.onerror = function() {
@@ -696,13 +705,13 @@
       const elapsed = Date.now() - startTime;
       if (elapsed < 1200) {
         resultDiv.className = "font-mono text-xs text-emerald-400 font-bold leading-tight min-h-[36px]";
-        resultDiv.textContent = `🟢 პორტმა ${port} უპასუხა (სავარაუდოდ ღიაა)`;
+        resultDiv.textContent = t.portResponded.replace('{port}', port);
       } else {
         resultDiv.className = "font-mono text-xs text-rose-500 leading-tight min-h-[36px]";
-        resultDiv.textContent = `❌ პორტი ${port} დახურულია / დაბლოკილია`;
+        resultDiv.textContent = t.portClosed.replace('{port}', port);
       }
       btn.disabled = false;
-      btn.textContent = translations[currentLang].wsBtn;
+      btn.textContent = t.wsBtn;
     };
   }
 
