@@ -1,4 +1,6 @@
 import { DEFAULTS, VENDORS, PROTOCOLS, generate, cidr, ipv4, support } from '../static/vpn/engine.js';
+import { TOOLS, defaultsFor, generateTool } from '../static/vpn/catalog.js';
+import { planVlsm, vlsmTsv } from '../static/vpn/vlsm.js';
 let passed = 0;
 const results = [];
 function test(name, fn) {
@@ -115,6 +117,64 @@ test('Public IP edits reach the opposite peer and bound interface', () => {
   const c = config(); c.bindInterfaces = true; c.a.ip = '203.0.113.90';
   const r = generate(c); assert(!r.errors.length); assert(r.a.includes('ip address 203.0.113.90 255.255.255.0'));
   assert(r.b.includes('set remote-gw 203.0.113.90')); assert(!r.b.includes('203.0.113.10'));
+});
+test('VTI is routed, optimized and uses complete dynamic wildcards',()=>{
+  const c=config();c.protocol='vti';c.b.vendor='ios';c.a.local=c.b.remote='10.10.0.0/23';
+  const r=generate(c);assert(!r.errors.length,r.errors.join('; '));
+  for(const text of ['crypto isakmp policy 1','crypto ipsec profile IPSEC-PROFILE-VTI','interface Tunnel0','ip mtu 1400','ip tcp adjust-mss 1360','tunnel mode ipsec ipv4','no ip access-list extended NAT','deny ip 10.10.0.0 0.0.1.255 10.20.0.0 0.0.0.255'])assert(r.a.includes(text),text);
+  assert(r.b.includes('ip route 10.10.0.0 255.255.254.0 Tunnel0'));assert(!r.a.includes('crypto map'));
+  c.vtiLegacy=true;const legacy=generate(c);assert(legacy.a.includes(' group 2'));assert(legacy.a.includes('esp-sha-hmac'));assert(!legacy.a.includes('group 14'));
+});
+for(const key of Object.keys(TOOLS))test(`Default ${key} template generates usable CLI`,()=>{
+  const d=defaultsFor(key);if(key==='hardening')d.secret=d.enableSecret='DemoSecret_0123456789';
+  const r=generateTool(key,d);assert(!r.errors.length,r.errors.join('; '));assert(r.scripts.length>0);for(const s of r.scripts)assert(s.code&&!/undefined|NaN|\[object Object\]/.test(s.code));
+});
+test('Bootstrap static WAN, DHCP scope and firewall ordering',()=>{
+  const d=defaultsFor('bootstrap');d.wanMode='static';const r=generateTool('bootstrap',d);assert(!r.errors.length);const code=r.scripts[0].code;
+  assert(code.includes('/ip address add address=203.0.113.2/30 interface=ether1'));assert(code.includes('dst-address=0.0.0.0/0 gateway=203.0.113.1'));assert(code.indexOf('chain=NOC-IN connection-state=established')<code.indexOf('chain=NOC-IN action=drop'));
+  d.poolStart='192.168.88.1';assert(generateTool('bootstrap',d).errors.length);d.poolStart='192.168.88.10';d.ports='ether1';assert(generateTool('bootstrap',d).errors.length);
+});
+test('Enterprise VLANs produce both router and switch configurations',()=>{
+  const r=generateTool('enterprise',defaultsFor('enterprise'));assert(r.scripts.length===2);assert(r.scripts[0].code.includes('encapsulation dot1Q 20'));assert(r.scripts[1].code.includes('switchport trunk allowed vlan 10,20'));
+  const d=defaultsFor('enterprise');d.vlans='10,HR,192.168.10.1/24,Gi0/2\n10,IT,192.168.20.1/24,Gi0/3';assert(generateTool('enterprise',d).errors.length);
+});
+test('Routing uses vendor-specific OSPF and BGP grammars',()=>{
+  const d=defaultsFor('routing');d.vendor='mikrotik';let r=generateTool('routing',d);assert(r.scripts[0].code.includes('networks=10.0.0.0/30'));
+  d.networks='10.0.0.0 0.0.5.0';assert(generateTool('routing',d).errors.length);
+  d.protocol='bgp';r=generateTool('routing',d);assert(r.scripts[0].code.includes('/routing bgp instance add'));assert(r.scripts[0].code.includes('local.role=ebgp'));
+  d.rosVersion='classic';r=generateTool('routing',d);assert(!r.scripts[0].code.includes('/routing bgp instance add'));assert(r.scripts[0].code.includes('as=65001 router-id=1.1.1.1'));
+  d.remoteAs=d.localAs;assert(generateTool('routing',d).scripts[0].code.includes('local.role=ibgp'));
+});
+test('Standard ACL has no protocol/destination, TCP ACL handles source and destination ports',()=>{
+  const d=defaultsFor('acl');d.type='standard';let r=generateTool('acl',d);assert(r.scripts[0].code.includes('10 permit 192.168.10.0 0.0.0.255'));assert(!r.scripts[0].code.includes(' tcp '));
+  d.type='extended';d.sourcePort='1024';assert(generateTool('acl',d).scripts[0].code.includes('0.0.0.255 eq 1024 any eq 443'));
+  d.destPort='65536';assert(generateTool('acl',d).errors.length);
+});
+test('DHCP merges exclusions, excludes gateway and rejects exhausted pools',()=>{
+  const d=defaultsFor('dhcp');d.exclusions='192.168.10.10 192.168.10.20';let r=generateTool('dhcp',d);assert(r.scripts[0].code.includes('excluded-address 192.168.10.1\n'));
+  d.exclusions='192.168.10.1 192.168.10.254';assert(generateTool('dhcp',d).errors.length);
+});
+test('Static routes support interface, next-hop, distance, permanent and mask validation',()=>{
+  const d=defaultsFor('static');d.interface='GigabitEthernet0/1';d.distance='200';d.permanent=true;assert(generateTool('static',d).scripts[0].code.includes('GigabitEthernet0/1 10.0.0.2 200 permanent'));
+  d.mask='255.0.255.0';assert(generateTool('static',d).errors.length);d.mask='255.255.255.0';d.destination='192.168.20.1';assert(generateTool('static',d).errors.length);
+});
+test('Invalid CLI strings and enums never reach output',()=>{
+  for(const key of ['nat','security','vlan']){const d=defaultsFor(key);const field=key==='nat'?'inside':'interface';d[field]='Gi0/1\nreload';const r=generateTool(key,d);assert(r.errors.length&&r.scripts.length===0);}
+  const d=defaultsFor('security');d.violation='reload';assert(generateTool('security',d).errors.length);
+  const h=defaultsFor('hardening');h.secret=h.enableSecret='abc\nusername backdoor'.padEnd(20,'x');assert(generateTool('hardening',h).errors.length);
+});
+test('VLAN ranges and trunk allow lists validate',()=>{
+  const d=defaultsFor('vlan');d.lastPort='24';assert(generateTool('vlan',d).scripts[0].code.includes('interface range FastEthernet0/1 - 24'));
+  d.mode='trunk';d.allowed='10,10';assert(generateTool('vlan',d).errors.length);
+});
+test('VLSM allocates largest first, computes masks and never overlaps',()=>{
+  const r=planVlsm('192.168.10.0/24',[{name:'Small',hosts:10},{name:'Large',hosts:50},{name:'Medium',hosts:25}]);assert(!r.errors.length);assert(r.rows[0].name==='Large');assert(r.rows[0].network==='192.168.10.0/26');assert(r.rows[0].broadcast==='192.168.10.63');assert(r.rows[1].network==='192.168.10.64/27');assert(r.rows[2].network==='192.168.10.96/28');assert(r.unused===144);assert(vlsmTsv(r.rows).includes('255.255.255.192'));
+});
+test('VLSM failures are atomic and handle IPv4 boundaries',()=>{
+  assert(planVlsm('192.168.10.0/24',[{name:'Too big',hosts:255}]).rows.length===0);
+  assert(planVlsm('192.168.10.1/24',[{name:'IT',hosts:10}]).errors.length);
+  assert(planVlsm('10.0.0.0/24',[{name:'IT',hosts:10},{name:'it',hosts:5}]).errors.length);
+  const r=planVlsm('255.255.255.252/30',[{name:'Edge',hosts:1}]);assert(r.rows[0].broadcast==='255.255.255.255');assert(r.rows[0].first==='255.255.255.253');
 });
 const failures = results.filter(s => s.startsWith('FAIL'));
 const summary = `${passed}/${results.length} tests passed`;
