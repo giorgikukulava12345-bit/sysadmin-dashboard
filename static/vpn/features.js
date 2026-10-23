@@ -19,9 +19,11 @@ export const FEATURES = {
   remotevpn:{title:'Remote Access / SSL VPN',role:'router',category:'security',vendors:['mikrotik','fortinet'],note:'RouterOS OpenVPN client or FortiOS 7.4 SSL VPN server. Existing PKI/server or authenticated user-group prerequisites apply.'},
   ...ENTERPRISE_FEATURES,
 };
-export const CATEGORIES={switching:'01 // SWITCHING & LAYER 2',routing:'02 // ROUTING · IGP & EGP',security:'03 // SECURITY, NAT & VPN',infrastructure:'04 // HIGH AVAILABILITY & INFRASTRUCTURE'};
+export const CATEGORIES={switching:'01 // SWITCHING & LAYER 2',routing:'02 // ADVANCED ROUTING',infrastructure:'03 // MANAGEMENT, SERVICES & ACCESS',security:'04 // SECURITY, NAT & ENTERPRISE VPN'};
 for(const[id,feature]of Object.entries(FEATURES))if(!feature.category)feature.category=['vlan','security'].includes(id)?'switching':['static','ospf','bgp'].includes(id)?'routing':['bootstrap','enterprise'].includes(id)?'presets':['dhcp'].includes(id)?'infrastructure':'security';
 FEATURES.vlan.title='VLAN & 802.1Q Trunking';FEATURES.static.title='Static Routing · IPv4';FEATURES.ospf.title='OSPFv2 · Basic';FEATURES.bgp.title='BGP · eBGP / iBGP';FEATURES.acl.title='Standard & Extended ACLs';FEATURES.hardening.title='SSH & Device Hardening';FEATURES.vpn.title='Site-to-Site VPN';FEATURES.nat.title='NAT / PAT · Static, Dynamic, Overload';
+for(const id of ['hardening','aaa'])FEATURES[id].category='infrastructure';
+FEATURES.qos.category='security';FEATURES.fhrp.category='switching';FEATURES.fhrp.roles=['router','switch'];FEATURES.glbp.roles=['router','switch'];FEATURES.automation.roles=['router','switch'];
 export const forRole=(feature,role)=>(feature.roles||[feature.role]).includes(role);
 export const VPN_TYPES={ikev2:'IPsec · IKEv2',ikev1:'IPsec · IKEv1',vti:'VTI · Cisco IKEv1',gre:'GRE over IPsec',wireguard:'WireGuard',openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'};
 export const capable=(id,vendor)=>Boolean(FEATURES[id]?.vendors.includes(vendor));
@@ -44,7 +46,7 @@ export function boundValues(id,d,s){
   if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan});
   if(id==='dhcp')Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan});
   if(id==='bootstrap')Object.assign(result,{wan:s.wan,wanAddress:`${s.ip}/${s.wanPrefix}`,gateway:s.gateway,lan:`${s.lanIp}/${s.local.split('/')[1]}`});
-  if(['relay','fhrp'].includes(id))Object.assign(result,{localIp:s.lanIp,localNetwork:s.local});
+  if(['relay','fhrp'].includes(id))Object.assign(result,{localIp:s.role==='switch'?s.switchIp:s.lanIp,localNetwork:s.local});
   if(id==='remotevpn')Object.assign(result,{wan:s.wan,lan:s.lan,local:s.local,ip:s.ip,wanPrefix:s.wanPrefix});
   return result;
 }

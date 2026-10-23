@@ -20,7 +20,11 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   if(ids.includes('enterprise')&&(ids.length>1||bindings))errors.push('Router-on-a-stick is a complete router/switch preset. Disable other features and interface bindings.');
   if(role==='switch'&&ids.includes('vlan')&&ids.includes('security')&&values.vlan?.mode==='trunk')errors.push('Port security in this lab requires an access port. Disable port security or select Access mode.');
   if(ids.includes('nat')&&ids.includes('acl')&&values.nat?.acl===values.acl?.name)errors.push('Translation ACL and traffic-filter ACL must use different names.');
-  if(ids.includes('fhrp')){const n=cidr(site.local),vip=values.fhrp?.virtualIp;const number=typeof vip==='string'?vip.split('.').reduce((a,v)=>a*256+Number(v),0):NaN;if(!n||!Number.isFinite(number)||number<=n.network||number>=n.end||[site.lanIp,site.switchIp,site.hostIp].includes(vip))errors.push('FHRP virtual IP must be an unused usable host in the local LAN.');}
+  if(ids.includes('glbp')&&ids.includes('fhrp'))errors.push('Use one first-hop redundancy protocol per interface; GLBP and HSRP/VRRP cannot be combined here.');
+  if(ids.includes('bpduguard')&&ids.includes('vlan')&&values.bpduguard?.interface===values.vlan?.interface&&values.vlan?.mode==='trunk')errors.push('BPDU Guard edge template must not be applied to a trunk port.');
+  if(ids.includes('span')&&values.span?.mode==='local'){const analyzer=values.span.destination;for(const id of ['vlan','security','bpduguard'])if(ids.includes(id)&&values[id]?.interface===analyzer)errors.push('A SPAN analyzer destination must be dedicated; remove access, security or BPDU settings on that port.');}
+  if(ids.includes('dmvpn')&&['vpn','zbfw','nat'].some(id=>ids.includes(id)))errors.push('Generate the DMVPN overlay separately; NAT exemptions and firewall zones require an explicit hub/spoke design.');
+  if(ids.includes('fhrp')||ids.includes('glbp')){const n=cidr(site.local),vip=(values.fhrp||values.glbp)?.virtualIp;const number=typeof vip==='string'?vip.split('.').reduce((a,v)=>a*256+Number(v),0):NaN;if(!n||!Number.isFinite(number)||number<=n.network||number>=n.end||[site.lanIp,site.switchIp,site.hostIp].includes(vip))errors.push('FHRP virtual IP must be an unused usable host in the local LAN.');}
   if(ids.includes('ospf')&&ids.includes('ospf_advanced'))errors.push('Use either Basic OSPFv2 or Advanced OSPFv2; the advanced template already includes the process configuration.');
   if(ids.includes('dhcp')&&ids.includes('relay')&&values.relay?.interface===site.lan)errors.push('Do not configure DHCP Server and Relay on the same LAN interface.');
   if(ids.includes('zbfw')&&ids.includes('vpn'))errors.push('This ZBFW template needs a separately designed VPN zone policy; generate ZBFW and VPN separately.');
@@ -39,7 +43,7 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
       continue;
     }
     if(id==='nat'&&vtiOwnNat)continue; // VTI already emits its NAT ACL and bindings.
-    const data=boundValues(id,values[id]||{}, {...site,vendor});
+    const data=boundValues(id,values[id]||{}, {...site,vendor,role});
     let result=generateFeature(id,data);
     if(id==='nat'&&vendor==='ios'&&ids.includes('vpn')&&!['openvpn','ssl','wireguard'].includes(vpnType)&&!result.errors.length){
       const local=cidr(site.local),remote=cidr(lab[side==='a'?'b':'a'].local),name=data.acl;

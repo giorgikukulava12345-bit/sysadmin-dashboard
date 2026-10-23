@@ -1,3 +1,4 @@
+import { ADVANCED_FEATURES, generateAdvanced } from './advanced.js';
 import { ipv4, cidr } from './address.js';
 import { network, number } from './catalog.js';
 import { PORTS } from './platforms.js';
@@ -20,6 +21,7 @@ const result=(title,code)=>({errors:[],scripts:[{title,code}]});
 const def=(title,role,category,vendors,fields,note,roles)=>({title,role,category,vendors,fields,note,roles});
 
 export const ENTERPRISE_FEATURES={
+  ...ADVANCED_FEATURES,
   stp:def('STP / RSTP / MST','switch','switching',['ios','mikrotik','juniper'],v=>[s('mode','Spanning-tree mode','rstp',{stp:'STP / PVST+',rstp:'RSTP / Rapid PVST+',mst:'MST'}),f('vlans','VLAN IDs','10,20'),f('priority','Bridge priority (multiple of 4096)','32768','number'),f('bridge','Existing RouterOS bridge','NOC-SW','text',null,()=>v==='mikrotik'),f('region','MST region name','NOC-REGION','text',null,d=>d.mode==='mst'),f('revision','MST revision','1','number',null,d=>d.mode==='mst')],'Global bridge settings. MST peers must use the same region name, revision and VLAN mapping. Review existing STP before applying.'),
   etherchannel:def('EtherChannel · LACP / PAgP','switch','switching',['ios','mikrotik','juniper'],v=>[s('protocol','Aggregation protocol','lacp',{lacp:'LACP · active',pagp:'PAgP · desirable (Cisco only)'}),f('members','Member interfaces (comma separated)',v==='ios'?'GigabitEthernet0/2,GigabitEthernet0/3':v==='juniper'?'ge-0/0/2,ge-0/0/3':'ether3,ether4'),f('group','Bundle number','1','number'),f('vlans','Trunk VLAN IDs','10,20')],'Members must be unused, compatible physical ports. Junos ae capacity must already be provisioned. RouterOS creates a bond; attach it to the intended bridge/VLAN design separately.'),
   snooping:def('DHCP Snooping','switch','switching',['ios','mikrotik'],v=>[f('vlans','Protected VLAN IDs','10,20'),f('uplink','Trusted server-facing interface',iface(v,0)),f('access','Untrusted client interface',v==='ios'?'FastEthernet0/1':'ether2'),f('rate','Client DHCP rate (packets/s)','15','number',null,()=>v==='ios'),f('bridge','Existing RouterOS bridge','NOC-SW','text',null,()=>v==='mikrotik')],'Trust only the actual DHCP server/uplink. RouterOS bridge hardware offload support varies by model; ensure these ports are in the named bridge.'),
@@ -57,6 +59,7 @@ const listPorts=value=>{const a=String(value).split(',').map(x=>port(x.trim()));
 export function enterpriseGenerate(id,d){
   try{
     const v=d.vendor,feature=ENTERPRISE_FEATURES[id];if(!feature?.vendors.includes(v))throw Error(`No ${id} template for the selected vendor. Select another feature/vendor; no unrelated CLI is emitted.`);
+    if(ADVANCED_FEATURES[id])return generateAdvanced(id,d);
     let code='';
     if(id==='stp'){
       const mode=protocol(d.mode,['stp','rstp','mst']),ids=vlans(d.vlans),priority=number(d.priority,0,61440,'Priority');if(priority%4096)throw Error('Bridge priority must be a multiple of 4096.');
