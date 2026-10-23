@@ -260,68 +260,7 @@
     </section>
   </div>
 
-  <!-- 04 // CORE NETWORK TOOLS -->
-  <section class="panel rounded-lg p-4 sm:p-6 relative overflow-hidden">
-    <div class="flex items-center justify-between mb-4">
-      <span class="font-mono text-[10px] text-cyan-glow tracking-widest">04 // CORE NETWORK TOOLS</span>
-      <span id="lbl-int-diag" class="font-mono text-[10px] text-slate-600">შიდა დიაგნოსტიკა</span>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-      <div class="bg-base-950/50 border border-base-border p-3.5 sm:p-4 rounded-md flex flex-col justify-between min-h-[180px] sm:min-h-[220px]">
-        <div>
-          <span class="font-mono text-[10px] text-slate-500 uppercase block mb-1">CCTV Utilities</span>
-          <span class="font-mono text-[9px] text-slate-600 uppercase block mb-2 sm:mb-3">Hikvision</span>
-          <p id="lbl-cCTV-desc" class="font-mono text-xs text-slate-400 leading-normal mb-2">CCTV მეხსიერების და გამტარუნარიანობის კალკულატორი.</p>
-        </div>
-        <a href="https://hitools.hikvision.com/HiToolsDesigner/#/toolBox?site=en" target="_blank" id="btn-open-calc" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-2 rounded transition text-center block">
-          კალკულატორის გახსნა
-        </a>
-      </div>
-
-      <div class="bg-base-950/50 border border-base-border p-3.5 sm:p-4 rounded-md flex flex-col justify-between min-h-[180px] sm:min-h-[220px]">
-        <div>
-          <span id="lbl-subnet-calc" class="font-mono text-[10px] text-slate-500 uppercase block mb-2">IPv4 სუბნეტ კალკულატორი</span>
-          <div class="flex gap-2 mb-1.5">
-            <input id="sub-ip" type="text" placeholder="მაგ. 192.168.1.1" class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-            <div class="relative flex items-center shrink-0 w-14 sm:w-16">
-              <span class="absolute left-1.5 font-mono text-xs text-slate-500">/</span>
-              <input id="sub-mask" type="text" placeholder="30" value="30" class="bg-base-900 border border-base-border rounded pl-4 pr-1 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600 text-center">
-            </div>
-          </div>
-          <div id="sub-result" class="font-mono text-[10px] text-slate-400 mt-1 space-y-0.5 leading-tight">
-            შეიყვანეთ IP და ნიღაბი.
-          </div>
-        </div>
-        <button onclick="calculateSubnet()" id="btn-calculate" class="w-full mt-2 bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/40 hover:border-cyan-glow text-cyan-glow font-mono text-[10px] font-bold uppercase tracking-wider py-1.5 rounded transition text-center">
-          გამოთვლა
-        </button>
-      </div>
-
-      <div class="bg-base-950/50 border border-base-border p-3.5 sm:p-4 rounded-md flex flex-col justify-between min-h-[180px] sm:min-h-[220px]">
-        <div class="space-y-2">
-          <span id="lbl-mac-conv" class="font-mono text-[10px] text-slate-500 uppercase block">MAC მისამართის კონვერტორი</span>
-          <div class="flex gap-2">
-            <input id="mac-input" type="text" oninput="convertMAC()" placeholder="0014.2201.2345 ან 00:14:22..." class="bg-base-900 border border-base-border rounded px-2 py-1 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-          </div>
-          <div class="space-y-1.5 text-[10px] sm:text-[11px] font-mono">
-            <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
-              <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Colon</span><span id="mac-colon" class="text-slate-300">-</span></div>
-              <button onclick="copyMacText('mac-colon', this)" class="btn-copy text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">კოპირება</button>
-            </div>
-            <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
-              <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Hyphen</span><span id="mac-hyphen" class="text-slate-300">-</span></div>
-              <button onclick="copyMacText('mac-hyphen', this)" class="btn-copy text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">კოპირება</button>
-            </div>
-            <div class="flex items-center justify-between bg-base-900/60 p-1 px-2 border border-base-border/40 rounded">
-              <div class="truncate"><span class="text-slate-500 text-[9px] uppercase block">Cisco Dot</span><span id="mac-cisco" class="text-slate-300">-</span></div>
-              <button onclick="copyMacText('mac-cisco', this)" class="btn-copy text-[9px] text-cyan-glow/60 hover:text-cyan-glow border border-cyan-glow/20 rounded px-1.5 py-0.5 bg-cyan-glow/5 transition ml-2">კოპირება</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  {% include 'vpn/configurator.html' %}
 
   <!-- 05 // SYSADMIN FILE REPOSITORY -->
   <section class="panel rounded-lg p-4 sm:p-6">
@@ -441,7 +380,7 @@
     </div>
   </section>
 
-  {% include 'vpn/configurator.html' %}
+
 </main>
 
 <script>
@@ -468,17 +407,6 @@
       download: "ჩამოტვირთვა",
       upload: "ატვირთვა",
       speedLogReady: "აირჩიეთ სერვერი და დააჭირეთ START-ს.",
-      intDiag: "შიდა დიაგნოსტიკა",
-      cctvDesc: "CCTV მეხსიერების და გამტარუნარიანობის კალკულატორი.",
-      openCalc: "კალკულატორის გახსნა",
-      subnetCalc: "IPv4 სუბნეტ კალკულატორი",
-      subIpPlaceholder: "მაგ. 192.168.1.1",
-      subResultReady: "შეიყვანეთ IP და ნიღაბი.",
-      calculate: "გამოთვლა",
-      macConv: "MAC მისამართის კონვერტორი",
-      macPlaceholder: "0014.2201.2345 ან 00:14:22...",
-      copy: "კოპირება",
-      copied: "კოპირებულია!",
       portOpen: "🟢 პორტი {port} ღიაა ({ms}ms)",
       portClosed: "❌ პორტი {port} დახურულია / დაბლოკილია",
       portResponded: "🟢 პორტმა {port} უპასუხა (სავარაუდოდ ღიაა)",
@@ -504,17 +432,6 @@
       download: "Download",
       upload: "Upload",
       speedLogReady: "Console ready. Select region and press Start.",
-      intDiag: "INTERNAL DIAGNOSTICS",
-      cctvDesc: "Storage & Bandwidth Management Toolkit.",
-      openCalc: "Open Calculator",
-      subnetCalc: "IPv4 Subnet Calculator",
-      subIpPlaceholder: "e.g. 192.168.1.1",
-      subResultReady: "Enter network credentials.",
-      calculate: "Calculate",
-      macConv: "MAC Address Converter",
-      macPlaceholder: "0014.2201.2345 or 00:14:22...",
-      copy: "COPY",
-      copied: "COPIED!",
       portOpen: "🟢 Port {port} is OPEN ({ms}ms)",
       portClosed: "❌ Port {port} is CLOSED / FILTERED",
       portResponded: "🟢 Port {port} responded (likely OPEN)",
@@ -556,22 +473,9 @@
     document.getElementById('lbl-upload').textContent = t.upload;
     document.getElementById('speed-log').textContent = t.speedLogReady;
 
-    document.getElementById('lbl-int-diag').textContent = t.intDiag;
-    document.getElementById('lbl-cCTV-desc').textContent = t.cctvDesc;
-    document.getElementById('btn-open-calc').textContent = t.openCalc;
-    document.getElementById('lbl-subnet-calc').textContent = t.subnetCalc;
-    document.getElementById('sub-ip').placeholder = t.subIpPlaceholder;
-    document.getElementById('sub-result').textContent = t.subResultReady;
-    document.getElementById('btn-calculate').textContent = t.calculate;
 
-    document.getElementById('lbl-mac-conv').textContent = t.macConv;
-    document.getElementById('mac-input').placeholder = t.macPlaceholder;
     
-    document.querySelectorAll('.btn-copy').forEach(btn => {
-      if (btn.textContent !== "COPIED!" && btn.textContent !== "კოპირებულია!") {
-        btn.textContent = t.copy;
-      }
-    });
+
   }
 
   function formatLocalClock(date) {
@@ -777,76 +681,6 @@
     btn.textContent = translations[currentLang].pingBtn;
   }
 
-  // Subnet Calculator
-  function calculateSubnet() {
-    const ipStr = document.getElementById('sub-ip').value.trim();
-    const maskStr = document.getElementById('sub-mask').value.trim();
-    const resultDiv = document.getElementById('sub-result');
-
-    if (!ipStr || !maskStr) {
-      resultDiv.innerHTML = `<span class='text-amber-500'>${currentLang === 'ka' ? '⚠️ შეავსეთ ორივე ველი.' : '⚠️ Please fill both fields.'}</span>`;
-      return;
-    }
-
-    const ipReg = /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/;
-    if (!ipReg.test(ipStr)) {
-      resultDiv.innerHTML = `<span class='text-rose-400'>${currentLang === 'ka' ? '⚠️ არასწორი IP ფორმატი.' : '⚠️ Invalid IP format.'}</span>`;
-      return;
-    }
-
-    const parts = ipStr.split('.').map(Number);
-    if (parts.some(p => p > 255)) {
-      resultDiv.innerHTML = `<span class='text-rose-400'>${currentLang === 'ka' ? '⚠️ მაქსიმალური ოქტეტია 255.' : '⚠️ Max octet is 255.'}</span>`;
-      return;
-    }
-
-    const prefix = parseInt(maskStr, 10);
-    if (isNaN(prefix) || prefix < 1 || prefix > 32) {
-      resultDiv.innerHTML = `<span class='text-rose-400'>${currentLang === 'ka' ? '⚠️ ნიღაბი უნდა იყოს 1-დან 32-მდე.' : '⚠️ Mask must be between 1 and 32.'}</span>`;
-      return;
-    }
-    
-    let ipNum = (parts[0] << 24) >>> 0;
-    ipNum += (parts[1] << 16) >>> 0;
-    ipNum += (parts[2] << 8) >>> 0;
-    ipNum += parts[3] >>> 0;
-
-    let maskNum = 0;
-    if (prefix > 0) {
-      maskNum = (-1 << (32 - prefix)) >>> 0;
-    }
-
-    const netNum = (ipNum & maskNum) >>> 0;
-    const broadNum = (netNum | ~maskNum) >>> 0;
-
-    const numHosts = Math.max(0, (broadNum - netNum) + 1);
-    const usableHosts = prefix >= 31 ? numHosts : Math.max(0, numHosts - 2);
-
-    function numToId(num) {
-      return [
-        (num >>> 24) & 255,
-        (num >>> 16) & 255,
-        (num >>> 8) & 255,
-        num & 255
-      ].join('.');
-    }
-
-    let usableRange = "N/A";
-    if (prefix <= 30) {
-      usableRange = `${numToId(netNum + 1)} - ${numToId(broadNum - 1)}`;
-    } else if (prefix === 31) {
-      usableRange = `${numToId(netNum)} - ${numToId(broadNum)}`;
-    }
-
-    resultDiv.innerHTML = `
-      <div><span class="text-cyan-glow">Network:</span> ${numToId(netNum)}/${prefix}</div>
-      <div><span class="text-cyan-glow">Mask:</span> ${numToId(maskNum)}</div>
-      <div><span class="text-cyan-glow">Range:</span> ${usableRange}</div>
-      <div><span class="text-cyan-glow">Broadcast:</span> ${numToId(broadNum)}</div>
-      <div><span class="text-cyan-glow">Valid Hosts:</span> ${usableHosts}</div>
-    `;
-  }
-
   // Speed test
   async function startSpeedTest() {
     const server = document.getElementById('speed-server').value;
@@ -919,52 +753,6 @@
       btn.disabled = false;
       btnText.textContent = "START";
     }
-  }
-
-  // MAC Converter
-  function convertMAC() {
-    const input = document.getElementById('mac-input').value.trim();
-    const colonEl = document.getElementById('mac-colon');
-    const hyphenEl = document.getElementById('mac-hyphen');
-    const ciscoEl = document.getElementById('mac-cisco');
-
-    let clean = input.replace(/[^0-9a-fA-F]/g, '');
-
-    if (clean.length === 0) {
-      colonEl.textContent = "-";
-      hyphenEl.textContent = "-";
-      ciscoEl.textContent = "-";
-      return;
-    }
-
-    let upper = clean.toUpperCase();
-
-    let colonRes = upper.match(/.{1,2}/g)?.join(':') || "-";
-    colonEl.textContent = colonRes;
-
-    let hyphenRes = upper.match(/.{1,2}/g)?.join('-') || "-";
-    hyphenEl.textContent = hyphenRes;
-
-    let ciscoRes = upper.match(/.{1,4}/g)?.join('.') || "-";
-    ciscoEl.textContent = ciscoRes;
-  }
-
-  function copyMacText(elementId, btn) {
-    const text = document.getElementById(elementId).textContent;
-    if (text === "-" || text === "") return;
-
-    navigator.clipboard.writeText(text).then(() => {
-      const originalText = btn.textContent;
-      btn.textContent = currentLang === 'ka' ? "კოპირებულია!" : "COPIED!";
-      btn.classList.remove('text-cyan-glow/60', 'border-cyan-glow/20');
-      btn.classList.add('text-emerald-400', 'border-emerald-500/40');
-      
-      setTimeout(() => {
-        btn.textContent = translations[currentLang].copy;
-        btn.classList.remove('text-emerald-400', 'border-emerald-500/40');
-        btn.classList.add('text-cyan-glow/60', 'border-cyan-glow/20');
-      }, 1000);
-    });
   }
 
   initNetworkInfo();
