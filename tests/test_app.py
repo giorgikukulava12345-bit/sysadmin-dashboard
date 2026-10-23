@@ -20,7 +20,7 @@ class DashboardIntegrationTests(unittest.TestCase):
     def test_module_assets_are_served(self):
         for filename in ['engine.js', 'address.js', 'ui.js', 'interfaces.js', 'lab.js', 'platforms.js',
                          'vti.js', 'catalog.js', 'vlsm.js', 'workbench.js', 'features.js', 'compose.js',
-                         'diagram.js', 'planner-ui.js', 'workbench-style.js',
+                         'diagram.js', 'planner-ui.js', 'workbench-style.js', 'enterprise.js',
                          'vendors/juniper.js', 'vendors/ios.js', 'vendors/asa.js', 'vendors/mikrotik.js',
                          'vendors/fortinet.js', 'vendors/paloalto.js', 'vendors/wireguard.js']:
             with self.subTest(filename=filename):
