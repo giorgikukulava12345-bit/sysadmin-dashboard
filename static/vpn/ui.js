@@ -1,7 +1,9 @@
 import { DEFAULTS, VENDORS, PROTOCOLS, generate } from './engine.js';
 import { topologyMarkup, updateTopology } from './topology.js';
+import { mountWorkbench } from './workbench.js';
 
-const root = document.getElementById('vpn-app');
+export function mountVpn(root, mountOptions = {}) {
+const controller = new AbortController();
 const state = structuredClone(DEFAULTS);
 const inputClass = 'w-full bg-base-950 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-400';
 const buttonClass = 'border border-cyan-glow/40 text-cyan-glow bg-cyan-glow/10 hover:bg-cyan-glow/20 rounded px-3 py-2 font-mono text-xs transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400';
@@ -37,6 +39,7 @@ root.innerHTML = `<form id="vpn-form" novalidate>
     <p class="md:col-span-2 text-xs text-slate-500">IPv4 · Static public endpoints · Single LAN per side · Review target firmware in the knowledge base</p>
   </div>
   ${topologyMarkup()}
+  <label data-vti class="flex items-start gap-3 mb-4 text-xs text-amber-200" hidden><input name="vtiLegacy" type="checkbox" class="accent-cyan-400"><span>Legacy VTI lab profile: DH2 / SHA1<span class="block text-slate-500 mt-1">Off: use the selected AES/DH settings with SHA256. On: reproduce the reference template's DH2/SHA1 suite. PFS is not configured by this VTI profile. Both peers use Tunnel0 and a rebuilt ACL NAT.</span></span></label>
   <label class="flex items-start gap-3 mb-5 text-sm text-slate-300"><input id="vpn-bindInterfaces" name="bindInterfaces" type="checkbox" class="accent-cyan-400 mt-1"><span>Include physical interface IP assignments in CLI<span class="block text-xs text-slate-500 mt-1">Enabling this adds WAN/LAN address commands and, on ASA, nameif/security-level assignments. Existing interface configuration may be changed. Internet routing, zones and VLANs must already be configured.</span></span></label>
   <div class="grid lg:grid-cols-2 gap-4">${site('a')}${site('b')}</div>
   <div class="flex flex-wrap gap-2 mt-4">
@@ -75,7 +78,8 @@ function syncInputs() {
   }
 }
 function render() {
-  const wg = state.protocol === 'wireguard', overlay = wg || state.protocol === 'gre';
+  const wg = state.protocol === 'wireguard', overlay = wg || ['gre','vti'].includes(state.protocol);
+  root.querySelector('[data-vti]').hidden = state.protocol !== 'vti';
   root.querySelectorAll('[data-wg]').forEach(el => { el.hidden = !wg; });
   root.querySelectorAll('[data-overlay]').forEach(el => { el.hidden = !overlay; });
   root.querySelector('#vpn-advanced').hidden = wg;
@@ -149,5 +153,12 @@ root.addEventListener('click', async event => {
     try { await navigator.clipboard.writeText(result[side]); status.textContent = `Side ${side.toUpperCase()} configuration copied, including secrets.`; }
     catch { status.textContent = 'Clipboard access failed. Reveal the configuration, select its text and copy manually.'; }
   }
-});
+}, {signal:controller.signal});
 syncInputs(); render();
+const cleanupWorkbench = mountOptions.workbench === false ? () => {} : mountWorkbench(root);
+return () => {controller.abort();cleanupWorkbench();root.replaceChildren();};
+}
+if (typeof document !== 'undefined') {
+  const autoRoot = document.getElementById('vpn-app');
+  if (autoRoot) mountVpn(autoRoot);
+}
