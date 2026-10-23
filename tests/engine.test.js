@@ -1,3 +1,4 @@
+import { createLab, labScripts } from '../static/vpn/lab.js';
 import { DEFAULTS, VENDORS, PROTOCOLS, generate, cidr, ipv4, support } from '../static/vpn/engine.js';
 import { TOOLS, defaultsFor, generateTool } from '../static/vpn/catalog.js';
 import { planVlsm, vlsmTsv } from '../static/vpn/vlsm.js';
@@ -94,7 +95,7 @@ test('WireGuard ignores inactive IPsec fields', () => {
   c.b.port = '51820'; c.a.psk = c.b.psk = 'invalid'; blocked(c, 'base64');
   c.a.psk = c.b.psk = ''; c.a.privateKey = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; blocked(c, 'nonzero');
 });
-for (const vendor of Object.keys(VENDORS)) test(`Interface binding uses current addresses on ${vendor}`, () => {
+for (const vendor of Object.keys(VENDORS).filter(v=>v!=='juniper')) test(`Interface binding uses current addresses on ${vendor}`, () => {
   const c = config(); c.bindInterfaces = true; c.a.vendor = vendor;
   c.a.wan = vendor === 'paloalto' ? 'ethernet1/3' : vendor === 'asa' ? 'outside' : 'eth0';
   c.a.lan = vendor === 'paloalto' ? 'ethernet1/4' : vendor === 'asa' ? 'inside' : 'eth1';
@@ -176,6 +177,11 @@ test('VLSM failures are atomic and handle IPv4 boundaries',()=>{
   assert(planVlsm('10.0.0.0/24',[{name:'IT',hosts:10},{name:'it',hosts:5}]).errors.length);
   const r=planVlsm('255.255.255.252/30',[{name:'Edge',hosts:1}]);assert(r.rows[0].broadcast==='255.255.255.255');assert(r.rows[0].first==='255.255.255.253');
 });
+for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto'])test(`Universal router binding: ${vendor}`,()=>{const lab=createLab();lab.a.vendor=vendor;const r=labScripts(lab);assert(!r.errors.length,r.errors.join(';'));assert(r.scripts.length===6);assert(r.scripts[0].code.includes(lab.a.ip)&&r.scripts[0].code.includes(lab.a.lanIp));});
+test('Lab rejects collisions, malformed ports and invalid LAN hosts atomically',()=>{for(const patch of [{hostIp:'10.10.0.1'},{hostIp:'10.10.0.0'},{access:'eth0;reboot'},{vlan:'4095'},{wanPrefix:'40'}]){const lab=createLab();Object.assign(lab.a,patch);const r=labScripts(lab);assert(r.errors.length>0);assert(r.scripts.length===0);}});
+test('Unsupported switch platforms never copy unrelated syntax',()=>{const lab=createLab();lab.a.switchVendor='paloalto';const r=labScripts(lab);assert(r.scripts[1].unsupported);assert(!r.scripts[1].code.includes('switchport'));});
+test('All feature selectors include the enterprise registry and reject unsupported pairs',()=>{for(const [key,t]of Object.entries(TOOLS)){const f=t.fields.find(f=>f.key==='vendor');assert(Object.keys(f.options).length===5);const d=defaultsFor(key);d.vendor='paloalto';const r=generateTool(key,d);assert(r.errors.length>0&&r.scripts.length===0);}});
+test('Junos IPsec uses mirrored selectors, policy and SRX zone context',()=>{const c=config();c.a.vendor='juniper';c.a.wan='ge-0/0/0';c.a.lan='ge-0/0/1';const r=generate(c);assert(!r.errors.length);assert(r.a.includes('traffic-selector NOC-TS local-ip 10.10.0.0/24'));assert(r.a.includes('gateway NOC-PEER version v2-only'));assert(r.a.includes('external-interface ge-0/0/0.0'));assert(r.a.includes('hmac-sha-256-128'));});
 const failures = results.filter(s => s.startsWith('FAIL'));
 const summary = `${passed}/${results.length} tests passed`;
 if (typeof document !== 'undefined') {

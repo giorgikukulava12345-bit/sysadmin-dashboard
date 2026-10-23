@@ -13,11 +13,14 @@ class DashboardIntegrationTests(unittest.TestCase):
         self.assertIn(b'id="vpn-configurator"', response.data)
         self.assertIn(b'/static/vpn/ui.js', response.data)
         self.assertNotIn(b'{% include', response.data)
+        self.assertNotIn(b'CORE NETWORK TOOLS', response.data)
+        self.assertIn(b'04 // NETWORK ENGINEERING LAB', response.data)
+        self.assertLess(response.data.index(b'04 // NETWORK ENGINEERING LAB'), response.data.index(b'05 // SYSADMIN FILE REPOSITORY'))
 
     def test_module_assets_are_served(self):
-        for filename in ['engine.js', 'address.js', 'ui.js', 'interfaces.js', 'topology.js',
-                         'vti.js', 'catalog.js', 'vlsm.js', 'monitor.js', 'workbench.js',
-                         'vendors/ios.js', 'vendors/asa.js', 'vendors/mikrotik.js',
+        for filename in ['engine.js', 'address.js', 'ui.js', 'interfaces.js', 'lab.js', 'platforms.js',
+                         'vti.js', 'catalog.js', 'vlsm.js', 'workbench.js',
+                         'vendors/juniper.js', 'vendors/ios.js', 'vendors/asa.js', 'vendors/mikrotik.js',
                          'vendors/fortinet.js', 'vendors/paloalto.js', 'vendors/wireguard.js']:
             with self.subTest(filename=filename):
                 response = self.client.get('/static/vpn/' + filename)
