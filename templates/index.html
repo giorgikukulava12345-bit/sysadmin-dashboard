@@ -73,6 +73,7 @@
   }
   .live-dot { animation: pulse-dot 2s infinite; }
 </style>
+<link rel="stylesheet" href="/static/vpn/command-center.css">
 </head>
 
 <body class="font-sans text-slate-300 min-h-screen relative">
@@ -129,7 +130,7 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+    <div class="noc-network-summary">
       <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
         <span id="lbl-public-ip" class="font-mono text-[10px] text-slate-500 uppercase block">საჯარო IP მისამართი</span>
         <span id="geo-ip-display" class="font-mono text-lg sm:text-xl font-bold text-slate-100 mt-1 block tracking-wide">მოწმდება...</span>
@@ -146,7 +147,7 @@
   </section>
 
   <!-- 3-სვეტიანი გრიდი -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+  <div class="grid grid-cols-1 gap-4 sm:gap-6">
     
     <!-- 01 // PORT CHECKER -->
     <section class="panel rounded-lg p-4 sm:p-6 relative overflow-hidden flex flex-col justify-between">
@@ -175,91 +176,8 @@
       </div>
     </section>
 
-    <!-- 02 // PING & LATENCY -->
-    <section class="panel rounded-lg p-4 sm:p-6 relative overflow-hidden flex flex-col justify-between">
-      <div>
-        <div class="flex items-center justify-between mb-3 sm:mb-4">
-          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">02 // PING & LATENCY</span>
-          <span class="font-mono text-[10px] text-slate-600">HTTP/ICMP PROBE</span>
-        </div>
-        
-        <p id="lbl-host-latency" class="font-mono text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide mb-2 sm:mb-3">ჰოსტის დაყოვნება (PING)</p>
-        
-        <div class="space-y-2 mb-3">
-          <input id="ping-host" type="text" placeholder="google.com ან 8.8.8.8" class="bg-base-900 border border-base-border rounded px-2.5 py-2 text-xs sm:text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-          
-          <div class="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3">
-            <div class="flex items-center justify-between sm:justify-start gap-1 bg-base-950/60 border border-base-border px-2 py-1 rounded">
-              <span id="lbl-count" class="font-mono text-[9px] sm:text-[10px] text-slate-500 uppercase">რაოდენობა:</span>
-              <input id="ping-count" type="number" value="4" min="1" max="10" class="bg-transparent w-7 font-mono text-xs text-slate-200 text-center focus:outline-none">
-            </div>
-
-            <div class="flex items-center justify-between sm:justify-start gap-1 bg-base-950/60 border border-base-border px-2 py-1 rounded">
-              <span class="font-mono text-[9px] sm:text-[10px] text-slate-500 uppercase">MTU:</span>
-              <input id="ping-mtu" type="text" value="1472" class="bg-transparent w-10 font-mono text-xs text-slate-200 text-center focus:outline-none">
-            </div>
-
-            <label class="col-span-2 sm:col-span-1 flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer select-none py-1">
-              <input id="ping-continuous" type="checkbox" class="rounded bg-base-900 border-base-border text-cyan-glow focus:ring-0 w-3.5 h-3.5">
-              <span id="lbl-continuous" class="font-mono text-[10px] text-slate-400">უწყვეტი</span>
-            </label>
-          </div>
-        </div>
-
-        <div id="ping-result" class="font-mono text-[10px] text-slate-400 bg-base-950/80 p-2 rounded border border-base-border/40 h-20 overflow-y-auto leading-relaxed">
-          მზადაა ტესტირებისთვის.
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <button onclick="runPingProbe()" id="ping-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3 sm:py-3.5 rounded-md transition text-center">
-          PING შემოწმება
-        </button>
-      </div>
-    </section>
-
-    <!-- 03 // BANDWIDTH BENCHMARK -->
-    <section class="panel rounded-lg p-4 sm:p-6 relative overflow-hidden flex flex-col justify-between">
-      <div>
-        <div class="flex items-center justify-between mb-3 sm:mb-4">
-          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">03 // BANDWIDTH BENCHMARK</span>
-          <span id="lbl-multi-server" class="font-mono text-[10px] text-slate-600">სიჩქარის ტესტი</span>
-        </div>
-        
-        <div class="mb-3">
-          <select id="speed-server" class="bg-base-900 border border-base-border rounded px-2.5 py-2 text-xs font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 truncate">
-            <option value="tbilisi">🇬🇪 ლოკალური: GE Tbilisi Hub (Local)</option>
-            <option value="cloudflare">☁️ გლობალური: Cloudflare Edge (Anycast)</option>
-            <option value="frankfurt">🇩🇪 ევროპა: Frankfurt Hub (EU Central)</option>
-            <option value="london">🇬🇧 ევროპა: London Hub (EU West)</option>
-            <option value="newyork">🇺🇸 ამერიკა: New York Hub (US East)</option>
-          </select>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
-          <div class="bg-base-950/60 border border-base-border p-2.5 sm:p-3 rounded text-center">
-            <span id="lbl-download" class="font-mono text-[9px] text-slate-500 uppercase block">ჩამოტვირთვა</span>
-            <div class="font-mono text-lg sm:text-xl font-bold text-slate-100 mt-0.5 tracking-tight"><span id="speed-down">0.00</span> <span class="text-[10px] sm:text-xs text-slate-500 font-normal">Mbps</span></div>
-          </div>
-          <div class="bg-base-950/60 border border-base-border p-2.5 sm:p-3 rounded text-center">
-            <span id="lbl-upload" class="font-mono text-[9px] text-slate-500 uppercase block">ატვირთვა</span>
-            <div class="font-mono text-lg sm:text-xl font-bold text-slate-100 mt-0.5 tracking-tight"><span id="speed-up">0.00</span> <span class="text-[10px] sm:text-xs text-slate-500 font-normal">Mbps</span></div>
-          </div>
-        </div>
-
-        <div class="bg-base-950/80 border border-base-border p-2 rounded text-[10px] font-mono text-slate-400 h-20 overflow-y-auto leading-relaxed" id="speed-log">
-          აირჩიეთ სერვერი და დააჭირეთ START-ს.
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <button onclick="startSpeedTest()" id="speed-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3 sm:py-3.5 rounded-md transition text-center">
-          <span id="speed-btn-text">START</span>
-        </button>
-      </div>
-    </section>
   </div>
-
+        
   {% include 'vpn/configurator.html' %}
 
   <!-- 05 // SYSADMIN FILE REPOSITORY -->
@@ -397,16 +315,6 @@
       wsPlaceholder: "მაგ. example.com ან IP",
       wsRestrictInfo: "შეზღუდული პორტები: 22, 23, 25, 587. რეკომენდებულია: 80, 443, 8080.",
       wsBtn: "პორტის შემოწმება",
-      hostLatency: "ჰოსტის დაყოვნება (PING)",
-      pingPlaceholder: "google.com ან 8.8.8.8",
-      count: "რაოდენობა:",
-      continuous: "უწყვეტი",
-      pingResultReady: "მზადაა ტესტირებისთვის.",
-      pingBtn: "PING შემოწმება",
-      multiServer: "სიჩქარის ტესტი",
-      download: "ჩამოტვირთვა",
-      upload: "ატვირთვა",
-      speedLogReady: "აირჩიეთ სერვერი და დააჭირეთ START-ს.",
       portOpen: "🟢 პორტი {port} ღიაა ({ms}ms)",
       portClosed: "❌ პორტი {port} დახურულია / დაბლოკილია",
       portResponded: "🟢 პორტმა {port} უპასუხა (სავარაუდოდ ღიაა)",
@@ -422,16 +330,6 @@
       wsPlaceholder: "example.com or IP",
       wsRestrictInfo: "Browser restricts ports: 22, 23, 25, 587. Recommended: 80, 443, 8080.",
       wsBtn: "Check Port",
-      hostLatency: "Network Host Latency",
-      pingPlaceholder: "google.com or 8.8.8.8",
-      count: "Count:",
-      continuous: "Continuous",
-      pingResultReady: "Ready to run ping probe.",
-      pingBtn: "Run Ping",
-      multiServer: "MULTI_SERVER_TEST",
-      download: "Download",
-      upload: "Upload",
-      speedLogReady: "Console ready. Select region and press Start.",
       portOpen: "🟢 Port {port} is OPEN ({ms}ms)",
       portClosed: "❌ Port {port} is CLOSED / FILTERED",
       portResponded: "🟢 Port {port} responded (likely OPEN)",
@@ -461,20 +359,6 @@
     document.getElementById('ws-result').textContent = t.wsRestrictInfo;
     document.getElementById('ws-btn').textContent = t.wsBtn;
 
-    document.getElementById('lbl-host-latency').textContent = t.hostLatency;
-    document.getElementById('ping-host').placeholder = t.pingPlaceholder;
-    document.getElementById('lbl-count').textContent = t.count;
-    document.getElementById('lbl-continuous').textContent = t.continuous;
-    document.getElementById('ping-result').textContent = t.pingResultReady;
-    document.getElementById('ping-btn').textContent = t.pingBtn;
-
-    document.getElementById('lbl-multi-server').textContent = t.multiServer;
-    document.getElementById('lbl-download').textContent = t.download;
-    document.getElementById('lbl-upload').textContent = t.upload;
-    document.getElementById('speed-log').textContent = t.speedLogReady;
-
-
-    
 
   }
 
@@ -618,141 +502,6 @@
       btn.disabled = false;
       btn.textContent = t.wsBtn;
     };
-  }
-
-  // Ping Probe
-  async function runPingProbe() {
-    let rawHost = document.getElementById('ping-host').value.trim();
-    const count = parseInt(document.getElementById('ping-count').value) || 4;
-    const mtu = document.getElementById('ping-mtu').value || 1472;
-    const resultDiv = document.getElementById('ping-result');
-    const btn = document.getElementById('ping-btn');
-
-    if (!rawHost) {
-      resultDiv.innerHTML = `<span class='text-amber-500'>${currentLang === 'ka' ? '⚠️ გთხოვთ მიუთითოთ IP ან დომენი.' : '⚠️ Please enter target host or IP.'}</span>`;
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = currentLang === 'ka' ? "მოწმდება..." : "PINGING...";
-    resultDiv.innerHTML = `<span class="text-cyan-glow animate-pulse">⚡ Probing ${rawHost} (MTU: ${mtu})...</span>`;
-
-    let host = rawHost.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
-    let targetUrl = rawHost.startsWith('http') ? rawHost : `https://${host}`;
-
-    let totalMs = 0;
-    let successfulPings = 0;
-    let logLines = [];
-
-    for (let i = 1; i <= count; i++) {
-      const startTime = performance.now();
-      try {
-        await fetch(targetUrl + `?_probe=${Date.now()}_${i}`, { mode: 'no-cors', cache: 'no-cache' });
-        const elapsed = Math.round(performance.now() - startTime);
-        totalMs += elapsed;
-        successfulPings++;
-        logLines.push(`Reply from ${host}: bytes=${mtu} time=${elapsed}ms TTL=64`);
-      } catch (err) {
-        const elapsed = Math.round(performance.now() - startTime);
-        if (elapsed < 1500) {
-          totalMs += elapsed;
-          successfulPings++;
-          logLines.push(`Reply from ${host}: bytes=${mtu} time=${elapsed}ms TTL=64`);
-        } else {
-          logLines.push(`Request timed out for ${host}`);
-        }
-      }
-      await new Promise(r => setTimeout(r, 200));
-    }
-
-    if (successfulPings > 0) {
-      const avgLatency = Math.round(totalMs / successfulPings);
-      resultDiv.innerHTML = `
-        <div class="text-emerald-400 font-bold mb-1">🟢 Latency Avg: ${avgLatency} ms (${successfulPings}/${count} pkts)</div>
-        <div class="text-slate-400 text-[9px] font-mono leading-tight space-y-0.5">
-          ${logLines.slice(-4).map(l => `<div>${l}</div>`).join('')}
-        </div>
-      `;
-    } else {
-      resultDiv.innerHTML = `<span class="text-rose-500">❌ Target host ${host} unreachable (100% loss)</span>`;
-    }
-
-    btn.disabled = false;
-    btn.textContent = translations[currentLang].pingBtn;
-  }
-
-  // Speed test
-  async function startSpeedTest() {
-    const server = document.getElementById('speed-server').value;
-    const logEl = document.getElementById('speed-log');
-    const downEl = document.getElementById('speed-down');
-    const upEl = document.getElementById('speed-up');
-    const btn = document.getElementById('speed-btn');
-    const btnText = document.getElementById('speed-btn-text');
-
-    logEl.textContent = "";
-    downEl.textContent = "0.00";
-    upEl.textContent = "0.00";
-    btn.disabled = true;
-    btnText.textContent = currentLang === 'ka' ? "ტესტირება..." : "TESTING...";
-
-    let serverName = "GE Tbilisi Hub (Local)";
-    let regionMaxCap = 95.0;
-
-    if (server === "cloudflare") { serverName = "Cloudflare Edge (Anycast)"; regionMaxCap = 88.0; }
-    else if (server === "frankfurt") { serverName = "Frankfurt Hub (EU Central)"; regionMaxCap = 72.0; }
-    else if (server === "london") { serverName = "London Hub (EU West)"; regionMaxCap = 65.0; }
-    else if (server === "newyork") { serverName = "New York Hub (US East)"; regionMaxCap = 42.0; }
-
-    logEl.innerHTML += `▶ Contacting core: ${serverName}<br>⏳ Testing download bandwidth...<br>`;
-    
-    const testSizeMB = 2.5; 
-    const testPayloadUrl = "https://speed.cloudflare.com/__down?bytes=2500000";
-
-    try {
-      const startTime = performance.now();
-      await fetch(testPayloadUrl + "&cb=" + Date.now(), { cache: 'no-store' });
-      const durationSec = (performance.now() - startTime) / 1000;
-      
-      let calculatedMbps = (testSizeMB * 8) / durationSec;
-
-      if (durationSec < 0.25 || calculatedMbps > 120) {
-        calculatedMbps = regionMaxCap + (Math.random() * 4 - 2);
-      }
-
-      const finalDown = Math.min(regionMaxCap + 10, Math.max(8, calculatedMbps)).toFixed(2);
-      
-      downEl.className = "font-mono text-[16px] sm:text-xl font-bold text-cyan-glow mt-0.5 tracking-tight animate-pulse";
-      downEl.textContent = finalDown;
-      
-      logEl.innerHTML += `✔ Download avg: ${finalDown} Mbps<br>⏳ Testing upload stream...<br>`;
-      logEl.scrollTop = logEl.scrollHeight;
-
-      setTimeout(() => {
-        const finalUp = (parseFloat(finalDown) * (0.88 + Math.random() * 0.18)).toFixed(2);
-        
-        upEl.className = "font-mono text-[16px] sm:text-xl font-bold text-cyan-glow mt-0.5 tracking-tight animate-pulse";
-        upEl.textContent = finalUp;
-        
-        logEl.innerHTML += `✔ Upload avg: ${finalUp} Mbps<br>🟢 Benchmarking session completed.`;
-        logEl.scrollTop = logEl.scrollHeight;
-        
-        downEl.className = "font-mono text-[16px] sm:text-xl font-bold text-slate-100 mt-0.5 tracking-tight";
-        upEl.className = "font-mono text-[16px] sm:text-xl font-bold text-slate-100 mt-0.5 tracking-tight";
-        btn.disabled = false;
-        btnText.textContent = "START";
-      }, 900);
-
-    } catch (err) {
-      logEl.innerHTML += `✔ Speed estimation complete.<br>🟢 Session completed.`;
-      const finalDown = (regionMaxCap + (Math.random() * 3 - 1.5)).toFixed(2);
-      const finalUp = (parseFloat(finalDown) * 0.92).toFixed(2);
-      
-      downEl.textContent = finalDown;
-      upEl.textContent = finalUp;
-      btn.disabled = false;
-      btnText.textContent = "START";
-    }
   }
 
   initNetworkInfo();
