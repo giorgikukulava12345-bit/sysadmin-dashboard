@@ -92,6 +92,30 @@ test('WireGuard ignores inactive IPsec fields', () => {
   c.b.port = '51820'; c.a.psk = c.b.psk = 'invalid'; blocked(c, 'base64');
   c.a.psk = c.b.psk = ''; c.a.privateKey = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; blocked(c, 'nonzero');
 });
+for (const vendor of Object.keys(VENDORS)) test(`Interface binding uses current addresses on ${vendor}`, () => {
+  const c = config(); c.bindInterfaces = true; c.a.vendor = vendor;
+  c.a.wan = vendor === 'paloalto' ? 'ethernet1/3' : vendor === 'asa' ? 'outside' : 'eth0';
+  c.a.lan = vendor === 'paloalto' ? 'ethernet1/4' : vendor === 'asa' ? 'inside' : 'eth1';
+  c.a.ip = '203.0.113.50'; c.a.lanIp = '10.10.0.254';
+  const r = generate(c); assert(!r.errors.length, r.errors.join('; '));
+  assert(r.a.includes(c.a.ip)); assert(r.a.includes(c.a.lanIp));
+  assert(r.a.includes(c.a.wan)); assert(r.a.includes(c.a.lan));
+  if (vendor === 'asa') assert(r.a.includes(`interface ${c.a.wanPort}`));
+  if (vendor === 'mikrotik') assert(r.a.includes('address=203.0.113.50/24 interface=eth0'));
+  if (vendor === 'paloalto') assert(r.a.includes('ethernet ethernet1/4 layer3 ip 10.10.0.254/24'));
+});
+test('Interface binding is opt-in and unsafe assignments block output', () => {
+  const c = config(); assert(!generate(c).a.includes('ip address 203.0.113.10'));
+  c.bindInterfaces = true; c.a.lanIp = '10.99.0.1'; blocked(c, 'inside the local subnet');
+  c.a.lanIp = '10.10.0.1'; c.a.wanPrefix = '33'; blocked(c, 'WAN prefix');
+  c.a.wanPrefix = '24'; c.a.lan = c.a.wan; blocked(c, 'different interfaces');
+  c.a.lan = 'Gi2'; c.a.lanIp = '10.10.0.1\nreload'; blocked(c, 'LAN interface IP');
+});
+test('Public IP edits reach the opposite peer and bound interface', () => {
+  const c = config(); c.bindInterfaces = true; c.a.ip = '203.0.113.90';
+  const r = generate(c); assert(!r.errors.length); assert(r.a.includes('ip address 203.0.113.90 255.255.255.0'));
+  assert(r.b.includes('set remote-gw 203.0.113.90')); assert(!r.b.includes('203.0.113.10'));
+});
 const failures = results.filter(s => s.startsWith('FAIL'));
 const summary = `${passed}/${results.length} tests passed`;
 if (typeof document !== 'undefined') {

@@ -15,7 +15,7 @@ class DashboardIntegrationTests(unittest.TestCase):
         self.assertNotIn(b'{% include', response.data)
 
     def test_module_assets_are_served(self):
-        for filename in ['engine.js', 'address.js', 'ui.js',
+        for filename in ['engine.js', 'address.js', 'ui.js', 'interfaces.js', 'topology.js',
                          'vendors/ios.js', 'vendors/asa.js', 'vendors/mikrotik.js',
                          'vendors/fortinet.js', 'vendors/paloalto.js', 'vendors/wireguard.js']:
             with self.subTest(filename=filename):
