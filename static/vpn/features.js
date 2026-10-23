@@ -85,7 +85,7 @@ export function generateFeature(id,data){
       const mask=ipv4(data.mask);if(mask===null)throw Error('Invalid subnet mask.');
       const prefix=32-Math.log2(4294967296-mask);if(!Number.isInteger(prefix))throw Error('Subnet mask must be contiguous.');
       const n=network(`${data.destination}/${prefix}`);ip(data.nextHop,'Next hop');const h=ipv4(data.nextHop);if(h===0||h>=3758096384||data.nextHop.startsWith('127.'))throw Error('Next hop must be unicast.');
-      const distance=data.distance?number(data.distance,1,255,'Distance'):null;
+      const distance=data.distance?number(data.distance,data.vendor==='paloalto'?10:1,data.vendor==='paloalto'?240:255,'Distance'):null;
       if(data.permanent)throw Error('Permanent flag is IOS-specific.');
       let code;
       if(data.vendor==='mikrotik')code=`/ip route add dst-address=${n.canonical} gateway=${data.nextHop}${distance?' distance='+distance:''} comment="NOC static route"`;
