@@ -1,4 +1,5 @@
 import { DEFAULTS, VENDORS, PROTOCOLS, generate } from './engine.js';
+import { topologyMarkup, updateTopology } from './topology.js';
 
 const root = document.getElementById('vpn-app');
 const state = structuredClone(DEFAULTS);
@@ -18,8 +19,10 @@ function site(side) {
     </div>
     <div data-wg class="grid sm:grid-cols-2 gap-4 mt-4" hidden>${field(side, 'privateKey', 'WireGuard private key', 'password')}${field(side, 'publicKey', 'This side’s public key')}${field(side, 'port', 'Listen UDP port', 'number')}</div>
     <div data-overlay class="mt-4" hidden>${field(side, 'tunnel', 'Tunnel IPv4 (host in a shared /30)')}</div>
-    <details class="mt-4"><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
+    <details class="mt-4" id="vpn-${side}-interfaces" open><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
       <div class="grid sm:grid-cols-2 gap-4 mt-3">${field(side, 'wan', 'WAN interface / ASA nameif')}${field(side, 'lan', 'LAN interface / ASA nameif')}
+      ${field(side, 'wanPrefix', 'WAN prefix length', 'number', 'Use 1–31, without a slash.')}${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
+      <div data-asa>${field(side, 'wanPort', 'ASA physical WAN port')}${field(side, 'lanPort', 'ASA physical LAN port')}</div>
       <div data-gateway>${field(side, 'gateway', 'WAN next-hop (Cisco)')}</div>
       <div data-pan>${field(side, 'zone', 'Existing LAN zone (PAN-OS)')}${field(side, 'vr', 'Virtual router (PAN-OS)')}</div></div>
     </details>
@@ -33,6 +36,8 @@ root.innerHTML = `<form id="vpn-form" novalidate>
     <label for="vpn-protocol" class="text-xs text-slate-400">VPN type<select id="vpn-protocol" name="protocol" class="${inputClass} mt-1">${options(PROTOCOLS)}</select></label>
     <p class="md:col-span-2 text-xs text-slate-500">IPv4 · Static public endpoints · Single LAN per side · Review target firmware in the knowledge base</p>
   </div>
+  ${topologyMarkup()}
+  <label class="flex items-start gap-3 mb-5 text-sm text-slate-300"><input id="vpn-bindInterfaces" name="bindInterfaces" type="checkbox" class="accent-cyan-400 mt-1"><span>Include physical interface IP assignments in CLI<span class="block text-xs text-slate-500 mt-1">Enabling this adds WAN/LAN address commands and, on ASA, nameif/security-level assignments. Existing interface configuration may be changed. Internet routing, zones and VLANs must already be configured.</span></span></label>
   <div class="grid lg:grid-cols-2 gap-4">${site('a')}${site('b')}</div>
   <div class="flex flex-wrap gap-2 mt-4">
     <button type="button" data-action="mirror" class="${buttonClass}">Mirror subnets from A</button>
@@ -65,7 +70,8 @@ function syncInputs() {
   for (const el of form.elements) {
     if (!el.name) continue;
     const [side, name] = el.name.split('.');
-    el.value = name ? state[side][name] : state[side];
+    if (el.type === 'checkbox') el.checked = Boolean(state[side]);
+    else el.value = name ? state[side][name] : state[side];
   }
 }
 function render() {
@@ -78,8 +84,10 @@ function render() {
     const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
     fs.querySelector('[data-pan]').hidden = state[side].vendor !== 'paloalto' || wg;
     fs.querySelector('[data-gateway]').hidden = !['ios', 'asa'].includes(state[side].vendor) || wg;
+    fs.querySelector('[data-asa]').hidden = state[side].vendor !== 'asa';
   }
   result = generate(state);
+  updateTopology(root, state, result.errors);
   const notice = root.querySelector('#vpn-validation');
   notice.className = result.errors.length
     ? 'my-5 rounded border border-amber-400/30 bg-amber-400/5 p-4 text-xs text-amber-200'
@@ -102,7 +110,7 @@ form.addEventListener('input', event => {
   const el = event.target;
   if (!el.name) return;
   const [side, name] = el.name.split('.');
-  if (name) state[side][name] = el.value; else state[side] = el.value;
+  if (name) state[side][name] = el.value; else state[side] = el.type === 'checkbox' ? el.checked : el.value;
   if (name === 'vendor') {
     [state[side].wan, state[side].lan] = interfaceDefaults[el.value]; syncInputs();
   }
@@ -113,6 +121,12 @@ form.addEventListener('submit', event => event.preventDefault());
 root.querySelector('#vpn-reveal').addEventListener('change', render);
 root.addEventListener('click', async event => {
   const button = event.target.closest('button'); if (!button) return;
+  if (button.dataset.editSide) {
+    const side = button.dataset.editSide;
+    root.querySelector(`#vpn-${side}-interfaces`).open = true;
+    root.querySelector(`#vpn-${side}-wan`).focus();
+    return;
+  }
   const action = button.dataset.action;
   const status = root.querySelector('#vpn-clipboard-status');
   if (action === 'mirror') { state.b.local = state.a.remote; state.b.remote = state.a.local; }
