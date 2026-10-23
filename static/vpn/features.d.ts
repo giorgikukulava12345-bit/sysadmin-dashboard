@@ -1,0 +1,12 @@
+import type { ToolField, ToolValues } from './catalog.js';
+import type { LabSite } from './lab.js';
+export const FEATURES: Record<string,{title:string; role:'router'|'switch'; tool?:string; vendors:string[]}>;
+export const VPN_TYPES: Record<string,string>;
+export function capable(id:string,vendor:string):boolean;
+export function featureDefaults(id:string,vendor:string):ToolValues;
+export function featureFields(id:string,vendor:string):ToolField[];
+export function boundValues(id:string,data:ToolValues,site:LabSite):ToolValues;
+export function generateFeature(id:string,data:ToolValues):{errors:string[];scripts:{title:string;code:string}[]};
+export const REMOTE_VPN_FIELDS:Record<string,(Omit<ToolField,'type'> & {type?:ToolField['type']})[]>;
+export function remoteDefaults(type:string):ToolValues;
+export function generateRemoteVpn(type:string,data:ToolValues,site:LabSite):{errors:string[];scripts:{title:string;code:string}[]};

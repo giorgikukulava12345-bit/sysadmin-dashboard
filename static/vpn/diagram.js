@@ -1,0 +1,20 @@
+import { PLATFORMS } from './platforms.js';
+
+export const DIAGRAM_CSS=`.noc-map{overflow-x:auto;padding:20px 0}.noc-path{display:grid;grid-template-columns:repeat(3,minmax(125px,1fr) 24px) minmax(110px,.9fr) repeat(3,24px minmax(125px,1fr));align-items:center;min-width:1090px;gap:0}.noc-node{min-width:0;background:#0c1929;border:1px solid #263e54;border-radius:8px;padding:13px 9px;color:#cbd5e1;font:10px/1.7 ui-monospace,monospace;text-align:left;cursor:pointer}.noc-node strong{display:block;color:#e2e8f0;font-size:11px}.noc-node strong:before{content:'●';color:#34d399;text-shadow:0 0 7px #34d399;margin-right:5px}.noc-node span{display:block;overflow-wrap:anywhere}.noc-node .noc-port{color:#67e8f9;margin-top:6px;font-size:9px}.noc-node[aria-pressed=true]{border-color:#22d3ee;box-shadow:0 0 0 1px #22d3ee44,0 0 22px #22d3ee15}.noc-node:focus-visible{outline:2px solid #22d3ee;outline-offset:3px}.noc-transit{color:#22d3ee;text-align:center;font:18px ui-monospace,monospace}.noc-internet{border:1px solid #22d3ee66;border-radius:40%;padding:20px 6px;text-align:center;color:#67e8f9;font:11px/1.8 ui-monospace,monospace;box-shadow:0 0 25px #22d3ee16}.noc-internet small{display:block;color:#94a3b8;font-size:9px}.noc-gateways{display:flex;justify-content:space-between;gap:20px;color:#94a3b8;font:10px/1.8 ui-monospace,monospace;margin-top:16px;flex-wrap:wrap}.noc-map[data-invalid=true] .noc-node strong:before{color:#fbbf24;text-shadow:none}`;
+
+export function mountDiagram(root,onSelect=()=>{}){
+  const abort=new AbortController();root.className='noc-map';root.tabIndex=0;root.setAttribute('aria-label','End-to-end network topology. Scroll horizontally to see both sites.');
+  const path=document.createElement('div');path.className='noc-path';
+  for(const [side,role]of[['a','host'],['a','switch'],['a','router'],['','isp'],['b','router'],['b','switch'],['b','host']]){
+    if(path.children.length){const line=document.createElement('span');line.className='noc-transit';line.textContent='↔';line.setAttribute('aria-hidden','true');path.append(line);}
+    const node=document.createElement(role==='isp'?'div':'button');
+    if(role==='isp'){node.className='noc-internet';node.innerHTML='☁<br>PUBLIC INTERNET<small>ISP / WAN TRANSIT</small>';}
+    else{node.type='button';node.className='noc-node';node.dataset.node=`${side}.${role}`;node.innerHTML='<strong></strong><span data-kind></span><span data-ip></span><span data-gateway></span><span class="noc-port" data-ports></span>';}
+    path.append(node);
+  }
+  const gates=document.createElement('div');gates.className='noc-gateways';gates.innerHTML='<span data-wan-a></span><span data-wan-b></span>';root.append(path,gates);
+  root.addEventListener('click',e=>{const b=e.target.closest('[data-node]');if(b){const[side,role]=b.dataset.node.split('.');onSelect(side,role);}},{signal:abort.signal});
+  return{update(lab,active='a.router',invalid=false){root.dataset.invalid=String(invalid);for(const side of ['a','b']){const s=lab[side],prefix=s.local.split('/')[1];for(const role of ['host','switch','router']){const b=root.querySelector(`[data-node="${side}.${role}"]`);b.setAttribute('aria-pressed',String(active===`${side}.${role}`));b.querySelector('strong').textContent=`${side.toUpperCase()} · ${role==='host'?'COMPUTER':role.toUpperCase()}`;b.querySelector('[data-kind]').textContent=role==='host'?'Linux host':PLATFORMS[role==='router'?s.vendor:s.switchVendor]||'Unsupported';b.querySelector('[data-ip]').textContent=role==='router'?`WAN ${s.ip}/${s.wanPrefix}`:`${role==='host'?s.hostIp:s.switchIp}/${prefix}`;b.querySelector('[data-gateway]').textContent=role==='router'?`LAN ${s.lanIp}/${prefix}`:`GW ${s.lanIp}`;b.querySelector('[data-ports]').textContent=role==='host'?`${s.hostIf} ↔ ${s.access}`:role==='switch'?`${s.access} ↔ ${s.uplink} · VLAN ${s.vlan}`:`${s.lan} ↔ ${s.uplink} | ${s.wan} ↔ ISP`;}
+    root.querySelector(`[data-wan-${side}]`).textContent=`SITE ${side.toUpperCase()} · ${s.wan} ${s.ip}/${s.wanPrefix} ↔ ISP gateway ${s.gateway}`;
+  }},destroy(){abort.abort();root.replaceChildren();}};
+}

@@ -21,7 +21,7 @@ function site(side) {
     </div>
     <div data-wg class="grid sm:grid-cols-2 gap-4 mt-4" hidden>${field(side, 'privateKey', 'WireGuard private key', 'password')}${field(side, 'publicKey', 'This side’s public key')}${field(side, 'port', 'Listen UDP port', 'number')}</div>
     <div data-overlay class="mt-4" hidden>${field(side, 'tunnel', 'Tunnel IPv4 (host in a shared /30)')}</div>
-    <details class="mt-4" id="vpn-${side}-interfaces" open><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
+    <details class="mt-4" id="vpn-${side}-interfaces"><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
       <div class="grid sm:grid-cols-2 gap-4 mt-3">${field(side, 'wan', 'WAN interface / ASA nameif')}${field(side, 'lan', 'LAN interface / ASA nameif')}
       ${field(side, 'wanPrefix', 'WAN prefix length', 'number', 'Use 1–31, without a slash.')}${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
       <div data-asa>${field(side, 'wanPort', 'ASA physical WAN port')}${field(side, 'lanPort', 'ASA physical LAN port')}</div>
@@ -34,13 +34,13 @@ function advanced(name, label, values) {
   return `<label class="block text-xs text-slate-400" for="vpn-${name}">${label}<select id="vpn-${name}" name="${name}" class="${inputClass} mt-1">${options(values)}</select></label>`;
 }
 root.innerHTML = `<form id="vpn-form" novalidate>
-  <div class="grid md:grid-cols-3 gap-4 mb-5 items-end">
+  <div data-vpn-kind class="grid md:grid-cols-3 gap-4 mb-5 items-end">
     <label for="vpn-protocol" class="text-xs text-slate-400">VPN type<select id="vpn-protocol" name="protocol" class="${inputClass} mt-1">${options(PROTOCOLS)}</select></label>
     <p class="md:col-span-2 text-xs text-slate-500">IPv4 · Static public endpoints · Single LAN per side · Review target firmware in the knowledge base</p>
   </div>
 
   <label data-vti class="flex items-start gap-3 mb-4 text-xs text-amber-200" hidden><input name="vtiLegacy" type="checkbox" class="accent-cyan-400"><span>Legacy VTI lab profile: DH2 / SHA1<span class="block text-slate-500 mt-1">Off: use the selected AES/DH settings with SHA256. On: reproduce the reference template's DH2/SHA1 suite. PFS is not configured by this VTI profile. Both peers use Tunnel0 and a rebuilt ACL NAT.</span></span></label>
-  <label class="flex items-start gap-3 mb-5 text-sm text-slate-300"><input id="vpn-bindInterfaces" name="bindInterfaces" type="checkbox" class="accent-cyan-400 mt-1"><span>Include physical interface IP assignments in CLI<span class="block text-xs text-slate-500 mt-1">Enabling this adds WAN/LAN address commands and, on ASA, nameif/security-level assignments. Existing interface configuration may be changed. Internet routing, zones and VLANs must already be configured.</span></span></label>
+  <label data-vpn-binding class="flex items-start gap-3 mb-5 text-sm text-slate-300"><input id="vpn-bindInterfaces" name="bindInterfaces" type="checkbox" class="accent-cyan-400 mt-1"><span>Include physical interface IP assignments in CLI<span class="block text-xs text-slate-500 mt-1">Enabling this adds WAN/LAN address commands and, on ASA, nameif/security-level assignments. Existing interface configuration may be changed. Internet routing, zones and VLANs must already be configured.</span></span></label>
   <div class="grid lg:grid-cols-2 gap-4">${site('a')}${site('b')}</div>
   <div class="flex flex-wrap gap-2 mt-4">
     <button type="button" data-action="mirror" class="${buttonClass}">Mirror subnets from A</button>
@@ -62,9 +62,9 @@ root.innerHTML = `<form id="vpn-form" novalidate>
   <p id="vpn-wg-note" class="mt-4 text-xs text-cyan-glow" hidden>WireGuard uses ChaCha20-Poly1305 and Curve25519. IPsec phase controls are inactive. Enter key pairs generated on the routers.</p>
 </form>
 <div id="vpn-validation" class="my-5 rounded border border-amber-400/30 bg-amber-400/5 p-4 text-xs text-amber-200" role="status" aria-live="polite" aria-atomic="true"></div>
-<div class="flex flex-wrap items-center justify-between gap-3 mb-3"><p class="text-xs font-mono text-slate-400">CONFIGURATION OUTPUT / LIVE PREVIEW</p><label class="text-xs text-slate-400 flex items-center gap-2"><input id="vpn-reveal" type="checkbox" class="accent-cyan-400">Reveal configurations &amp; secrets</label></div>
-<div class="grid xl:grid-cols-2 gap-4">${['a','b'].map(side => `<section class="min-w-0 border border-base-border bg-base-950 rounded-lg overflow-hidden" aria-label="Side ${side.toUpperCase()} configuration"><div class="bg-base-800/60 border-b border-base-border p-3 flex items-center justify-between gap-3"><h3 id="vpn-heading-${side}" class="text-xs font-mono text-slate-300">SIDE ${side.toUpperCase()}</h3><button type="button" class="${buttonClass}" data-copy="${side}" disabled>Copy Config ${side.toUpperCase()}</button></div><pre class="p-4 text-xs leading-6 font-mono text-emerald-200 overflow-auto max-h-[36rem] min-h-[14rem]" tabindex="0" aria-label="Generated CLI side ${side.toUpperCase()}"><code id="vpn-output-${side}"></code></pre></section>`).join('')}</div>
-<p id="vpn-clipboard-status" class="mt-3 text-xs text-slate-400" role="status" aria-live="polite"></p>
+<div data-vpn-output class="flex flex-wrap items-center justify-between gap-3 mb-3"><p class="text-xs font-mono text-slate-400">CONFIGURATION OUTPUT / LIVE PREVIEW</p><label class="text-xs text-slate-400 flex items-center gap-2"><input id="vpn-reveal" type="checkbox" class="accent-cyan-400">Reveal configurations &amp; secrets</label></div>
+<div data-vpn-output class="grid xl:grid-cols-2 gap-4">${['a','b'].map(side => `<section class="min-w-0 border border-base-border bg-base-950 rounded-lg overflow-hidden" aria-label="Side ${side.toUpperCase()} configuration"><div class="bg-base-800/60 border-b border-base-border p-3 flex items-center justify-between gap-3"><h3 id="vpn-heading-${side}" class="text-xs font-mono text-slate-300">SIDE ${side.toUpperCase()}</h3><button type="button" class="${buttonClass}" data-copy="${side}" disabled>Copy Config ${side.toUpperCase()}</button></div><pre class="p-4 text-xs leading-6 font-mono text-emerald-200 overflow-auto max-h-[36rem] min-h-[14rem]" tabindex="0" aria-label="Generated CLI side ${side.toUpperCase()}"><code id="vpn-output-${side}"></code></pre></section>`).join('')}</div>
+<p data-vpn-output id="vpn-clipboard-status" class="mt-3 text-xs text-slate-400" role="status" aria-live="polite"></p>
 <p class="text-[11px] text-slate-500 mt-3">Generation stays in your browser. No apply/save commands run automatically. Review existing crypto maps, names, routing and policies before using these templates.</p>`;
 
 const form = root.querySelector('form');
@@ -155,7 +155,7 @@ root.addEventListener('click', async event => {
   }
 }, {signal:controller.signal});
 root.addEventListener('lab-edit',event=>{
-  for(const side of ['a','b']){const patch=event.detail[side];for(const key of ['vendor','ip','wanPrefix','wan','lan','local','lanIp'])state[side][key]=patch[key];}
+  for(const side of ['a','b']){const patch=event.detail[side];for(const key of ['vendor','ip','wanPrefix','wan','lan','local','lanIp','gateway'])state[side][key]=patch[key];}
   state.a.remote=state.b.local;state.b.remote=state.a.local;state.bindInterfaces=true;syncInputs();render();
 },{signal:controller.signal});
 syncInputs(); render();
