@@ -1,0 +1,139 @@
+import { DEFAULTS, VENDORS, PROTOCOLS, generate } from './engine.js';
+
+const root = document.getElementById('vpn-app');
+const state = structuredClone(DEFAULTS);
+const inputClass = 'w-full bg-base-950 border border-base-border rounded px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-400';
+const buttonClass = 'border border-cyan-glow/40 text-cyan-glow bg-cyan-glow/10 hover:bg-cyan-glow/20 rounded px-3 py-2 font-mono text-xs transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400';
+const options = values => Object.entries(values).map(([value, name]) => `<option value="${value}">${name}</option>`).join('');
+function field(side, name, label, type = 'text', hint = '') {
+  const id = `vpn-${side}-${name}`;
+  return `<label class="block space-y-1" for="${id}"><span class="text-xs text-slate-400">${label}</span><input id="${id}" name="${side}.${name}" type="${type}" class="${inputClass}" autocomplete="off" spellcheck="false" ${hint ? `aria-describedby="${id}-hint"` : ''}>${hint ? `<span id="${id}-hint" class="block text-[11px] text-slate-500">${hint}</span>` : ''}</label>`;
+}
+function site(side) {
+  return `<fieldset class="border border-base-border rounded-lg p-4 bg-base-950/40 min-w-0"><legend class="font-mono text-sm text-cyan-glow px-2">SIDE ${side.toUpperCase()} / ${side === 'a' ? 'LOCAL SITE' : 'REMOTE SITE'}</legend>
+    <label class="block mb-4 text-xs text-slate-400" for="vpn-${side}-vendor">Platform<select id="vpn-${side}-vendor" name="${side}.vendor" class="${inputClass} mt-1">${options(VENDORS)}</select></label>
+    <div class="grid sm:grid-cols-2 gap-4">
+      ${field(side, 'ip', 'Public IPv4')}${field(side, 'local', 'Local subnet (CIDR)')}${field(side, 'remote', 'Remote subnet (CIDR)')}
+      ${field(side, 'psk', 'Pre-shared key', 'password', 'IPsec: 16–64 safe characters. WireGuard: optional base64 key.')}
+    </div>
+    <div data-wg class="grid sm:grid-cols-2 gap-4 mt-4" hidden>${field(side, 'privateKey', 'WireGuard private key', 'password')}${field(side, 'publicKey', 'This side’s public key')}${field(side, 'port', 'Listen UDP port', 'number')}</div>
+    <div data-overlay class="mt-4" hidden>${field(side, 'tunnel', 'Tunnel IPv4 (host in a shared /30)')}</div>
+    <details class="mt-4"><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
+      <div class="grid sm:grid-cols-2 gap-4 mt-3">${field(side, 'wan', 'WAN interface / ASA nameif')}${field(side, 'lan', 'LAN interface / ASA nameif')}
+      <div data-gateway>${field(side, 'gateway', 'WAN next-hop (Cisco)')}</div>
+      <div data-pan>${field(side, 'zone', 'Existing LAN zone (PAN-OS)')}${field(side, 'vr', 'Virtual router (PAN-OS)')}</div></div>
+    </details>
+  </fieldset>`;
+}
+function advanced(name, label, values) {
+  return `<label class="block text-xs text-slate-400" for="vpn-${name}">${label}<select id="vpn-${name}" name="${name}" class="${inputClass} mt-1">${options(values)}</select></label>`;
+}
+root.innerHTML = `<form id="vpn-form" novalidate>
+  <div class="grid md:grid-cols-3 gap-4 mb-5 items-end">
+    <label for="vpn-protocol" class="text-xs text-slate-400">VPN type<select id="vpn-protocol" name="protocol" class="${inputClass} mt-1">${options(PROTOCOLS)}</select></label>
+    <p class="md:col-span-2 text-xs text-slate-500">IPv4 · Static public endpoints · Single LAN per side · Review target firmware in the knowledge base</p>
+  </div>
+  <div class="grid lg:grid-cols-2 gap-4">${site('a')}${site('b')}</div>
+  <div class="flex flex-wrap gap-2 mt-4">
+    <button type="button" data-action="mirror" class="${buttonClass}">Mirror subnets from A</button>
+    <button type="button" data-action="key" class="${buttonClass}">Generate shared PSK</button>
+    <button type="button" data-action="clear" class="${buttonClass}">Clear secrets</button>
+  </div>
+  <details id="vpn-advanced" class="mt-5 border border-base-border rounded p-4">
+    <summary class="font-mono text-xs text-slate-300 cursor-pointer">Advanced / Phase 1 &amp; Phase 2</summary>
+    <p class="text-xs text-slate-500 mt-3">Both phases use the selected AES-CBC key size and SHA-256. Phase 2 uses ESP tunnel mode, or transport mode for GRE.</p>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-6 gap-4 mt-4">
+      ${advanced('encryption', 'Encryption · both phases', {'256':'AES-256-CBC','128':'AES-128-CBC'})}
+      ${advanced('hash', 'Integrity / IKEv2 PRF', {'256':'SHA-256'})}
+      ${advanced('dh', 'Phase 1 DH group', {'14':'14 · MODP 2048','19':'19 · ECP 256'})}
+      ${advanced('pfs', 'Phase 2 PFS group', {'14':'14 · MODP 2048','19':'19 · ECP 256'})}
+      <label class="text-xs text-slate-400" for="vpn-lifetime1">Phase 1 lifetime (s)<input id="vpn-lifetime1" name="lifetime1" type="number" min="300" max="86400" class="${inputClass} mt-1"></label>
+      <label class="text-xs text-slate-400" for="vpn-lifetime2">Phase 2 lifetime (s)<input id="vpn-lifetime2" name="lifetime2" type="number" min="300" max="86400" class="${inputClass} mt-1"></label>
+    </div>
+  </details>
+  <p id="vpn-wg-note" class="mt-4 text-xs text-cyan-glow" hidden>WireGuard uses ChaCha20-Poly1305 and Curve25519. IPsec phase controls are inactive. Enter key pairs generated on the routers.</p>
+</form>
+<div id="vpn-validation" class="my-5 rounded border border-amber-400/30 bg-amber-400/5 p-4 text-xs text-amber-200" role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="flex flex-wrap items-center justify-between gap-3 mb-3"><p class="text-xs font-mono text-slate-400">CONFIGURATION OUTPUT / LIVE PREVIEW</p><label class="text-xs text-slate-400 flex items-center gap-2"><input id="vpn-reveal" type="checkbox" class="accent-cyan-400">Reveal configurations &amp; secrets</label></div>
+<div class="grid xl:grid-cols-2 gap-4">${['a','b'].map(side => `<section class="min-w-0 border border-base-border bg-base-950 rounded-lg overflow-hidden" aria-label="Side ${side.toUpperCase()} configuration"><div class="bg-base-800/60 border-b border-base-border p-3 flex items-center justify-between gap-3"><h3 id="vpn-heading-${side}" class="text-xs font-mono text-slate-300">SIDE ${side.toUpperCase()}</h3><button type="button" class="${buttonClass}" data-copy="${side}" disabled>Copy Config ${side.toUpperCase()}</button></div><pre class="p-4 text-xs leading-6 font-mono text-emerald-200 overflow-auto max-h-[36rem] min-h-[14rem]" tabindex="0" aria-label="Generated CLI side ${side.toUpperCase()}"><code id="vpn-output-${side}"></code></pre></section>`).join('')}</div>
+<p id="vpn-clipboard-status" class="mt-3 text-xs text-slate-400" role="status" aria-live="polite"></p>
+<p class="text-[11px] text-slate-500 mt-3">Generation stays in your browser. No apply/save commands run automatically. Review existing crypto maps, names, routing and policies before using these templates.</p>`;
+
+const form = root.querySelector('form');
+let result;
+function syncInputs() {
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    const [side, name] = el.name.split('.');
+    el.value = name ? state[side][name] : state[side];
+  }
+}
+function render() {
+  const wg = state.protocol === 'wireguard', overlay = wg || state.protocol === 'gre';
+  root.querySelectorAll('[data-wg]').forEach(el => { el.hidden = !wg; });
+  root.querySelectorAll('[data-overlay]').forEach(el => { el.hidden = !overlay; });
+  root.querySelector('#vpn-advanced').hidden = wg;
+  root.querySelector('#vpn-wg-note').hidden = !wg;
+  for (const side of ['a', 'b']) {
+    const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
+    fs.querySelector('[data-pan]').hidden = state[side].vendor !== 'paloalto' || wg;
+    fs.querySelector('[data-gateway]').hidden = !['ios', 'asa'].includes(state[side].vendor) || wg;
+  }
+  result = generate(state);
+  const notice = root.querySelector('#vpn-validation');
+  notice.className = result.errors.length
+    ? 'my-5 rounded border border-amber-400/30 bg-amber-400/5 p-4 text-xs text-amber-200'
+    : 'my-5 rounded border border-emerald-400/30 bg-emerald-400/5 p-4 text-xs text-emerald-200';
+  notice.replaceChildren();
+  if (result.errors.length) {
+    const title = document.createElement('p'); title.textContent = 'Resolve these items to generate both configurations:'; notice.append(title);
+    const ul = document.createElement('ul'); ul.className = 'list-disc pl-5 mt-2 space-y-1';
+    result.errors.forEach(message => { const li = document.createElement('li'); li.textContent = message; ul.append(li); }); notice.append(ul);
+  } else notice.textContent = 'Configuration inputs match. Review the platform assumptions and existing device configuration before deployment.';
+  const reveal = root.querySelector('#vpn-reveal').checked;
+  for (const side of ['a','b']) {
+    root.querySelector(`#vpn-heading-${side}`).textContent = `SIDE ${side.toUpperCase()} // ${VENDORS[state[side].vendor]}`;
+    root.querySelector(`#vpn-output-${side}`).textContent = result.errors.length ? '// Waiting for valid inputs…' : reveal ? result[side] : '// Configuration ready. Reveal to inspect, or Copy Config to copy including secrets.';
+    root.querySelector(`[data-copy="${side}"]`).disabled = result.errors.length > 0;
+  }
+}
+const interfaceDefaults = { ios: ['GigabitEthernet1','GigabitEthernet2'], asa: ['outside','inside'], mikrotik: ['ether1','bridge'], fortinet: ['port1','port2'], paloalto: ['ethernet1/1','ethernet1/2'] };
+form.addEventListener('input', event => {
+  const el = event.target;
+  if (!el.name) return;
+  const [side, name] = el.name.split('.');
+  if (name) state[side][name] = el.value; else state[side] = el.value;
+  if (name === 'vendor') {
+    [state[side].wan, state[side].lan] = interfaceDefaults[el.value]; syncInputs();
+  }
+  root.querySelector('#vpn-clipboard-status').textContent = '';
+  render();
+});
+form.addEventListener('submit', event => event.preventDefault());
+root.querySelector('#vpn-reveal').addEventListener('change', render);
+root.addEventListener('click', async event => {
+  const button = event.target.closest('button'); if (!button) return;
+  const action = button.dataset.action;
+  const status = root.querySelector('#vpn-clipboard-status');
+  if (action === 'mirror') { state.b.local = state.a.remote; state.b.remote = state.a.local; }
+  if (action === 'clear') {
+    for (const side of ['a','b']) for (const field of ['psk','privateKey','publicKey']) state[side][field] = '';
+    root.querySelector('#vpn-reveal').checked = false;
+    status.textContent = 'Secrets cleared from this page. Previously copied clipboard text is not erased.';
+  }
+  if (action === 'key') {
+    if (!globalThis.crypto?.getRandomValues) { status.textContent = 'Secure randomness unavailable. Enter a key generated on your device.'; return; }
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const key = state.protocol === 'wireguard' ? btoa(String.fromCharCode(...bytes)) : Array.from(bytes, x => x.toString(16).padStart(2, '0')).join('');
+    state.a.psk = state.b.psk = key;
+    status.textContent = 'A fresh shared PSK is set on both sides.';
+  }
+  if (action) { syncInputs(); render(); }
+  if (button.dataset.copy) {
+    const side = button.dataset.copy;
+    if (result.errors.length) return;
+    try { await navigator.clipboard.writeText(result[side]); status.textContent = `Side ${side.toUpperCase()} configuration copied, including secrets.`; }
+    catch { status.textContent = 'Clipboard access failed. Reveal the configuration, select its text and copy manually.'; }
+  }
+});
+syncInputs(); render();
