@@ -1,6 +1,7 @@
 import { TOOLS, defaultsFor, generateTool, network, number, ip } from './catalog.js';
 import { cidr, ipv4 } from './address.js';
 import { PLATFORMS } from './platforms.js';
+import { ENTERPRISE_FEATURES, enterpriseFields, enterpriseDefaults, enterpriseGenerate } from './enterprise.js';
 
 export const FEATURES = {
   nat:{title:'NAT / PAT',role:'router',tool:'nat',vendors:['ios','mikrotik']},
@@ -15,15 +16,24 @@ export const FEATURES = {
   enterprise:{title:'Router-on-a-stick / VLAN gateways',role:'router',tool:'enterprise',vendors:['ios']},
   vlan:{title:'VLANs · Access / Trunk ports',role:'switch',tool:'vlan',vendors:['ios','juniper','mikrotik']},
   security:{title:'Port security',role:'switch',tool:'security',vendors:['ios']},
+  remotevpn:{title:'Remote Access / SSL VPN',role:'router',category:'security',vendors:['mikrotik','fortinet'],note:'RouterOS OpenVPN client or FortiOS 7.4 SSL VPN server. Existing PKI/server or authenticated user-group prerequisites apply.'},
+  ...ENTERPRISE_FEATURES,
 };
+export const CATEGORIES={switching:'01 // SWITCHING & LAYER 2',routing:'02 // ROUTING · IGP & EGP',security:'03 // SECURITY, NAT & VPN',infrastructure:'04 // HIGH AVAILABILITY & INFRASTRUCTURE'};
+for(const[id,feature]of Object.entries(FEATURES))if(!feature.category)feature.category=['vlan','security'].includes(id)?'switching':['static','ospf','bgp'].includes(id)?'routing':['bootstrap','enterprise'].includes(id)?'presets':['dhcp'].includes(id)?'infrastructure':'security';
+FEATURES.vlan.title='VLAN & 802.1Q Trunking';FEATURES.static.title='Static Routing · IPv4';FEATURES.ospf.title='OSPFv2 · Basic';FEATURES.bgp.title='BGP · eBGP / iBGP';FEATURES.acl.title='Standard & Extended ACLs';FEATURES.hardening.title='SSH & Device Hardening';FEATURES.vpn.title='Site-to-Site VPN';FEATURES.nat.title='NAT / PAT · Static, Dynamic, Overload';
+export const forRole=(feature,role)=>(feature.roles||[feature.role]).includes(role);
 export const VPN_TYPES={ikev2:'IPsec · IKEv2',ikev1:'IPsec · IKEv1',vti:'VTI · Cisco IKEv1',gre:'GRE over IPsec',wireguard:'WireGuard',openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'};
 export const capable=(id,vendor)=>Boolean(FEATURES[id]?.vendors.includes(vendor));
-export function featureDefaults(id,vendor){const d={...(FEATURES[id]?.tool?defaultsFor(FEATURES[id].tool):{}),vendor,...(['ospf','bgp'].includes(id)?{protocol:id}:{})};for(const f of featureFields(id,vendor))if(!Object.hasOwn(d,f.key))d[f.key]=f.value;if(id==='dhcp'&&vendor!=='ios')d.dns='1.1.1.1';return d;}
+export function featureDefaults(id,vendor){if(ENTERPRISE_FEATURES[id])return enterpriseDefaults(id,vendor);if(id==='remotevpn'){const remoteType=vendor==='mikrotik'?'openvpn':'ssl';return{vendor,remoteType,...remoteDefaults(remoteType)};}const d={...(FEATURES[id]?.tool?defaultsFor(FEATURES[id].tool):{}),vendor,...(['ospf','bgp'].includes(id)?{protocol:id}:{})};for(const f of featureFields(id,vendor))if(!Object.hasOwn(d,f.key))d[f.key]=f.value;if(id==='dhcp'&&vendor!=='ios')d.dns='1.1.1.1';return d;}
 export function featureFields(id,vendor) {
   if(id==='vpn')return [];
+  if(ENTERPRISE_FEATURES[id])return enterpriseFields(id,vendor);
+  if(id==='remotevpn')return[{key:'remoteType',label:'Remote-access technology',value:vendor==='mikrotik'?'openvpn':'ssl',type:'select',options:{openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'}},...Object.entries(REMOTE_VPN_FIELDS).flatMap(([kind,fields])=>fields.map(f=>({...f,type:f.type||'text',when:d=>d.remoteType===kind})))];
   if(id==='dhcp'&&vendor!=='ios')return [{key:'poolStart',label:'DHCP pool start',value:'10.10.0.50',type:'text'},{key:'poolEnd',label:'DHCP pool end',value:'10.10.0.200',type:'text'},{key:'dns',label:'DNS server',value:'1.1.1.1',type:'text'},...(vendor==='fortinet'?[{key:'serverId',label:'Unused DHCP server ID',value:'9000',type:'number'}]:[])];
   const fields=TOOLS[FEATURES[id].tool].fields.filter(f=>!['vendor',...(['ospf','bgp'].includes(id)?['protocol']:[])].includes(f.key)&&!(id==='nat'&&vendor==='mikrotik'&&f.key==='acl')&&!(id==='static'&&vendor!=='ios'&&['permanent','interface'].includes(f.key))&&!(vendor==='juniper'&&id==='ospf'&&['process','networks'].includes(f.key))&&!(id==='vlan'&&vendor!=='ios'&&f.key==='lastPort'));
   if(vendor==='juniper'&&id==='ospf')fields.push({key:'ospfInterfaces',label:'OSPF logical interfaces (comma separated)',value:'ge-0/0/1.0',type:'text'});
+  if(id==='nat')fields.push({key:'natMode',label:'Translation type',value:'overload',type:'select',options:{overload:'PAT / interface overload',static:'Static one-to-one',dynamic:'Dynamic public pool'}},{key:'insideHost',label:'Static inside host',value:'10.10.0.10',type:'text',when:d=>d.natMode==='static'},{key:'publicHost',label:'Static public address',value:'203.0.113.30',type:'text',when:d=>d.natMode==='static'},{key:'poolStart',label:'Public pool start',value:'203.0.113.100',type:'text',when:d=>d.natMode==='dynamic'},{key:'poolEnd',label:'Public pool end',value:'203.0.113.110',type:'text',when:d=>d.natMode==='dynamic'},{key:'poolPrefix',label:'Public pool prefix length',value:'24',type:'number',when:d=>d.natMode==='dynamic'});
   return fields;
 }
 const safeName=(v,label='Name')=>{if(!/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(v||''))throw Error(`${label}: invalid CLI identifier.`);return v;};
@@ -34,11 +44,25 @@ export function boundValues(id,d,s){
   if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan});
   if(id==='dhcp')Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan});
   if(id==='bootstrap')Object.assign(result,{wan:s.wan,wanAddress:`${s.ip}/${s.wanPrefix}`,gateway:s.gateway,lan:`${s.lanIp}/${s.local.split('/')[1]}`});
+  if(['relay','fhrp'].includes(id))Object.assign(result,{localIp:s.lanIp,localNetwork:s.local});
+  if(id==='remotevpn')Object.assign(result,{wan:s.wan,lan:s.lan,local:s.local,ip:s.ip,wanPrefix:s.wanPrefix});
   return result;
 }
 export function generateFeature(id,data){
   try{
     if(!capable(id,data.vendor))throw Error(`${FEATURES[id]?.title||id} has no validated ${PLATFORMS[data.vendor]||'selected vendor'} template.`);
+    if(ENTERPRISE_FEATURES[id])return enterpriseGenerate(id,data);
+    if(id==='remotevpn')return generateRemoteVpn(data.remoteType,data,data);
+    if(id==='nat'&&data.natMode&&data.natMode!=='overload'){
+      const mode=data.natMode;if(!['static','dynamic'].includes(mode))throw Error('Invalid NAT mode.');const n=network(data.network);safeName(data.inside);safeName(data.outside);safeName(data.acl,'ACL name');if(data.inside===data.outside)throw Error('Inside and outside interfaces must differ.');let code;
+      if(mode==='static'){
+        unicast(data.insideHost,'Inside host');unicast(data.publicHost,'Public host');if(ipv4(data.insideHost)<=n.network||ipv4(data.insideHost)>=n.end||ipv4(data.publicHost)>=n.network&&ipv4(data.publicHost)<=n.end)throw Error('Static inside host must be usable in LAN; public host must be outside LAN.');
+        code=data.vendor==='ios'?`configure terminal\nip nat inside source static ${data.insideHost} ${data.publicHost}\ninterface ${data.inside}\n ip nat inside\n exit\ninterface ${data.outside}\n ip nat outside\n exit\nend`:`/ip firewall nat add chain=dstnat dst-address=${data.publicHost} action=dst-nat to-addresses=${data.insideHost} comment="NOC static inbound"\n/ip firewall nat add chain=srcnat src-address=${data.insideHost} out-interface=${data.outside} action=src-nat to-addresses=${data.publicHost} comment="NOC static outbound"`;
+      }else{
+        unicast(data.poolStart,'Pool start');unicast(data.poolEnd,'Pool end');number(data.poolPrefix,1,30,'Pool prefix');const pool=cidr(`${data.poolStart}/${data.poolPrefix}`);if(ipv4(data.poolStart)>ipv4(data.poolEnd)||ipv4(data.poolStart)<=pool.network||ipv4(data.poolEnd)>=pool.end||pool.network<=n.end&&pool.end>=n.network)throw Error('Public pool must be ordered usable hosts in one subnet, outside LAN.');
+        code=data.vendor==='ios'?`configure terminal\nip access-list standard ${data.acl}\n permit ${n.ip} ${n.wildcard}\n exit\nip nat pool NOC-POOL ${data.poolStart} ${data.poolEnd} netmask ${pool.mask}\nip nat inside source list ${data.acl} pool NOC-POOL\ninterface ${data.inside}\n ip nat inside\n exit\ninterface ${data.outside}\n ip nat outside\n exit\nend`:`/ip firewall nat add chain=srcnat src-address=${n.canonical} out-interface=${data.outside} action=src-nat to-addresses=${data.poolStart}-${data.poolEnd} comment="NOC dynamic source pool"`;
+      }return{errors:[],scripts:[{title:`${PLATFORMS[data.vendor]} · ${mode} NAT`,code:code+'\n'+(data.vendor==='ios'?'!':'#')+' ISP routing/proxy ARP and filtering for the public mapping must already be designed. Merge existing NAT order.'}]};
+    }
     if(id==='dhcp'&&data.vendor!=='ios'){
       const n=network(data.network);ip(data.gateway,'Gateway');ip(data.dns,'DNS');safeName(data.interface,'LAN interface');
       const start=ipv4(data.poolStart),end=ipv4(data.poolEnd),gw=ipv4(data.gateway);if(start===null||end===null||start> end||start<=n.network||end>=n.end||gw<=n.network||gw>=n.end||gw>=start&&gw<=end)throw Error('DHCP range must be inside LAN, ordered, and exclude the gateway.');

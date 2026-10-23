@@ -1,6 +1,8 @@
 import type { ToolField, ToolValues } from './catalog.js';
 import type { LabSite } from './lab.js';
-export const FEATURES: Record<string,{title:string; role:'router'|'switch'; tool?:string; vendors:string[]}>;
+export const FEATURES: Record<string,{title:string; role:'router'|'switch'; roles?:('router'|'switch')[]; category:string; note?:string; tool?:string; vendors:string[]}>;
+export const CATEGORIES:Record<string,string>;
+export function forRole(feature:typeof FEATURES[string],role:string):boolean;
 export const VPN_TYPES: Record<string,string>;
 export function capable(id:string,vendor:string):boolean;
 export function featureDefaults(id:string,vendor:string):ToolValues;
