@@ -1,3 +1,4 @@
+import juniper from './vendors/juniper.js';
 import { ipv4, cidr } from './address.js';
 export { ipv4, cidr } from './address.js';
 import ios from './vendors/ios.js';
@@ -11,7 +12,7 @@ import { vtiConfig } from './vti.js';
 
 export const VENDORS = {
   ios: 'Cisco IOS XE 17.x', asa: 'Cisco ASA 9.22+',
-  mikrotik: 'MikroTik RouterOS 7.x', fortinet: 'Fortinet FortiOS 7.4', paloalto: 'Palo Alto PAN-OS 11.x',
+  juniper: 'Juniper Junos SRX', mikrotik: 'MikroTik RouterOS 7.x', fortinet: 'FortiGate FortiOS 7.4', paloalto: 'Palo Alto PAN-OS 11.x',
 };
 export const PROTOCOLS = { ikev2: 'IPsec · IKEv2', ikev1: 'IPsec · IKEv1', vti: 'Cisco VTI · IKEv1 (IOS ↔ IOS)', gre: 'GRE over IPsec · IKEv2', wireguard: 'WireGuard' };
 export const DEFAULTS = {
@@ -23,6 +24,7 @@ export const DEFAULTS = {
 };
 const overlaps = (a, b) => a.network <= b.end && b.network <= a.end;
 export function support(vendor, protocol) {
+  if(vendor === 'juniper' && !['ikev1','ikev2'].includes(protocol)) return 'Junos SRX supports IKEv1/IKEv2 templates here; choose IPsec for this vendor.';
   if (protocol === 'vti' && vendor !== 'ios') return 'This VTI template requires Cisco IOS on both sides (route-based any/any selectors). Existing cross-vendor IPsec modes remain available.';
   if (protocol === 'wireguard' && vendor !== 'mikrotik') return 'WireGuard generation is available for RouterOS 7 only. Use an external WireGuard gateway for this platform.';
   if (protocol === 'gre' && ['asa', 'paloalto'].includes(vendor)) return 'This generator does not provide a GRE-over-IPsec template for ASA or PAN-OS. Choose IOS XE, RouterOS, or FortiOS.';
@@ -79,7 +81,7 @@ export function validate(c) {
 export function generate(c) {
   const errors = validate(c);
   if (errors.length) return { errors, a: '', b: '' };
-  const generators = { ios, asa, mikrotik, fortinet, paloalto };
+  const generators = { ios, asa, mikrotik, fortinet, paloalto, juniper };
   const render = (s, r) => (c.bindInterfaces ? interfaceConfig(s) : '') + (c.protocol === 'vti' ? vtiConfig(c, s, r) : c.protocol === 'wireguard' ? wireguard(c, s, r) : generators[s.vendor](c, s, r));
   return { errors: [], a: render(c.a, c.b), b: render(c.b, c.a) };
 }

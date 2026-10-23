@@ -1,5 +1,5 @@
 import { DEFAULTS, VENDORS, PROTOCOLS, generate } from './engine.js';
-import { topologyMarkup, updateTopology } from './topology.js';
+import { PORTS } from './platforms.js';
 import { mountWorkbench } from './workbench.js';
 
 export function mountVpn(root, mountOptions = {}) {
@@ -38,7 +38,7 @@ root.innerHTML = `<form id="vpn-form" novalidate>
     <label for="vpn-protocol" class="text-xs text-slate-400">VPN type<select id="vpn-protocol" name="protocol" class="${inputClass} mt-1">${options(PROTOCOLS)}</select></label>
     <p class="md:col-span-2 text-xs text-slate-500">IPv4 · Static public endpoints · Single LAN per side · Review target firmware in the knowledge base</p>
   </div>
-  ${topologyMarkup()}
+
   <label data-vti class="flex items-start gap-3 mb-4 text-xs text-amber-200" hidden><input name="vtiLegacy" type="checkbox" class="accent-cyan-400"><span>Legacy VTI lab profile: DH2 / SHA1<span class="block text-slate-500 mt-1">Off: use the selected AES/DH settings with SHA256. On: reproduce the reference template's DH2/SHA1 suite. PFS is not configured by this VTI profile. Both peers use Tunnel0 and a rebuilt ACL NAT.</span></span></label>
   <label class="flex items-start gap-3 mb-5 text-sm text-slate-300"><input id="vpn-bindInterfaces" name="bindInterfaces" type="checkbox" class="accent-cyan-400 mt-1"><span>Include physical interface IP assignments in CLI<span class="block text-xs text-slate-500 mt-1">Enabling this adds WAN/LAN address commands and, on ASA, nameif/security-level assignments. Existing interface configuration may be changed. Internet routing, zones and VLANs must already be configured.</span></span></label>
   <div class="grid lg:grid-cols-2 gap-4">${site('a')}${site('b')}</div>
@@ -91,7 +91,7 @@ function render() {
     fs.querySelector('[data-asa]').hidden = state[side].vendor !== 'asa';
   }
   result = generate(state);
-  updateTopology(root, state, result.errors);
+  root.dispatchEvent(new CustomEvent('vpn-state',{detail:structuredClone(state)}));
   const notice = root.querySelector('#vpn-validation');
   notice.className = result.errors.length
     ? 'my-5 rounded border border-amber-400/30 bg-amber-400/5 p-4 text-xs text-amber-200'
@@ -109,7 +109,7 @@ function render() {
     root.querySelector(`[data-copy="${side}"]`).disabled = result.errors.length > 0;
   }
 }
-const interfaceDefaults = { ios: ['GigabitEthernet1','GigabitEthernet2'], asa: ['outside','inside'], mikrotik: ['ether1','bridge'], fortinet: ['port1','port2'], paloalto: ['ethernet1/1','ethernet1/2'] };
+const interfaceDefaults = PORTS;
 form.addEventListener('input', event => {
   const el = event.target;
   if (!el.name) return;
@@ -154,8 +154,13 @@ root.addEventListener('click', async event => {
     catch { status.textContent = 'Clipboard access failed. Reveal the configuration, select its text and copy manually.'; }
   }
 }, {signal:controller.signal});
+root.addEventListener('lab-edit',event=>{
+  for(const side of ['a','b']){const patch=event.detail[side];for(const key of ['vendor','ip','wanPrefix','wan','lan','local','lanIp'])state[side][key]=patch[key];}
+  state.a.remote=state.b.local;state.b.remote=state.a.local;state.bindInterfaces=true;syncInputs();render();
+},{signal:controller.signal});
 syncInputs(); render();
 const cleanupWorkbench = mountOptions.workbench === false ? () => {} : mountWorkbench(root);
+render();
 return () => {controller.abort();cleanupWorkbench();root.replaceChildren();};
 }
 if (typeof document !== 'undefined') {

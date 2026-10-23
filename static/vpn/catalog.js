@@ -1,3 +1,4 @@
+import { PLATFORMS } from './platforms.js';
 import { cidr, ipv4 } from './address.js';
 export const ipText = n => [24,16,8,0].map(b => (n >>> b) & 255).join('.');
 const field = (key, label, value = '', type = 'text', options, when) => ({key,label,value,type,options,when});
@@ -31,6 +32,12 @@ export const TOOLS = {
   static: {title:'Static Route Generator',note:'Supply a next hop, exit interface, or both. On multiaccess links a next hop is normally preferable. Distance 255 keeps the route out of the routing table.',fields:[field('destination','Destination network','192.168.20.0'),field('mask','Subnet mask','255.255.255.0'),field('nextHop','Next-hop IPv4 (optional)','10.0.0.2'),field('interface','Exit interface (optional)',''),field('distance','Administrative distance (optional)','','number'),field('permanent','Permanent route',false,'checkbox')]},
   vlan: {title:'VLAN & Switch Port',note:'Layer 2 switch template. Trunks retain the platform native VLAN unless configured separately. Access mode enables PortFast/BPDU guard for an endpoint-facing port.',fields:[field('vlan','VLAN ID','10','number'),field('name','VLAN name','HR'),field('interface','First interface','FastEthernet0/1'),field('lastPort','Last port number for range (optional)','','number'),select('mode','Port mode','access',{access:'Access',trunk:'Trunk'}),field('allowed','Allowed VLAN IDs (comma separated)','10,20','text',null,d=>d.mode==='trunk')]},
 };
+
+for (const [key,tool] of Object.entries(TOOLS)) {
+  const existing=tool.fields.find(f=>f.key==='vendor');
+  if(existing) existing.options=PLATFORMS;
+  else tool.fields.unshift(select('vendor','Vendor',key==='bootstrap'?'mikrotik':'ios',PLATFORMS));
+}
 
 export const defaultsFor = key => Object.fromEntries(TOOLS[key].fields.map(f=>[f.key,f.value]));
 function requireValue(ok,message){if(!ok)throw new Error(message);}
@@ -171,4 +178,4 @@ function vlan(d){
   return[{title:'Cisco switch · VLAN / Ports',code:wrap(`vlan ${id}\n name ${d.name}\n exit\n${target}\n switchport mode ${d.mode}\n${d.mode==='access'?` switchport access vlan ${id}\n spanning-tree portfast\n spanning-tree bpduguard enable`:` switchport trunk allowed vlan ${allowed.join(',')}`}\n no shutdown\n exit`)}];
 }
 const generators={bootstrap,enterprise,routing,acl,nat,dhcp,security,hardening,static:staticRoute,vlan};
-export function generateTool(key,data){try{requireValue(Object.hasOwn(generators,key),'Select a configuration type.');return {errors:[],scripts:generators[key](data)};}catch(error){return {errors:[error.message],scripts:[]};}}
+export function generateTool(key,data){try{requireValue(Object.hasOwn(generators,key),'Select a configuration type.');const supported=key==='routing'?['ios','mikrotik']:key==='bootstrap'?['mikrotik']:['ios'];requireValue(supported.includes(data.vendor),'Selected vendor is not supported by this feature template. Interface and host configurations remain available in the topology. No CLI is emitted for this feature.');return {errors:[],scripts:generators[key](data)};}catch(error){return {errors:[error.message],scripts:[]};}}

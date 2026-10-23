@@ -69,6 +69,11 @@ set network interface ethernet ${s.wan} layer3 ip ${s.ip}/${s.wanPrefix}
 set network interface ethernet ${s.lan} layer3 ip ${s.lanIp}/${s.local.split('/')[1]}
 exit
 `;
+    case 'juniper': return `configure
+set interfaces ${s.wan} unit 0 family inet address ${s.ip}/${s.wanPrefix}
+set interfaces ${s.lan} unit 0 family inet address ${s.lanIp}/${s.local.split('/' )[1]}
+exit
+`;
     default: throw new Error('Unsupported interface platform');
   }
 }

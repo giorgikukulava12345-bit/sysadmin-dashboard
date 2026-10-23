@@ -1,34 +1,17 @@
-# Interactive WAN topology
+﻿# Network Engineering Lab
 
-The browser-local configurator now renders Side A → ISP/Public Internet → Side B,
-with responsive node cards, physical WAN links, public IP path, private LAN
-addresses, protocol labels and input readiness indicators. These indicators
-describe configuration readiness, not measured device or tunnel health.
+The deployed app uses Flask/Jinja and native ES modules. `templates/vpn/configurator.html` is included once in section 04, before the file repository (05). The previous core-tools section was removed.
 
-Click a device card to focus its interface editor. All editors share the same
-state as the topology and both CLI outputs; no separate topology settings are
-stored. Values are rendered with textContent rather than interpolated HTML.
+- `ui.js`: VPN state, live validation and two terminal outputs; `mountVpn` returns cleanup.
+- `workbench.js`: shared configuration selector and feature panels.
+- `platforms.js`: enterprise vendor registry and physical-interface defaults.
+- `lab.js`: persistent Router → Switch → Linux Host topology on both sides of the ISP cloud, inline device editing, validation, six per-device terminal outputs and clipboard actions. Router edits synchronize both ways with the VPN form. Other modes retain independent feature inputs; device addressing scripts remain available above them.
+- `engine.js` and `vendors/`: VPN generators including Junos SRX IKEv1/IKEv2. Junos requires existing WAN routing and review of zone/NAT policy; scripts do not auto-commit.
+- `catalog.js`: feature schemas and explicit capability gates. All vendor selectors list Cisco, MikroTik, FortiGate, Juniper and Palo Alto. Cisco-specific CCNA features remain Cisco templates; bootstrap remains RouterOS; OSPF/BGP supports IOS and RouterOS. Unsupported selections emit a visible explanation and zero feature commands.
+- `vlsm.js`: largest-first subnet planning.
 
-Enable **Include physical interface IP assignments in CLI** to prepend address
-commands for IOS XE, ASA, RouterOS, FortiOS and PAN-OS. It defaults off to preserve
-the existing assumption that WAN/LAN interfaces are already configured. Once
-enabled, valid edits immediately regenerate both scripts. ASA exposes physical
-ports separately from its WAN/LAN nameifs. WAN prefixes accept 1–31; LAN addresses
-must be usable hosts within the site's local subnet. Existing names, WAN/LAN
-zone membership, default routes, VLAN configuration and ISP reachability must be
-reviewed on the target devices. PAN-OS requires physical ethernet interface names
-for this binding template. Commands are not applied to devices automatically.
+Topology router bindings support all five vendors. Switch configuration targets Cisco IOS, RouterOS (flat bridge) and Junos EX ELS. FortiGate/PAN-OS switch selections show an unsupported notice and disable copying rather than producing fabricated Layer 2 commands. Hosts use Linux iproute2.
 
-`topology.js` owns diagram presentation. `interfaces.js` owns address validation
-and platform-specific interface commands. `engine.js` combines interface and VPN
-configuration; `ui.js` owns shared form state. No React migration was introduced
-because this repository uses Flask/Jinja and native ES modules.
+No credentials are persisted or transmitted. Device scripts are generated locally and must be reviewed against the target device. The status lights represent input validity, not live network telemetry. Address edits clear invalid output atomically. Topology is a configuration model; it does not execute a packet-level simulation.
 
-168 engine checks and 32 UI/lifecycle checks passed in Chromium. Browser checks verified editing public and
-private addresses, WAN interface changes, opposite-peer regeneration, topology
-updates and click-to-edit focus. Python integration tests were extended to cover
-the new module URLs but were not run in the authoring environment. The generated
-interface commands have not been executed on appliances.
-
-# Configuration workbench expansion
-The Configuration type selector now includes MikroTik bootstrap, Cisco router/switch VLAN setup, dynamic OSPF/BGP, ACL, NAT/PAT, DHCP, port security, SSH hardening, static routes, VLAN ports and VLSM. The Syslog/SNMP widget is explicitly simulated and includes pause/resume, clear and a 150-event buffer. catalog.js contains pure generator schemas and validators; vlsm.js performs largest-first allocation; workbench.js mounts the shared UI; ui.js exports mountVpn for React adapters. Cisco VTI is an IOS-to-IOS IKEv1 mode with Tunnel0, MTU/MSS, static routing and rebuilt ACL NAT. SHA256/DH14 is the default; legacy DH2/SHA1 requires an explicit checkbox. NAT wildcards and subnet masks are computed from CIDR. No PFS is set by this profile. Review existing NAT rules before using the generated NAT binding. RouterOS BGP supports separate templates for 7.12-7.19 and 7.20+; both Cisco and RouterOS BGP start with reject-all route policies. Bootstrap assumes an empty IPv4 router configuration. The exported mount cleanup stops monitor timers and unregisters root events.
+Run `/tests/index.html` through the app/static preview for engine and UI integration checks. React adapters and integration instructions are supplied separately. No Next.js build is applicable to this Flask repository.
