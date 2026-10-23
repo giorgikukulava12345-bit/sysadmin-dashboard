@@ -2,9 +2,9 @@
 <section id="vpn-configurator" class="panel rounded-lg p-4 sm:p-6" aria-labelledby="vpn-title">
   <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
     <div>
-      <p class="font-mono text-[10px] text-cyan-glow tracking-widest mb-2">06 // SECURE CONNECTIVITY LAB</p>
-      <h2 id="vpn-title" class="font-mono text-xl font-bold text-slate-100">Cross-Vendor VPN Configurator</h2>
-      <p class="text-sm text-slate-400 mt-2 max-w-2xl">Two sites. One matched configuration. Build platform-specific CLI and consult the deployment knowledge base.</p>
+      <p class="font-mono text-[10px] text-cyan-glow tracking-widest mb-2">06 // NETWORK ENGINEERING LAB</p>
+      <h2 id="vpn-title" class="font-mono text-xl font-bold text-slate-100">NOC Configuration &amp; Planning Workbench</h2>
+      <p class="text-sm text-slate-400 mt-2 max-w-2xl">Build vendor CLI, plan subnets, explore VPN topology and follow simulated network events.</p>
     </div>
     <span class="font-mono text-[10px] text-emerald-300 border border-emerald-400/30 rounded px-3 py-2">BROWSER-LOCAL · NO SECRET STORAGE</span>
   </div>
@@ -27,6 +27,7 @@
         </table>
       </div>
       <p>A dash means no native template in this tool. Unsupported choices block both outputs; algorithms are never silently downgraded. IKEv1 is provided for legacy interoperability. Prefer IKEv2 for new IPsec deployments.</p>
+      <p>Cisco VTI is a separate IKEv1 mode requiring IOS on both sides, using route-based any/any selectors. It creates Tunnel0, TS-VTI, IPSEC-PROFILE-VTI, MTU 1400/MSS 1360 and a rebuilt ACL NAT with correct computed wildcards. The default uses SHA256/DH14; the explicitly selected legacy lab profile uses DH2/SHA1. Review the existing NAT rule and reserved names before applying. No PFS is configured by this VTI profile.</p>
       <div class="grid md:grid-cols-2 gap-5">
         <div><h3 class="text-slate-200 font-mono mb-2">01 / Design assumptions</h3><p>IPv4, static endpoints with the public IP assigned locally, one non-overlapping LAN per site, PSK authentication, and preconfigured WAN/LAN interfaces. Documentation IPs are examples. NAT behind an upstream router, HA, VRFs, multi-VDOM and Advanced Routing Engine require design-specific changes. GRE uses IPsec transport mode and a dedicated /30 overlay; WireGuard uses its own fixed cryptographic suite.</p></div>
         <div><h3 class="text-slate-200 font-mono mb-2">02 / Deployment checklist</h3><p>Reserve NOC-* object names, policy priority 100 and tunnel 100. Merge crypto maps with existing maps; a second map can replace the active attachment. Check WAN next-hop, zones, routing, NAT exemption and policy order before applying. RouterOS rules are placed before FastTrack/drop. FortiOS policies allow all services between the two LANs; narrow them for production. PAN-OS outputs a candidate configuration; validate and commit manually.</p></div>
