@@ -9,12 +9,12 @@ export const createLab = () => Object.fromEntries(['a','b'].map((side,i)=>[side,
   vlan2Enabled:'off',vlan2:'20',vlan2Subnet:i?'192.168.30.0/24':'192.168.20.0/24',vlan2Gateway:i?'192.168.30.1':'192.168.20.1',vlan2SwitchIp:i?'192.168.30.254':'192.168.20.254',vlan2Access:'FastEthernet0/2',
   switchVendor:'ios',uplink:'GigabitEthernet0/1',access:'FastEthernet0/1',switchIp:i?'10.20.0.2':'192.168.1.254',vlan:'10',hostIf:'eth0',hostIp:i?'10.20.0.10':'192.168.1.10',
 }]));
-const nameOK = v => /^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(v);
-export function labScripts(lab) {
-  const errors=validateInterfaces({bindInterfaces:true,...lab}),scripts=[];
-  for(const side of ['a','b']) {
+const nameOK = v => typeof v==='string'&&/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(v);
+export function labScripts(lab,{sides=['a','b']}={}) {
+  const errors=validateInterfaces({bindInterfaces:true,...lab},sides),scripts=[];
+  for(const side of sides) {
     const s=lab[side],label=`Side ${side.toUpperCase()}`,n=cidr(s.local);
-    errors.push(...validateSecondVlan(s,lab[side==='a'?'b':'a']).map(e=>`${label}: ${e}`));
+    const peer=side==='a'?'b':'a';errors.push(...validateSecondVlan(s,sides.includes(peer)?lab[peer]:undefined).map(e=>`${label}: ${e}`));
     if(!Object.hasOwn(PLATFORMS,s.vendor))errors.push(`${label}: choose a router vendor.`);
     if(ipv4(s.ip)===null)errors.push(`${label}: invalid WAN IP.`);
     if(!n||n.canonical!==s.local)errors.push(`${label}: enter a canonical LAN CIDR.`);
@@ -27,7 +27,7 @@ export function labScripts(lab) {
     if(!Object.hasOwn(PLATFORMS,s.switchVendor))errors.push(`${label}: choose a switch vendor.`);
   }
   if(errors.length)return{errors:[...new Set(errors)],scripts:[]};
-  for(const side of ['a','b']) {
+  for(const side of sides) {
     const s=lab[side],label=`Side ${side.toUpperCase()}`,prefix=s.local.split('/')[1],n=cidr(s.local);
     scripts.push({title:`${label} Router · ${PLATFORMS[s.vendor]} · Interface bindings`,code:hasSecondVlan(s)?dualVlanRouterConfig(s):interfaceConfig(s)});
     let code;
@@ -42,7 +42,7 @@ export function labScripts(lab) {
 }
 
 const CSS=`.lab-canvas{margin:20px 0;padding:20px;border:1px solid #263853;border-radius:10px;background:#07111f;color:#cbd5e1;font:12px ui-monospace,monospace}.lab-canvas h3{color:#67e8f9;margin:0 0 10px}.lab-path{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;margin:20px 0}.lab-path span{overflow-wrap:anywhere;text-align:center;color:#67e8f9}.lab-cloud{border:1px solid #22d3ee77;border-radius:45%;padding:18px;box-shadow:0 0 20px #22d3ee17;color:#a5f3fc;text-align:center}.lab-sites{display:grid;grid-template-columns:1fr 1fr;gap:25px}.lab-device{border:1px solid #29415c;background:#0d1a2b;border-radius:8px;padding:14px;min-width:0}.lab-device h4{color:#e2e8f0;margin:0 0 12px}.lab-device h4:before{content:'●';color:#34d399;text-shadow:0 0 9px #34d399;margin-right:8px}.lab-canvas label{display:flex;flex-direction:column;gap:5px;font-size:10px;color:#94a3b8}.lab-canvas input,.lab-canvas select{width:100%;box-sizing:border-box;background:#050d18;border:1px solid #2b415d;border-radius:4px;padding:8px;color:#e2e8f0;font:11px ui-monospace,monospace}.lab-canvas input:focus,.lab-canvas select:focus{outline:2px solid #22d3ee}.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.lab-wire{text-align:center;color:#67e8f9;padding:12px;overflow-wrap:anywhere}.lab-note{color:#94a3b8;font-size:11px;line-height:1.7}.lab-output{margin-top:16px}.lab-output summary{cursor:pointer;color:#67e8f9;padding:10px}.lab-output pre{background:#040a13;color:#a7f3d0;padding:14px;overflow:auto;max-height:320px;font:11px/1.8 ui-monospace,monospace}.lab-output button{border:1px solid #22d3ee77;color:#67e8f9;background:#103044;border-radius:4px;padding:8px;cursor:pointer}.lab-output button:disabled{opacity:.4}.lab-errors{color:#fcd34d;white-space:pre-line}.lab-canvas[data-invalid=true] h4:before{color:#fbbf24;text-shadow:0 0 9px #fbbf24}@media(max-width:720px){.lab-sites,.lab-grid{grid-template-columns:1fr}.lab-path{grid-template-columns:1fr}.lab-canvas{padding:12px}}`;
-export function mountLab(root,{onChange=()=>{},showDeviceOutputs=true}={}) {
+export function mountLab(root,{onChange=()=>{},showDeviceOutputs=true,getSides=()=>['a','b']}={}) {
   let state=createLab(),result,disposed=false;
   const controller=new AbortController();
   root.classList.add('lab-canvas');
@@ -55,7 +55,7 @@ export function mountLab(root,{onChange=()=>{},showDeviceOutputs=true}={}) {
   function render(sync=false){
     if(sync)for(const el of root.querySelectorAll('[data-side]'))el.value=state[el.dataset.side][el.name];
     for(const el of root.querySelectorAll('[name^=vlan2]'))if(el.name!=='vlan2Enabled')el.closest('label').hidden=!hasSecondVlan(state[el.dataset.side]);
-    result=labScripts(state);root.dataset.invalid=String(Boolean(result.errors.length));root.querySelector('[data-lab-errors]').textContent=result.errors.join('\n');
+    result=labScripts(state,{sides:getSides()});root.dataset.invalid=String(Boolean(result.errors.length));root.querySelector('[data-lab-errors]').textContent=result.errors.join('\n');
     for(const side of ['a','b']){const s=state[side];root.querySelector(`[data-path-${side}]`).textContent=`${s.wan} · ${s.ip}/${s.wanPrefix} ${side==='a'?'→ ISP':'← ISP'}`;root.querySelector(`[data-wire="${side}-Router"]`).textContent=`│ ${s.lan} ↔ ${s.uplink}${hasSecondVlan(s)?` · TRUNK VLAN ${s.vlan},${s.vlan2} · Gateway ${s.vlan2Gateway} · SVI ${s.vlan2SwitchIp}`:''} │`;root.querySelector(`[data-wire="${side}-Switch"]`).textContent=`│ ${s.access} ↔ ${s.hostIf} │`;}
     const out=root.querySelector('.lab-output');out.replaceChildren();
     out.hidden=!showDeviceOutputs;

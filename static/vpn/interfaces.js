@@ -1,4 +1,4 @@
-import { cidr, ipv4 } from './address.js';
+import { cidr, ipv4, unicastNetwork } from './address.js';
 
 export function validateWan(s) {
   const errors=[],ip=ipv4(s.ip),gateway=ipv4(s.gateway),n=cidr(`${s.ip}/30`);
@@ -9,10 +9,10 @@ export function validateWan(s) {
   return errors;
 }
 const validName = value => /^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(value || '');
-export function validateInterfaces(config) {
+export function validateInterfaces(config, sides=['a','b']) {
   if (!config.bindInterfaces) return [];
   const errors = [];
-  for (const side of ['a', 'b']) {
+  for (const side of sides) {
     const s = config[side], label = `Side ${side.toUpperCase()}`;
     for (const field of ['wan', 'lan', ...(s.vendor === 'asa' ? ['wanPort', 'lanPort'] : [])]) {
       if (!validName(s[field])) errors.push(`${label}: enter a valid ${field} interface name.`);
@@ -21,12 +21,13 @@ export function validateInterfaces(config) {
     if (s.wan === s.lan || (s.vendor === 'asa' && s.wanPort === s.lanPort)) errors.push(`${label}: WAN and LAN must use different interfaces.`);
     errors.push(...validateWan(s).map(e=>`${label}: ${e}`));
     const wan = cidr(`${s.ip}/${s.wanPrefix}`), lan = cidr(s.local), host = ipv4(s.lanIp);
+    if(!unicastNetwork(lan))errors.push(label+': LAN subnet must use unicast IPv4 space, outside unspecified, loopback and multicast/reserved ranges.');
     if (!lan || host === null || host <= lan.network || host >= lan.end) errors.push(`${label}: LAN interface IP must be a usable host inside the local subnet.`);
     if (wan && +s.wanPrefix < 31 && [wan.network, wan.end].includes(ipv4(s.ip))) errors.push(`${label}: public IP is a network or broadcast address for this WAN prefix.`);
     if (wan && lan && wan.network <= lan.end && lan.network <= wan.end) errors.push(`${label}: WAN and LAN networks must not overlap.`);
     if (s.vendor === 'asa' && ['inside','outside'].includes(s.wan) && s.wan === s.lan) errors.push(`${label}: ASA nameifs must be distinct.`);
   }
-  if(config.a.ip===config.b.ip)errors.push('The two router WAN addresses must differ.');
+  if(sides.length===2&&config.a.ip===config.b.ip)errors.push('The two router WAN addresses must differ.');
   return errors;
 }
 
