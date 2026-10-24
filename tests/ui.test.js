@@ -79,9 +79,11 @@ for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
  input('[data-feature-panel="wan_failover"] [name="ip2"]','198.18.60.6');input('[data-feature-panel="wan_failover"] [name="gateway2"]','198.18.60.5');
  q('[data-office-preset]').click();
  check(vendor+' preset selects Internet Gateway',q('[data-feature="internet_access"]').checked);
- for(const id of ['static','nat','zbfw'])check(vendor+' preset highlights '+id,q('[data-feature="'+id+'"]').checked&&q('[data-feature="'+id+'"]').closest('label').dataset.presetManaged==='true');
+ for(const id of ['static','nat','zbfw','dhcp'])check(vendor+' preset highlights '+id,q('[data-feature="'+id+'"]').checked&&q('[data-feature="'+id+'"]').closest('label').dataset.presetManaged==='true');
  check(vendor+' preset banner summarizes active components',!q('[data-preset-banner]').hidden&&q('[data-preset-components]').textContent.includes('Interface NAT / PAT')&&q('[data-preset-heading]').textContent.includes('Configuration ready'));
  check(vendor+' included cards do not duplicate routes',!q('[data-feature-panel="static"]')&&!q('[data-feature-panel="nat"]')); 
+ check(vendor+' preset includes DHCP and DNS badges',q('[data-preset-components]').textContent.includes('DHCP')&&q('[data-preset-components]').textContent.includes('DNS'));
+ check(vendor+' preset two-VLAN trunk and pools',q('[data-code]').textContent.includes('172.16.19.1')&&q('[data-code]').textContent.includes('1.1.1.1')&&q('[data-companion-code]').textContent.includes('allowed vlan 10,20'));
  check(vendor+' preset preserves Dual ISP',q('[data-feature="wan_failover"]').checked);
  check(vendor+' preset immediately generates router CLI',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('198.18.60.6'));
  check(vendor+' interface bindings automatic',q('[data-include-bindings]').checked&&q('[data-include-bindings]').disabled);
@@ -90,5 +92,9 @@ for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
  toggle('wan_failover',false);submit();check(vendor+' unchecking WAN2 removes backup',!q('[data-code]').textContent.includes('198.18.60.6')&&!q('[data-wan-a]').textContent.includes('BACKUP'));
 }
 toggle('nat',false);check('unchecking included card clears composite preset',!q('[data-feature="internet_access"]').checked&&!q('[data-feature="static"]').checked&&q('[data-preset-banner]').hidden);
+input('[data-analyzer-input]','ip name-server 9.9.9.9\nip dhcp pool OFFICE\n network 192.168.1.0 255.255.255.0\n default-router 172.16.19.1');
+q('[data-analyze]').click();check('analyzer displays actionable findings',q('[data-analyzer-findings]').textContent.includes('DHCP gateway outside')&&q('[data-analyzer-code]').textContent.includes('dns-server 9.9.9.9'));
+input('[data-analyzer-input]','<img src=x onerror=alert(1)>');q('[data-analyze]').click();check('pasted markup is never rendered as HTML',!q('[data-analyzer-findings] img'));
+q('[data-analyzer-clear]').click();check('analyzer clears input and corrections',!q('[data-analyzer-input]').value&&q('[data-analyzer-terminal]').hidden);
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
