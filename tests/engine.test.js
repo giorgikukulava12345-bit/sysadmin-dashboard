@@ -260,6 +260,8 @@ for(const patch of [{ip:'203.0.113.8'},{ip:'203.0.113.11'},{gateway:'203.0.113.8
 test('/30 CLI renders the actual WAN mask without changing LAN masks',()=>{
  const lab=createInitialLab(),r=labScripts(lab);assert(r.scripts[0].code.includes('203.0.113.10 255.255.255.252'));assert(r.scripts[0].code.includes('192.168.1.1 255.255.255.0'));
 });
+test('SSH hardening accepts four-character text and numeric secrets',()=>{for(const value of ['abcd','1234','Lab1']){const r=generateTool('hardening',{...defaultsFor('hardening'),secret:value,enableSecret:value});assert(!r.errors.length,r.errors.join(';'));assert(r.scripts[0].code.includes('enable secret '+value));assert(r.scripts[0].code.includes('privilege 15 secret '+value));}});
+test('SSH short-secret support preserves validation and injection protection',()=>{for(const value of ['', 'abc', '1234\nend', '1234;reload'])assert(generateTool('hardening',{...defaultsFor('hardening'),secret:value,enableSecret:'1234'}).errors.length);});
 const failures = results.filter(s => s.startsWith('FAIL'));
 const summary = `${passed}/${results.length} tests passed`;
 if (typeof document !== 'undefined') {
