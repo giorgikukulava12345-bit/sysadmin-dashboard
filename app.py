@@ -1,7 +1,4 @@
 import os
-import socket
-from network_validation import parse_port, validate_public_ip
-import time
 from datetime import datetime
 
 from flask import Flask, jsonify, request, render_template, send_from_directory, abort
@@ -9,9 +6,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-PORT_CHECK_TIMEOUT = 3.0
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 
@@ -39,73 +34,13 @@ def index():
 
 
 # ---------------------------------------------------------------------------
-# API: Port checker
-# ---------------------------------------------------------------------------
-@app.route("/api/portcheck", methods=["POST"])
-def api_portcheck():
-    data = request.get_json(silent=True) or {}
-    if not isinstance(data, dict):
-        return jsonify({"error": "Request body must be a JSON object."}), 400
-    host = str(data.get("host", "")).strip()
-    port_raw = data.get("port")
-
-    if not host or len(host) > 253:
-        return jsonify({"error": "Host / IP is required."}), 400
-
-    try:
-        port = parse_port(port_raw)
-    except (TypeError, ValueError):
-        return jsonify({"error": "Port must be a number."}), 400
-
-    if not (1 <= port <= 65535):
-        return jsonify({"error": "Port must be between 1 and 65535."}), 400
-
-    try:
-        resolved_ip = socket.gethostbyname(host)
-    except socket.gaierror:
-        return jsonify({
-            "host": host,
-            "port": port,
-            "status": "error",
-            "message": "Could not resolve host.",
-        }) or {}, 200
-
-    try:
-        resolved_ip = validate_public_ip(resolved_ip)
-    except ValueError as error:
-        return jsonify({"error": str(error)}), 400
-
-    start = time.monotonic()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(PORT_CHECK_TIMEOUT)
-    try:
-        result = sock.connect_ex((resolved_ip, port))
-        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
-        status = "open" if result == 0 else "closed"
-    except socket.timeout:
-        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
-        status = "closed"
-    except OSError:
-        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
-        status = "error"
-    finally:
-        sock.close()
-
-    return jsonify({
-        "host": host,
-        "resolved_ip": resolved_ip,
-        "port": port,
-        "status": status,
-        "latency_ms": elapsed_ms,
-    })
-
-
-# ---------------------------------------------------------------------------
 # API: list files and integrated Drive links.
 # ---------------------------------------------------------------------------
 @app.route("/api/files")
 def api_files():
     files = []
+    if not os.path.isdir(UPLOAD_DIR):
+        return jsonify({"files": files})
     for name in sorted(os.listdir(UPLOAD_DIR)):
         full_path = os.path.join(UPLOAD_DIR, name)
         if os.path.isfile(full_path):
@@ -139,7 +74,11 @@ def download_file(filename):
     
     # Prevent directory traversal.
     resolved_path = os.path.realpath(full_path)
-    if os.path.commonpath([resolved_path, os.path.realpath(UPLOAD_DIR)]) != os.path.realpath(UPLOAD_DIR):
+    try:
+        inside = os.path.commonpath([resolved_path, os.path.realpath(UPLOAD_DIR)]) == os.path.realpath(UPLOAD_DIR)
+    except ValueError:
+        inside = False
+    if not inside:
         abort(403)
         
     if not os.path.isfile(resolved_path):

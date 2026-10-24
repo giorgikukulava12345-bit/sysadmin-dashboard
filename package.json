@@ -1,5 +1,6 @@
 {
   "private": true,
   "type": "module",
-  "scripts": { "test": "node tests/engine.test.js" }
+  "scripts": { "test": "node tests/run-all.js" }
 }
+
