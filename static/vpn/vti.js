@@ -19,6 +19,7 @@ crypto ipsec transform-set TS-VTI esp-aes ${c.encryption} ${legacy ? 'esp-sha-hm
  exit
 crypto ipsec profile IPSEC-PROFILE-VTI
  set transform-set TS-VTI
+ set pfs group${c.pfs}
  set security-association lifetime seconds ${c.lifetime2}
  exit
 

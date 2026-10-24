@@ -20,8 +20,11 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   if(!ids.length&&!bindings)return{errors:[],code:'',empty:true};
   if(address.errors.length)return{errors:address.errors,code:'',empty:false};
   if(role==='host')return{errors:[],code:address.scripts[side==='a'?2:5].code,empty:false};
+  if(ids.includes('nat')&&values.nat?.natMode==='static'&&[site.ip,site.gateway].includes(values.nat.publicHost))errors.push('Static NAT public mapping must not reuse the WAN router or ISP gateway address. Use a separately assigned public address.');
+  if(ids.includes('nat')&&values.nat?.natMode==='dynamic'){const start=values.nat.poolStart?.split('.').reduce((a,v)=>a*256+Number(v),0),end=values.nat.poolEnd?.split('.').reduce((a,v)=>a*256+Number(v),0);for(const ip of [site.ip,site.gateway]){const n=ip.split('.').reduce((a,v)=>a*256+Number(v),0);if(n>=start&&n<=end)errors.push('Dynamic NAT pool must exclude WAN router and ISP gateway addresses.');}}
+  if(ids.includes('static')&&[site.ip,site.lanIp,site.switchIp,site.hostIp].includes(values.static?.nextHop))errors.push('Static-route next hop must not be an address assigned to this site.');
   if(ids.includes('portforward')){
-    const d=values.portforward||{};
+    const d=values.portforward||{};if(d.internalIp===site.switchIp)errors.push('Port-forward target must not be the switch management address.');
     if(d.attachAcl&&ids.length>1)errors.push('A dedicated inbound port-forward ACL is a standalone restricted policy. Leave attachment unchecked and merge its permit with the existing WAN ACL when combining features.');
     if(ids.includes('nat')&&d.acl===values.nat?.acl)errors.push('Port-forward and source NAT ACL names must differ.');
     if(ids.includes('acl')&&d.acl===values.acl?.name)errors.push('Port-forward and traffic-filter ACL names must differ.');
@@ -79,7 +82,7 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
       const n=cidr(site.vlan2Subnet);result.scripts.push({code:`configure terminal\nip access-list standard ${data.acl}\n permit ${n.networkAddress||n.ip} ${n.wildcard}\n exit\ninterface ${site.lan}.${site.vlan2}\n ip nat inside\n exit\nend`});
     }
     if(dual&&role==='router'&&!result.errors.length&&id==='dhcp'){
-      const extra=generateFeature('dhcp',{...data,name:`${data.name||'NOC'}-V${site.vlan2}`,network:site.vlan2Subnet,gateway:site.vlan2Gateway,exclusions:`${site.vlan2Gateway}\n${site.vlan2SwitchIp}`});
+      const extra=generateFeature('dhcp',{...data,name:`${data.name||'NOC'}-V${site.vlan2}`,network:site.vlan2Subnet,gateway:site.vlan2Gateway,exclusions:`${site.vlan2Gateway}\n${site.vlan2SwitchIp}`,reserved:[]});
       if(extra.errors.length)result.errors.push(...extra.errors);else result.scripts.push(...extra.scripts);
     }
     if(id==='nat'&&vendor==='ios'&&ids.includes('vpn')&&!['openvpn','ssl','wireguard'].includes(vpnType)&&!result.errors.length){

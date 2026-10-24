@@ -9,6 +9,7 @@ const f=(key,label,value='',type='text',options,when)=>({key,label,value,type,op
 const s=(key,label,value,options,when)=>f(key,label,value,'select',options,when);
 const p=(key,label)=>f(key,label,'','password');
 const iface=(vendor,index=1)=>PORTS[vendor]?.[index]||'GigabitEthernet0/1';
+const logical=x=>/\.\d+$/.test(x)?x:x+'.0';
 const ifaceField=vendor=>f('interface','Target interface',iface(vendor));
 const protocol=(d,v)=>{if(!v.includes(d))throw Error('Invalid protocol or mode.');return d;};
 const name=(v,label='Identifier')=>{if(!/^[A-Za-z][A-Za-z0-9_-]{0,31}$/.test(v||''))throw Error(`${label}: use a letter followed by up to 31 letters, digits, _ or -.`);return v;};
@@ -43,7 +44,7 @@ export const ENTERPRISE_FEATURES={
   qos:def('QoS · Classification & Marking','router','infrastructure',['ios','mikrotik','juniper'],v=>[ifaceField(v),f('source','Classification source prefix','10.10.0.0/24'),f('udpPort','Classified UDP destination port','5060','number'),f('dscp','Marked DSCP (0–63)','46','number')],'Classifies source/UDP destination port and marks DSCP on a routed ingress interface. Does not guarantee bandwidth, shape or queue. Merge with existing service policies/mangle/filter rules before attaching.'),
 };
 
-export function enterpriseFields(id,vendor){return (ENTERPRISE_FEATURES[id]?.fields(vendor)||[]).map(field=>field.key==='authSecret'&&id==='eigrp'?{...field,when:d=>d.mode==='advanced'}:field.key==='authSecret'&&id==='ospf_advanced'?{...field,when:d=>d.auth==='sha256'}:['localUser','localSecret'].includes(field.key)&&id==='aaa'?{...field,when:()=>vendor==='ios'}:field);}
+export function enterpriseFields(id,vendor){let fields=(ENTERPRISE_FEATURES[id]?.fields(vendor)||[]).map(field=>field.key==='authSecret'&&id==='eigrp'?{...field,when:d=>d.mode==='advanced'}:field.key==='authSecret'&&id==='ospf_advanced'?{...field,when:d=>d.auth==='sha256'}:['localUser','localSecret'].includes(field.key)&&id==='aaa'?{...field,when:()=>vendor==='ios'}:field);fields=fields.map(field=>{if((id==='etherchannel'||id==='snooping')&&vendor==='mikrotik'&&field.key==='vlans')return {...field,when:()=>false};if(id==='stp'&&vendor!=='ios'&&field.key==='vlans')return {...field,when:d=>d.mode==='mst'};if(vendor==='juniper'&&['ospf3','redistribution'].includes(id)&&field.key==='process')return {...field,when:()=>false};return field;});if(id==='static6'&&vendor==='paloalto')fields.push(f('virtualRouter','Existing virtual router','default'),f('routeName','Static IPv6 route name','NOC-STATIC6'));return fields;}
 export function enterpriseDefaults(id,vendor){return{vendor,...Object.fromEntries(enterpriseFields(id,vendor).map(x=>[x.key,x.value])),...(id==='portforward'?{publicIp:'203.0.113.10',inside:'GigabitEthernet2',outside:'GigabitEthernet1',localNetwork:'10.10.0.0/24',lanIp:'10.10.0.1'}:{})};}
 
 export function ipv6(value){
@@ -91,14 +92,15 @@ export function enterpriseGenerate(id,d){
       if(v==='ios')code=ios(`ipv6 unicast-routing\nipv6 route ${d.destination} ${d.interface} ${d.nextHop} ${distance}`);
       if(v==='mikrotik')code=`/ipv6 route add dst-address=${d.destination} gateway=${d.nextHop}%${d.interface} distance=${distance} comment="NOC IPv6 static"`;
       if(v==='fortinet')code=`config router static6\n edit 0\n  set dst ${d.destination}\n  set gateway ${d.nextHop}\n  set device "${d.interface}"\n  set distance ${distance}\n next\nend`;
-      if(v==='juniper')code=junos(`set routing-options rib inet6.0 static route ${d.destination} qualified-next-hop ${d.nextHop} interface ${d.interface}.0\nset routing-options rib inet6.0 static route ${d.destination} preference ${distance}`);
-      if(v==='paloalto')code=`configure\nset network virtual-router default routing-table ipv6 static-route NOC-STATIC6 destination ${d.destination}\nset network virtual-router default routing-table ipv6 static-route NOC-STATIC6 interface ${d.interface}\nset network virtual-router default routing-table ipv6 static-route NOC-STATIC6 nexthop ipv6-address ${d.nextHop}\nset network virtual-router default routing-table ipv6 static-route NOC-STATIC6 admin-dist ${distance}\nexit`;
+      if(v==='juniper')code=junos(`set routing-options rib inet6.0 static route ${d.destination} qualified-next-hop ${d.nextHop} interface ${logical(d.interface)}\nset routing-options rib inet6.0 static route ${d.destination} preference ${distance}`);
+      if(v==='paloalto'){name(d.virtualRouter??'default','Virtual router');name(d.routeName??'NOC-STATIC6','Route name');}
+      if(v==='paloalto')code=`configure\nset network virtual-router ${d.virtualRouter??'default'} routing-table ipv6 static-route ${d.routeName??'NOC-STATIC6'} destination ${d.destination}\nset network virtual-router ${d.virtualRouter??'default'} routing-table ipv6 static-route ${d.routeName??'NOC-STATIC6'} interface ${d.interface}\nset network virtual-router ${d.virtualRouter??'default'} routing-table ipv6 static-route ${d.routeName??'NOC-STATIC6'} nexthop ipv6-address ${d.nextHop}\nset network virtual-router ${d.virtualRouter??'default'} routing-table ipv6 static-route ${d.routeName??'NOC-STATIC6'} admin-dist ${distance}\nexit`;
     }
     if(id==='ospf3'){
       const process=number(d.process,1,65535,'Process ID');ip(d.routerId);area(d.area);port(d.interface);
       if(v==='ios')code=ios(`ipv6 unicast-routing\nipv6 router ospf ${process}\n router-id ${d.routerId}\n exit\ninterface ${d.interface}\n ipv6 ospf ${process} area ${d.area}\n exit`);
       if(v==='mikrotik'){prefix6(d.prefix);code=`/routing ospf instance add name=NOC-OSPF3-${process} version=3 router-id=${d.routerId}\n/routing ospf area add name=NOC-AREA3-${process} instance=NOC-OSPF3-${process} area-id=${d.area}\n/routing ospf interface-template add interfaces=${d.interface} networks=${d.prefix} area=NOC-AREA3-${process}`;}
-      if(v==='juniper')code=junos(`set routing-options router-id ${d.routerId}\nset protocols ospf3 area ${d.area} interface ${d.interface}.0`);
+      if(v==='juniper')code=junos(`set routing-options router-id ${d.routerId}\nset protocols ospf3 area ${d.area} interface ${logical(d.interface)}`);
       if(v==='fortinet')code=`config router ospf6\n set router-id ${d.routerId}\n config area\n  edit ${d.area}\n  next\n end\n config ospf6-interface\n  edit "NOC-OSPF3-${process}"\n   set interface "${d.interface}"\n   set area ${d.area}\n  next\n end\nend`;
     }
     if(id==='ospf_advanced'){
@@ -147,7 +149,7 @@ export function enterpriseGenerate(id,d){
       if(v==='ios')code=ios(`interface ${d.interface}\n ip helper-address ${d.server}\n exit`);
       if(v==='mikrotik'){ip(d.localIp);code=`/ip dhcp-relay add name=NOC-RELAY interface=${d.interface} dhcp-server=${d.server} local-address=${d.localIp} disabled=no`;}
       if(v==='fortinet')code=`config system interface\n edit "${d.interface}"\n  set dhcp-relay-service enable\n  set dhcp-relay-ip ${d.server}\n next\nend`;
-      if(v==='juniper')code=junos(`set forwarding-options dhcp-relay server-group NOC-DHCP ${d.server}\nset forwarding-options dhcp-relay group NOC-RELAY active-server-group NOC-DHCP\nset forwarding-options dhcp-relay group NOC-RELAY interface ${d.interface}.0`);
+      if(v==='juniper')code=junos(`set forwarding-options dhcp-relay server-group NOC-DHCP ${d.server}\nset forwarding-options dhcp-relay group NOC-RELAY active-server-group NOC-DHCP\nset forwarding-options dhcp-relay group NOC-RELAY interface ${logical(d.interface)}`);
       if(v==='paloalto')code=`configure\nset network dhcp interface ${d.interface} relay ip enabled yes\nset network dhcp interface ${d.interface} relay ip server ${d.server}\nexit`;
     }
     if(id==='ntp_syslog'){

@@ -11,7 +11,7 @@ import { validateInterfaces, interfaceConfig, validateWan } from './interfaces.j
 import { vtiConfig } from './vti.js';
 
 export const VENDORS = {
-  ios: 'Cisco IOS XE 17.x', asa: 'Cisco ASA 9.22+',
+  ios: 'Cisco IOS XE 17.6–17.9 (crypto map)' , asa: 'Cisco ASA 9.22+',
   juniper: 'Juniper Junos SRX', mikrotik: 'MikroTik RouterOS 7.x', fortinet: 'FortiGate FortiOS 7.4', paloalto: 'Palo Alto PAN-OS 11.x',
 };
 export const PROTOCOLS = { ikev2: 'IPsec · IKEv2', ikev1: 'IPsec · IKEv1', vti: 'Cisco VTI · IKEv1 (IOS ↔ IOS)', gre: 'GRE over IPsec · IKEv2', wireguard: 'WireGuard' };
@@ -19,8 +19,8 @@ export const DEFAULTS = {
   bindInterfaces: false,
   vtiLegacy: false,
   protocol: 'ikev2', encryption: '256', hash: '256', dh: '14', pfs: '14', lifetime1: '28800', lifetime2: '3600',
-  a: { vendor: 'ios', ip: '203.0.113.10', local: '192.168.1.0/24', remote: '10.20.0.0/24', psk: '', wan: 'GigabitEthernet1', lan: 'GigabitEthernet2', wanPrefix:'30', lanIp:'192.168.1.1', wanPort:'GigabitEthernet0/0', lanPort:'GigabitEthernet0/1', gateway: '203.0.113.9', zone: 'trust', vr: 'default', tunnel: '169.254.100.1', port: '51820', privateKey: '', publicKey: '' },
-  b: { vendor: 'fortinet', ip: '198.51.100.22', local: '10.20.0.0/24', remote: '192.168.1.0/24', psk: '', wan: 'port1', lan: 'port2', wanPrefix:'30', lanIp:'10.20.0.1', wanPort:'GigabitEthernet0/0', lanPort:'GigabitEthernet0/1', gateway: '198.51.100.21', zone: 'trust', vr: 'default', tunnel: '169.254.100.2', port: '51820', privateKey: '', publicKey: '' },
+  a: { vendor: 'ios', ip: '203.0.113.10', local: '192.168.1.0/24', remote: '10.20.0.0/24', psk: '', wan: 'GigabitEthernet1', lan: 'GigabitEthernet2', wanPrefix:'30', lanIp:'192.168.1.1', wanPort:'GigabitEthernet0/0', lanPort:'GigabitEthernet0/1', gateway: '203.0.113.9', zone: 'trust', wanZone:'untrust',vpnZone:'NOC-VPN',vpnUnit:'100',vr: 'default', tunnel: '169.254.100.1', port: '51820', privateKey: '', publicKey: '' },
+  b: { vendor: 'fortinet', ip: '198.51.100.22', local: '10.20.0.0/24', remote: '192.168.1.0/24', psk: '', wan: 'port1', lan: 'port2', wanPrefix:'30', lanIp:'10.20.0.1', wanPort:'GigabitEthernet0/0', lanPort:'GigabitEthernet0/1', gateway: '198.51.100.21', zone: 'trust', wanZone:'untrust',vpnZone:'NOC-VPN',vpnUnit:'100',vr: 'default', tunnel: '169.254.100.2', port: '51820', privateKey: '', publicKey: '' },
 };
 const overlaps = (a, b) => a.network <= b.end && b.network <= a.end;
 export function support(vendor, protocol) {
@@ -51,6 +51,7 @@ export function validate(c) {
       const net = cidr(s[field]);
       if (!net || net.canonical !== s[field]) errors.push(`${label}: ${field} must be a canonical IPv4 network, e.g. 10.10.0.0/24.`);
     }
+    if(['juniper','paloalto'].includes(s.vendor)){for(const field of ['zone','vpnZone',...(s.vendor==='juniper'?['wanZone']:[])])if(!/^[A-Za-z][A-Za-z0-9_-]{0,30}$/.test(s[field]||''))errors.push(`${label}: invalid ${field} name.`);if(s.zone===s.vpnZone||s.vendor==='juniper'&&[s.zone,s.vpnZone].includes(s.wanZone))errors.push(`${label}: LAN, VPN and WAN zones must be distinct.`);if(!/^\d+$/.test(s.vpnUnit||'')||+s.vpnUnit<1||+s.vpnUnit>9999)errors.push(`${label}: VPN logical unit must be 1–9999.`);}
     const contextFields = c.protocol === 'wireguard' ? [] : s.vendor === 'paloalto' ? ['wan', 'zone', 'vr'] : ['wan', 'lan'];
     for (const field of contextFields) if (!/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(s[field])) errors.push(`${label}: invalid ${field} name.`);
     if (c.protocol !== 'wireguard' && ['ios','asa'].includes(s.vendor) && ipv4(s.gateway) === null) errors.push(`${label}: a valid WAN next-hop is required.`);

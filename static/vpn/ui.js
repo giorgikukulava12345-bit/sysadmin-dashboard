@@ -26,7 +26,7 @@ function site(side) {
       <label>WAN prefix<input name="${side}.wanPrefix" value="30" readonly aria-label="${side.toUpperCase()} WAN prefix /30"></label>${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
       <div data-asa>${field(side, 'wanPort', 'ASA physical WAN port')}${field(side, 'lanPort', 'ASA physical LAN port')}</div>
       <div data-gateway>${field(side, 'gateway', 'ISP gateway (other usable /30 host)')}</div>
-      <div data-pan>${field(side, 'zone', 'Existing LAN zone (PAN-OS)')}${field(side, 'vr', 'Virtual router (PAN-OS)')}</div></div>
+      <div data-security-zone>${field(side, 'zone', 'Existing LAN security zone')}${field(side, 'vpnZone', 'VPN security zone')}${field(side, 'vpnUnit', 'VPN logical interface unit', 'number')}</div><div data-junos>${field(side, 'wanZone', 'Existing WAN security zone (Junos)')}</div><div data-pan>${field(side, 'vr', 'Virtual router (PAN-OS)')}</div></div>
     </details>
   </fieldset>`;
 }
@@ -86,6 +86,8 @@ function render() {
   root.querySelector('#vpn-wg-note').hidden = !wg;
   for (const side of ['a', 'b']) {
     const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
+    fs.querySelector('[data-security-zone]').hidden=!['juniper','paloalto'].includes(state[side].vendor)||wg;
+    fs.querySelector('[data-junos]').hidden=state[side].vendor!=='juniper'||wg;
     fs.querySelector('[data-pan]').hidden = state[side].vendor !== 'paloalto' || wg;
     fs.querySelector('[data-gateway]').hidden = false;
     fs.querySelector('[data-asa]').hidden = state[side].vendor !== 'asa';

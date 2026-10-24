@@ -2,6 +2,7 @@ import { cidr, ipv4 } from './address.js';
 
 export function validateWan(s) {
   const errors=[],ip=ipv4(s.ip),gateway=ipv4(s.gateway),n=cidr(`${s.ip}/30`);
+  if(ip!==null&&(ip<16777216||(ip>>>24)===127||ip>=0xe0000000))errors.push('WAN IP must be unicast, outside 0/8, loopback and multicast/reserved space.');
   if(s.wanPrefix!=='30')errors.push('WAN prefix must be /30 (two usable hosts).');
   if(ip===null||!n||ip<=n.network||ip>=n.end)errors.push('WAN IP must be a usable /30 host, not the network or broadcast address.');
   if(!n||gateway===null||gateway<=n.network||gateway>=n.end||gateway===ip)errors.push('ISP gateway must be the other usable host in the same /30 subnet.');
@@ -16,6 +17,7 @@ export function validateInterfaces(config) {
     for (const field of ['wan', 'lan', ...(s.vendor === 'asa' ? ['wanPort', 'lanPort'] : [])]) {
       if (!validName(s[field])) errors.push(`${label}: enter a valid ${field} interface name.`);
     }
+    if(s.vendor==='juniper'&&[s.wan,s.lan].some(x=>/\.\d+$/.test(x)))errors.push(`${label}: base Junos bindings require physical interface names; unit 0 is configured explicitly.`);
     if (s.wan === s.lan || (s.vendor === 'asa' && s.wanPort === s.lanPort)) errors.push(`${label}: WAN and LAN must use different interfaces.`);
     errors.push(...validateWan(s).map(e=>`${label}: ${e}`));
     const wan = cidr(`${s.ip}/${s.wanPrefix}`), lan = cidr(s.local), host = ipv4(s.lanIp);
@@ -24,6 +26,7 @@ export function validateInterfaces(config) {
     if (wan && lan && wan.network <= lan.end && lan.network <= wan.end) errors.push(`${label}: WAN and LAN networks must not overlap.`);
     if (s.vendor === 'asa' && ['inside','outside'].includes(s.wan) && s.wan === s.lan) errors.push(`${label}: ASA nameifs must be distinct.`);
   }
+  if(config.a.ip===config.b.ip)errors.push('The two router WAN addresses must differ.');
   return errors;
 }
 

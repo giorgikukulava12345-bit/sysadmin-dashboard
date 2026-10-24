@@ -17,9 +17,8 @@ export function labScripts(lab) {
     errors.push(...validateSecondVlan(s,lab[side==='a'?'b':'a']).map(e=>`${label}: ${e}`));
     if(!Object.hasOwn(PLATFORMS,s.vendor))errors.push(`${label}: choose a router vendor.`);
     if(ipv4(s.ip)===null)errors.push(`${label}: invalid WAN IP.`);
-    const wan=cidr(`${s.ip}/${s.wanPrefix}`),gw=ipv4(s.gateway);
-    if(!wan||gw===null||gw<wan.network||gw>wan.end||s.gateway===s.ip||+s.wanPrefix<31&&[wan.network,wan.end].includes(gw))errors.push(`${label}: ISP gateway must be a different usable host in the WAN subnet.`);
     if(!n||n.canonical!==s.local)errors.push(`${label}: enter a canonical LAN CIDR.`);
+    if(s.switchVendor==='ios'&&+s.vlan>=1002&&+s.vlan<=1005)errors.push(`${label}: VLANs 1002–1005 are reserved on Cisco IOS.`);
     if(!/^\d+$/.test(s.vlan)||+s.vlan<1||+s.vlan>4094)errors.push(`${label}: VLAN must be 1–4094.`);
     for(const key of ['uplink','access','hostIf'])if(!nameOK(s[key]))errors.push(`${label}: invalid ${key} interface.`);
     if(s.uplink===s.access)errors.push(`${label}: switch uplink and host port must differ.`);
@@ -43,7 +42,7 @@ export function labScripts(lab) {
 }
 
 const CSS=`.lab-canvas{margin:20px 0;padding:20px;border:1px solid #263853;border-radius:10px;background:#07111f;color:#cbd5e1;font:12px ui-monospace,monospace}.lab-canvas h3{color:#67e8f9;margin:0 0 10px}.lab-path{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;margin:20px 0}.lab-path span{overflow-wrap:anywhere;text-align:center;color:#67e8f9}.lab-cloud{border:1px solid #22d3ee77;border-radius:45%;padding:18px;box-shadow:0 0 20px #22d3ee17;color:#a5f3fc;text-align:center}.lab-sites{display:grid;grid-template-columns:1fr 1fr;gap:25px}.lab-device{border:1px solid #29415c;background:#0d1a2b;border-radius:8px;padding:14px;min-width:0}.lab-device h4{color:#e2e8f0;margin:0 0 12px}.lab-device h4:before{content:'●';color:#34d399;text-shadow:0 0 9px #34d399;margin-right:8px}.lab-canvas label{display:flex;flex-direction:column;gap:5px;font-size:10px;color:#94a3b8}.lab-canvas input,.lab-canvas select{width:100%;box-sizing:border-box;background:#050d18;border:1px solid #2b415d;border-radius:4px;padding:8px;color:#e2e8f0;font:11px ui-monospace,monospace}.lab-canvas input:focus,.lab-canvas select:focus{outline:2px solid #22d3ee}.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.lab-wire{text-align:center;color:#67e8f9;padding:12px;overflow-wrap:anywhere}.lab-note{color:#94a3b8;font-size:11px;line-height:1.7}.lab-output{margin-top:16px}.lab-output summary{cursor:pointer;color:#67e8f9;padding:10px}.lab-output pre{background:#040a13;color:#a7f3d0;padding:14px;overflow:auto;max-height:320px;font:11px/1.8 ui-monospace,monospace}.lab-output button{border:1px solid #22d3ee77;color:#67e8f9;background:#103044;border-radius:4px;padding:8px;cursor:pointer}.lab-output button:disabled{opacity:.4}.lab-errors{color:#fcd34d;white-space:pre-line}.lab-canvas[data-invalid=true] h4:before{color:#fbbf24;text-shadow:0 0 9px #fbbf24}@media(max-width:720px){.lab-sites,.lab-grid{grid-template-columns:1fr}.lab-path{grid-template-columns:1fr}.lab-canvas{padding:12px}}`;
-export function mountLab(root,{onChange=()=>{}}={}) {
+export function mountLab(root,{onChange=()=>{},showDeviceOutputs=true}={}) {
   let state=createLab(),result,disposed=false;
   const controller=new AbortController();
   root.classList.add('lab-canvas');
@@ -59,7 +58,8 @@ export function mountLab(root,{onChange=()=>{}}={}) {
     result=labScripts(state);root.dataset.invalid=String(Boolean(result.errors.length));root.querySelector('[data-lab-errors]').textContent=result.errors.join('\n');
     for(const side of ['a','b']){const s=state[side];root.querySelector(`[data-path-${side}]`).textContent=`${s.wan} · ${s.ip}/${s.wanPrefix} ${side==='a'?'→ ISP':'← ISP'}`;root.querySelector(`[data-wire="${side}-Router"]`).textContent=`│ ${s.lan} ↔ ${s.uplink}${hasSecondVlan(s)?` · TRUNK VLAN ${s.vlan},${s.vlan2} · Gateway ${s.vlan2Gateway} · SVI ${s.vlan2SwitchIp}`:''} │`;root.querySelector(`[data-wire="${side}-Switch"]`).textContent=`│ ${s.access} ↔ ${s.hostIf} │`;}
     const out=root.querySelector('.lab-output');out.replaceChildren();
-    result.scripts.forEach((script,i)=>{const d=document.createElement('details'),summary=document.createElement('summary');summary.textContent=script.title;const pre=document.createElement('pre');pre.tabIndex=0;pre.textContent=script.code;const b=document.createElement('button');b.type='button';b.textContent='Copy Config';b.dataset.labCopy=String(i);b.disabled=Boolean(script.unsupported);d.append(summary,b,pre);out.append(d);});
+    out.hidden=!showDeviceOutputs;
+    if(showDeviceOutputs)result.scripts.forEach((script,i)=>{const d=document.createElement('details'),summary=document.createElement('summary');summary.textContent=script.title;const pre=document.createElement('pre');pre.tabIndex=0;pre.textContent=script.code;const b=document.createElement('button');b.type='button';b.textContent='Copy Config';b.dataset.labCopy=String(i);b.disabled=Boolean(script.unsupported);d.append(summary,b,pre);out.append(d);});
     root.querySelector('[data-lab-feedback]').textContent='';
   }
   root.addEventListener('input',e=>{const el=e.target;if(!el.dataset.side)return;const s=state[el.dataset.side];s[el.name]=el.value;if(el.name==='vendor')[s.wan,s.lan]=PORTS[el.value];if(el.name==='switchVendor'){const p=el.value==='ios'?['GigabitEthernet0/1','FastEthernet0/1']:PORTS[el.value];[s.uplink,s.access]=p;}render(el.name.endsWith('Vendor')||el.name==='vendor');onChange(structuredClone(state));},{signal:controller.signal});

@@ -104,3 +104,7 @@ WAN prefixes are fixed to30. SideA uses203.0.113.10 with gateway203.0.113.9 (net
 The obsidian theme includes frosted gradient cards, cyan active states, violet ambient lighting, Inter UI typography, JetBrains Mono technical fields, responsive grids, hover lifts, terminal-entry fade and emerald animated clipboard success. All animations honor prefers-reduced-motion. CSS is included in the workbench style for React adapters and loaded globally by the Flask dashboard template.
 
 Validation:383 engine checks,142 browser UI checks and focused second-VLAN regression suite. Tested as generated text and browser behavior; no hardware/device configuration execution or complete Next.js build is claimed.
+
+## Engineering audit
+
+See [AUDIT.md](AUDIT.md) for the verified findings, fixes, test coverage, firmware scope and deployment limitations.
