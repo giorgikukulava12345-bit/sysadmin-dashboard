@@ -76,3 +76,7 @@ Five scenarios × five vendors: IPsec tunnel down, BGP stuck, OSPF adjacency, VL
 - [Catalyst SPAN/RSPAN](https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-14/configuration_guide/nmgmt/b_1714_nmgmt_9300_cg/configuring_span_and_rspan.html)
 - [Cisco IOS XE RESTCONF](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/prog/configuration/1718/b-1718-programmability-cg/restconf_protocol.html)
 - [RouterOS BGP CLI](https://manual.mikrotik.com/docs/cli-reference/routing/bgp/connection/)
+
+## Unified top command bar
+
+The dashboard top card contains four equal desktop columns: Public IP, ISP, Location and integrated Port Checker. It stacks below 768px. IPs and port inputs use monospace; provider/location values and labels use Inter. Each cell has the same padding/border/radius. Port Checker preserves the existing probe, translations, status region and network-info updates. There is no separate Port Checker panel.
