@@ -75,6 +75,7 @@
 </style>
 <link rel="stylesheet" href="/static/vpn/command-center.css">
 <link rel="stylesheet" href="/static/vpn/obsidian.css">
+<link rel="stylesheet" href="/static/vpn/header-network.css">
 </head>
 
 <body class="font-sans text-slate-300 min-h-screen relative">
@@ -82,7 +83,7 @@
 
 <!-- HEADER -->
 <header class="border-b border-base-border bg-base-900/90 backdrop-blur sticky top-0 z-40">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
+  <div class="noc-nav-shell max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
     <div class="flex items-center gap-2.5">
       <div class="w-7 h-7 rounded bg-cyan-glow/10 border border-cyan-glow/40 flex items-center justify-center shrink-0">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-cyan-glow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,7 +95,14 @@
       </div>
     </div>
     
-    <div class="flex items-center gap-2 sm:gap-2.5 font-mono text-[11px] sm:text-xs text-slate-400 flex-wrap">
+    <section class="noc-header-network" aria-label="Network Information">
+      <dl class="noc-header-metrics">
+        <div class="noc-header-metric noc-header-ip"><dt>Public IP Address</dt><dd id="geo-ip-display">Checking...</dd></div>
+        <div class="noc-header-metric"><dt>ISP / Provider</dt><dd id="geo-isp">Checking...</dd></div>
+        <div class="noc-header-metric"><dt>Location</dt><dd id="geo-location">Checking...</dd></div>
+      </dl>
+    </section>
+    <div class="noc-nav-status flex items-center gap-2 sm:gap-2.5 font-mono text-[11px] sm:text-xs text-slate-400 flex-wrap">
       <div class="flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
         <span id="clock" class="text-[10px] sm:text-xs">07/07/2026 12:52:00</span>
@@ -108,36 +116,6 @@
 </header>
 
 <main class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
-
-  <!-- Unified edge command bar: four equal desktop columns -->
-  <section class="panel noc-command-bar bg-slate-900/60 backdrop-blur-md border border-slate-800/60" aria-labelledby="title-net-info">
-    <div class="noc-command-heading"><h2 id="title-net-info">Network Information</h2><span>NETWORK EDGE / COMMAND BAR</span></div>
-    <div class="noc-command-grid grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="noc-command-cell">
-        <span id="lbl-public-ip" class="noc-metric-label">Public IP Address</span>
-        <strong id="geo-ip-display" class="noc-metric-value noc-metric-mono">Checking...</strong>
-      </div>
-      <div class="noc-command-cell">
-        <span id="lbl-isp" class="noc-metric-label">Internet Service Provider (ISP)</span>
-        <strong id="geo-isp" class="noc-metric-value">Checking...</strong>
-      </div>
-      <div class="noc-command-cell">
-        <span id="lbl-location" class="noc-metric-label">Location</span>
-        <strong id="geo-location" class="noc-metric-value">Checking...</strong>
-      </div>
-      <div class="noc-command-cell noc-port-cell">
-        <span class="noc-metric-label">01 // PORT CHECKER</span>
-        <span id="lbl-conn-diag" class="sr-only">Connection Diagnostics</span>
-        <span id="lbl-target-socket" class="sr-only">Check Port</span>
-        <div class="noc-port-inputs">
-          <input id="ws-host" aria-label="Port check host" autocomplete="off" spellcheck="false" placeholder="Hostname or IPv4 address">
-          <input id="ws-port" aria-label="Port number" inputmode="numeric" value="8000" placeholder="8000">
-        </div>
-        <button type="button" onclick="probePortWS()" id="ws-btn">Check Port</button>
-        <div id="ws-result" role="status" aria-live="polite">Browser-restricted ports include 22, 23, 25 and 587. Use 80, 443 or 8080 for browser-based checks.</div>
-      </div>
-    </div>
-  </section>
 
   {% include 'vpn/configurator.html' %}
 
@@ -263,14 +241,6 @@
 </main>
 
 <script>
-  const PORT_MESSAGES = Object.freeze({
-    wsBtn: 'Check Port',
-    probingText: 'Checking...',
-    portOpen: 'WebSocket connection established on port {port} ({ms} ms).',
-    portClosed: 'No WebSocket connection established on port {port}; the service may be unavailable or filtered.',
-    portResponded: 'WebSocket connection failed on port {port}. Browser errors do not confirm whether a TCP port is open.'
-  });
-
   function formatLocalClock(date) {
     return date.toLocaleString('en-GB', {
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -345,92 +315,13 @@
     // Display available network metadata.
     if (publicIp) {
       document.getElementById('geo-ip-display').textContent = publicIp;
-      document.getElementById('ws-host').value = publicIp;
       document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Unavailable';
       document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Location unavailable';
     } else {
       document.getElementById('geo-ip-display').textContent = 'Unavailable';
       document.getElementById('geo-isp').textContent = 'Unavailable';
       document.getElementById('geo-location').textContent = 'Location unavailable';
-      document.getElementById('ws-host').value = '';
     }
-  }
-
-  // Browser-based WebSocket connectivity check.
-  function probePortWS() {
-    let host = document.getElementById('ws-host').value.trim();
-    const port = document.getElementById('ws-port').value.trim();
-    const resultDiv = document.getElementById('ws-result');
-    const btn = document.getElementById('ws-btn');
-    const t = PORT_MESSAGES;
-
-    if (!host || !port) {
-      resultDiv.className = "font-mono text-xs text-amber-500 leading-tight min-h-[36px]";
-      resultDiv.textContent = 'Enter a target hostname or IP address and a port number.';
-      return;
-    }
-
-    host = host.replace(/^https?:\/\//, '').split('/')[0];
-    const numericHost = /^[0-9.]+$/.test(host);
-    const validHost = numericHost
-      ? host.split('.').length === 4 && host.split('.').every(octet => /^(0|[1-9][0-9]{0,2})$/.test(octet) && Number(octet) <= 255)
-      : host.length <= 253 && host.split('.').every(label => /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label));
-    if (!validHost || !/^[0-9]{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
-      resultDiv.textContent = 'Enter a valid hostname or IPv4 address and an integer port between 1 and 65535.';
-      return;
-    }
-    if ([22, 23, 25, 587].includes(Number(port))) {
-      resultDiv.textContent = 'This port is restricted by the browser. Use a dedicated network diagnostic tool.';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = t.probingText;
-    resultDiv.className = "font-mono text-xs text-slate-400 animate-pulse leading-tight min-h-[36px]";
-    resultDiv.textContent = 'Checking WebSocket connectivity. This browser-based check does not replace a TCP port scan.';
-
-    const startTime = Date.now();
-    let socket;
-    try { socket = new WebSocket(`wss://${host}:${port}`); }
-    catch {
-      btn.disabled = false;
-      btn.textContent = t.wsBtn;
-      resultDiv.textContent = 'The browser could not start this WebSocket check. Verify the target and browser port restrictions.';
-      return;
-    }
-    
-    const timeout = setTimeout(() => {
-      socket.close();
-      resultDiv.className = "font-mono text-xs text-rose-500 leading-tight min-h-[36px]";
-      resultDiv.textContent = t.portClosed.replace('{port}', port);
-      btn.disabled = false;
-      btn.textContent = t.wsBtn;
-    }, 4500);
-
-    socket.onopen = function() {
-      clearTimeout(timeout);
-      socket.close();
-      const elapsed = Date.now() - startTime;
-      resultDiv.className = "font-mono text-xs text-emerald-400 font-bold leading-tight min-h-[36px]";
-      resultDiv.textContent = t.portOpen.replace('{port}', port).replace('{ms}', elapsed);
-      btn.disabled = false;
-      btn.textContent = t.wsBtn;
-    };
-
-    socket.onerror = function() {
-      clearTimeout(timeout);
-      socket.close();
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 1200) {
-        resultDiv.className = "font-mono text-xs text-emerald-400 font-bold leading-tight min-h-[36px]";
-        resultDiv.textContent = t.portResponded.replace('{port}', port);
-      } else {
-        resultDiv.className = "font-mono text-xs text-rose-500 leading-tight min-h-[36px]";
-        resultDiv.textContent = t.portClosed.replace('{port}', port);
-      }
-      btn.disabled = false;
-      btn.textContent = t.wsBtn;
-    };
   }
 
   initNetworkInfo();
