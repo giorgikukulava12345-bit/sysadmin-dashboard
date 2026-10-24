@@ -1,4 +1,5 @@
 import { FEATURES, featureDefaults, featureFields, generateFeature, boundValues, remoteDefaults, generateRemoteVpn } from '../static/vpn/features.js';
+import { validateWan } from '../static/vpn/interfaces.js';
 import { composeDevice } from '../static/vpn/compose.js';
 import { createLab as createInitialLab, labScripts } from '../static/vpn/lab.js';
 import { DEFAULTS, VENDORS, PROTOCOLS, generate, cidr, ipv4, support } from '../static/vpn/engine.js';
@@ -102,12 +103,12 @@ for (const vendor of Object.keys(VENDORS).filter(v=>v!=='juniper')) test(`Interf
   const c = config(); c.bindInterfaces = true; c.a.vendor = vendor;
   c.a.wan = vendor === 'paloalto' ? 'ethernet1/3' : vendor === 'asa' ? 'outside' : 'eth0';
   c.a.lan = vendor === 'paloalto' ? 'ethernet1/4' : vendor === 'asa' ? 'inside' : 'eth1';
-  c.a.ip = '203.0.113.50'; c.a.lanIp = '10.10.0.254';
+  c.a.ip = '203.0.113.50'; c.a.gateway='203.0.113.49'; c.a.lanIp = '10.10.0.254';
   const r = generate(c); assert(!r.errors.length, r.errors.join('; '));
   assert(r.a.includes(c.a.ip)); assert(r.a.includes(c.a.lanIp));
   assert(r.a.includes(c.a.wan)); assert(r.a.includes(c.a.lan));
   if (vendor === 'asa') assert(r.a.includes(`interface ${c.a.wanPort}`));
-  if (vendor === 'mikrotik') assert(r.a.includes('address=203.0.113.50/24 interface=eth0'));
+  if (vendor === 'mikrotik') assert(r.a.includes('address=203.0.113.50/30 interface=eth0'));
   if (vendor === 'paloalto') assert(r.a.includes('ethernet ethernet1/4 layer3 ip 10.10.0.254/24'));
 });
 test('Interface binding is opt-in and unsafe assignments block output', () => {
@@ -118,8 +119,8 @@ test('Interface binding is opt-in and unsafe assignments block output', () => {
   c.a.lan = 'Gi2'; c.a.lanIp = '10.10.0.1\nreload'; blocked(c, 'LAN interface IP');
 });
 test('Public IP edits reach the opposite peer and bound interface', () => {
-  const c = config(); c.bindInterfaces = true; c.a.ip = '203.0.113.90';
-  const r = generate(c); assert(!r.errors.length); assert(r.a.includes('ip address 203.0.113.90 255.255.255.0'));
+  const c = config(); c.bindInterfaces = true; c.a.ip = '203.0.113.90'; c.a.gateway='203.0.113.89';
+  const r = generate(c); assert(!r.errors.length); assert(r.a.includes('ip address 203.0.113.90 255.255.255.252'));
   assert(r.b.includes('set remote-gw 203.0.113.90')); assert(!r.b.includes('203.0.113.10'));
 });
 test('VTI is routed, optimized and uses complete dynamic wildcards',()=>{
@@ -248,6 +249,17 @@ test('CoPP targets ICMP only and uRPF preserves the selected validation semantic
 test('Every new Cisco feature rejects unsupported vendor pairs without output',()=>{for(const id of ['portforward','gre_tunnel','vxlan','bfd','ipsla','isis','copp','urpf'])for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){const r=generateFeature(id,featureDefaults(id,vendor));assert(r.errors.length&&!r.scripts.length);}});
 
 test('Initial LAN, gateway, switch and DNS defaults are coherent',()=>{const lab=createInitialLab();assert(lab.a.local==='192.168.1.0/24');assert(lab.a.lanIp==='192.168.1.1');assert(lab.a.switchIp==='192.168.1.254');assert(lab.a.hostIp==='192.168.1.10');assert(!labScripts(lab).errors.length);assert(DEFAULTS.a.local===lab.a.local&&DEFAULTS.a.lanIp===lab.a.lanIp&&DEFAULTS.b.remote===lab.a.local);for(const vendor of ['ios','mikrotik','fortinet'])assert(featureDefaults('dhcp',vendor).dns==='8.8.8.8');assert(defaultsFor('bootstrap').dns==='8.8.8.8');});
+test('/30 WAN accepts either host orientation and coherent defaults',()=>{
+  for(const [ip,gateway] of [['203.0.113.9','203.0.113.10'],['203.0.113.10','203.0.113.9'],['198.51.100.22','198.51.100.21']])assert(!validateWan({ip,gateway,wanPrefix:'30'}).length);
+  const lab=createInitialLab();for(const side of ['a','b'])assert(!validateWan(lab[side]).length);
+});
+for(const patch of [{ip:'203.0.113.8'},{ip:'203.0.113.11'},{gateway:'203.0.113.8'},{gateway:'203.0.113.11'},{gateway:'203.0.113.10'},{gateway:'203.0.113.13'},{ip:'203.0.113.999'},{wanPrefix:'24'},{wanPrefix:'31'}])test('/30 WAN rejects '+JSON.stringify(patch),()=>{
+ const lab=createInitialLab();Object.assign(lab.a,patch);assert(labScripts(lab).errors.length);assert(!labScripts(lab).scripts.length);
+ const c=config();Object.assign(c.a,patch);assert(generate(c).errors.length);assert(generate(c).a==='');
+});
+test('/30 CLI renders the actual WAN mask without changing LAN masks',()=>{
+ const lab=createInitialLab(),r=labScripts(lab);assert(r.scripts[0].code.includes('203.0.113.10 255.255.255.252'));assert(r.scripts[0].code.includes('192.168.1.1 255.255.255.0'));
+});
 const failures = results.filter(s => s.startsWith('FAIL'));
 const summary = `${passed}/${results.length} tests passed`;
 if (typeof document !== 'undefined') {

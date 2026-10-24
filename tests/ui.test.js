@@ -55,7 +55,11 @@ q('[data-role="router"]').click();input('[data-vendor]','ios','change');toggle('
 toggle('ospf_advanced',false);toggle('vpn',true);q('[data-action="key"]').click();submit();check('site-to-site VPN still generates',!q('[data-copy-config]').disabled);check('VPN menu limited to site-to-site families',q('[aria-label="VPN technology"]').options.length===5);toggle('vpn',false);
 input('[data-vendor]','mikrotik','change');toggle('remotevpn',true);input('[data-feature-panel="remotevpn"] [name="username"]','nocadmin');input('[data-feature-panel="remotevpn"] [name="password"]','ExampleOnly_ChangeMe26');submit();check('dedicated remote-access feature generates',!q('[data-copy-config]').disabled);
 q('[data-role="host"]').click();submit();check('host generation uses same Submit flow',q('[data-code]').textContent.includes('ip route replace default'));
-cleanup();check('cleanup restores original mount host',!q('.noc-composer')&&root.parentElement===fixture);cleanup=mountVpn(root);check('remount creates one workbench',fixture.querySelectorAll('.noc-composer').length===1);q('[data-edit-vlans]').click();input('[data-side="a"][name="vlan2Enabled"]','on');
+cleanup();check('cleanup restores original mount host',!q('.noc-composer')&&root.parentElement===fixture);cleanup=mountVpn(root);check('remount creates one workbench',fixture.querySelectorAll('.noc-composer').length===1);check('WAN prefix fixed at30',q('[data-side="a"][name="wanPrefix"]').value==='30'&&q('[data-side="a"][name="wanPrefix"]').options.length===1);
+q('[data-role="router"]').click();input('[data-include-bindings]',true,'change');submit();check('WAN30 produces usable interface CLI',q('[data-code]').textContent.includes('203.0.113.10 255.255.255.252'));
+input('[data-side="a"][name="gateway"]','203.0.113.10');submit();check('same WAN and gateway blocks CLI',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('other usable host'));
+input('[data-side="a"][name="gateway"]','203.0.113.9');submit();check('restoring valid30 pair recovers output',!q('[data-copy-config]').disabled);
+q('[data-edit-vlans]').click();input('[data-side="a"][name="vlan2Enabled"]','on');
 check('second VLAN prefilled',q('[data-side="a"][name="vlan2"]').value==='20');
 q('[data-role="switch"]').click();submit();check('second VLAN switch trunk generated',q('[data-code]').textContent.includes('switchport trunk allowed vlan 10,20'));
 check('second VLAN SVI generated',q('[data-code]').textContent.includes('ip address 192.168.20.254'));
