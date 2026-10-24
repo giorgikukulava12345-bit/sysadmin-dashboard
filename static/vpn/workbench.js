@@ -62,6 +62,9 @@ export function mountWorkbench(vpnRoot){
       result=composeDevice(snapshot);
       generatedSecret=Object.entries(snapshot.selected).some(([id,enabled])=>enabled&&(id==='vpn'||featureFields(id,chosenVendor()).some(f=>f.type==='password'&&(!f.when||f.when(snapshot.values[id]||{})))));
     }catch(error){result={errors:['Generation failed: '+(error instanceof Error?error.message:'Unexpected configuration error.')],code:'',empty:false};generatedSecret=false;}
+    find('[data-output-panel]').classList.remove('noc-output-enter');
+    void find('[data-output-panel]').offsetWidth;
+    find('[data-output-panel]').classList.add('noc-output-enter');
     submitted=true;submittedKey=key;outputCleared=false;find('[data-copy-status]').textContent='';paintOutput();
   }
   function submitConfiguration(){renderOutput(true);const panel=find('[data-output-panel]');panel.scrollIntoView({block:'start',behavior:'auto'});find('[data-code]').parentElement.focus({preventScroll:true});}

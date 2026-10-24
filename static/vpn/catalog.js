@@ -1,4 +1,5 @@
 import { PLATFORMS } from './platforms.js';
+import { validateWan } from './interfaces.js';
 import { cidr, ipv4 } from './address.js';
 export const ipText = n => [24,16,8,0].map(b => (n >>> b) & 255).join('.');
 const field = (key, label, value = '', type = 'text', options, when) => ({key,label,value,type,options,when});
@@ -58,6 +59,7 @@ function aclAddress(value,wildcard){if(value==='any')return 'any';ip(value);ip(w
 function maskPrefix(mask){ip(mask,'Subnet mask');const inverted=4294967295-ipv4(mask);const prefix=32-Math.log2(inverted+1);requireValue(Number.isInteger(prefix),'Subnet mask must be contiguous.');return prefix;}
 const wrap = text => `configure terminal\n${text}\nend`;
 function bootstrap(d){
+  if(d.wanMode==='static'){const errors=validateWan({ip:d.wanAddress.split('/')[0],wanPrefix:d.wanAddress.split('/')[1],gateway:d.gateway});requireValue(!errors.length,errors.join(' '));}
   iface(d.wan);name(d.bridge,'Bridge');const ports=list(d.ports);requireValue(ports.length>0&&ports.length<=32,'Use 1–32 LAN ports.');ports.forEach(iface);distinct(d.wan,d.bridge,...ports);
   const lan=hostCidr(d.lan),dns=dnsList(d.dns);inNet(d.poolStart,lan,'Pool start');inNet(d.poolEnd,lan,'Pool end');
   requireValue(ipv4(d.poolStart)<=ipv4(d.poolEnd),'Pool start must precede pool end.');requireValue(!(ipv4(lan.host)>=ipv4(d.poolStart)&&ipv4(lan.host)<=ipv4(d.poolEnd)),'DHCP pool must exclude the LAN gateway.');
@@ -100,6 +102,7 @@ ${d.wanMode==='dhcp'?`/ip firewall filter add chain=NOC-IN in-interface=${d.wan}
 # Set a strong administrator password locally; review IPv6 before enabling it.`}];
 }
 function enterprise(d){
+  const wanErrors=validateWan({ip:d.wanAddress.split('/')[0],wanPrefix:d.wanAddress.split('/')[1],gateway:d.gateway});requireValue(!wanErrors.length,wanErrors.join(' '));
   [d.wan,d.trunk,d.uplink].forEach(iface);distinct(d.wan,d.trunk);const wan=hostCidr(d.wanAddress);inNet(d.gateway,wan,'ISP gateway');requireValue(d.gateway!==wan.host,'ISP gateway must differ from WAN IP.');
   const lines=d.vlans.trim().split('\n');requireValue(lines.length>=1&&lines.length<=32,'Use 1–32 VLAN rows.');
   const rows=lines.map(line=>{const p=line.split(',').map(v=>v.trim());requireValue(p.length===4,'VLAN row format: ID,Name,Gateway/prefix,AccessPort.');return {id:number(p[0],2,4094,'VLAN ID'),name:name(p[1],'VLAN name'),net:hostCidr(p[2]),port:iface(p[3])};});

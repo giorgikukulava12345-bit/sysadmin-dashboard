@@ -96,3 +96,11 @@ Open Configure second VLAN / Switch addressing, enable Second VLAN mode, and edi
 Submit Router and Switch separately; base bindings are automatic in this mode. PAT and DHCP selections include both subnets. Feature routing policies remain explicitly configured; VPN/firewall overlay combinations are rejected pending a complete two-subnet policy design. Unsupported vendors, overlapping subnets, duplicate VLANs/IPs and conflicting ports fail atomically. The default single-VLAN workflow is unchanged while disabled.
 
 Tests: node tests/engine.test.js; node tests/second-vlan.test.js; browser tests/index.html.
+
+## Obsidian UI and strict /30 WAN
+
+WAN prefixes are fixed to30. SideA uses203.0.113.10 with gateway203.0.113.9 (network203.0.113.8/30); SideB uses198.51.100.22 with gateway198.51.100.21 (network198.51.100.20/30). Either host orientation is valid. Router and ISP must be distinct usable hosts; network/broadcast, mismatched prefixes and off-link gateways block all CLI. Static WAN deployment presets follow the same rule. DHCP-client presets receive addressing from the ISP at runtime.
+
+The obsidian theme includes frosted gradient cards, cyan active states, violet ambient lighting, Inter UI typography, JetBrains Mono technical fields, responsive grids, hover lifts, terminal-entry fade and emerald animated clipboard success. All animations honor prefers-reduced-motion. CSS is included in the workbench style for React adapters and loaded globally by the Flask dashboard template.
+
+Validation:383 engine checks,142 browser UI checks and focused second-VLAN regression suite. Tested as generated text and browser behavior; no hardware/device configuration execution or complete Next.js build is claimed.

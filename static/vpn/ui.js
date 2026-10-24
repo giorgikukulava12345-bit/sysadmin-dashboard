@@ -23,9 +23,9 @@ function site(side) {
     <div data-overlay class="mt-4" hidden>${field(side, 'tunnel', 'Tunnel IPv4 (host in a shared /30)')}</div>
     <details class="mt-4" id="vpn-${side}-interfaces"><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
       <div class="grid sm:grid-cols-2 gap-4 mt-3">${field(side, 'wan', 'WAN interface / ASA nameif')}${field(side, 'lan', 'LAN interface / ASA nameif')}
-      ${field(side, 'wanPrefix', 'WAN prefix length', 'number', 'Use 1–31, without a slash.')}${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
+      <label>WAN prefix<input name="${side}.wanPrefix" value="30" readonly aria-label="${side.toUpperCase()} WAN prefix /30"></label>${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
       <div data-asa>${field(side, 'wanPort', 'ASA physical WAN port')}${field(side, 'lanPort', 'ASA physical LAN port')}</div>
-      <div data-gateway>${field(side, 'gateway', 'WAN next-hop (Cisco)')}</div>
+      <div data-gateway>${field(side, 'gateway', 'ISP gateway (other usable /30 host)')}</div>
       <div data-pan>${field(side, 'zone', 'Existing LAN zone (PAN-OS)')}${field(side, 'vr', 'Virtual router (PAN-OS)')}</div></div>
     </details>
   </fieldset>`;
@@ -87,7 +87,7 @@ function render() {
   for (const side of ['a', 'b']) {
     const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
     fs.querySelector('[data-pan]').hidden = state[side].vendor !== 'paloalto' || wg;
-    fs.querySelector('[data-gateway]').hidden = !['ios', 'asa'].includes(state[side].vendor) || wg;
+    fs.querySelector('[data-gateway]').hidden = false;
     fs.querySelector('[data-asa]').hidden = state[side].vendor !== 'asa';
   }
   result = generate(state);

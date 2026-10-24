@@ -1,5 +1,12 @@
 import { cidr, ipv4 } from './address.js';
 
+export function validateWan(s) {
+  const errors=[],ip=ipv4(s.ip),gateway=ipv4(s.gateway),n=cidr(`${s.ip}/30`);
+  if(s.wanPrefix!=='30')errors.push('WAN prefix must be /30 (two usable hosts).');
+  if(ip===null||!n||ip<=n.network||ip>=n.end)errors.push('WAN IP must be a usable /30 host, not the network or broadcast address.');
+  if(!n||gateway===null||gateway<=n.network||gateway>=n.end||gateway===ip)errors.push('ISP gateway must be the other usable host in the same /30 subnet.');
+  return errors;
+}
 const validName = value => /^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(value || '');
 export function validateInterfaces(config) {
   if (!config.bindInterfaces) return [];
@@ -10,7 +17,7 @@ export function validateInterfaces(config) {
       if (!validName(s[field])) errors.push(`${label}: enter a valid ${field} interface name.`);
     }
     if (s.wan === s.lan || (s.vendor === 'asa' && s.wanPort === s.lanPort)) errors.push(`${label}: WAN and LAN must use different interfaces.`);
-    if (!/^(?:[1-9]|[12]\d|30|31)$/.test(s.wanPrefix || '')) errors.push(`${label}: WAN prefix must be 1–31.`);
+    errors.push(...validateWan(s).map(e=>`${label}: ${e}`));
     const wan = cidr(`${s.ip}/${s.wanPrefix}`), lan = cidr(s.local), host = ipv4(s.lanIp);
     if (!lan || host === null || host <= lan.network || host >= lan.end) errors.push(`${label}: LAN interface IP must be a usable host inside the local subnet.`);
     if (wan && +s.wanPrefix < 31 && [wan.network, wan.end].includes(ipv4(s.ip))) errors.push(`${label}: public IP is a network or broadcast address for this WAN prefix.`);
