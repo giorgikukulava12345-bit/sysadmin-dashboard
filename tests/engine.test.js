@@ -1,9 +1,10 @@
 import { FEATURES, featureDefaults, featureFields, generateFeature, boundValues, remoteDefaults, generateRemoteVpn } from '../static/vpn/features.js';
 import { composeDevice } from '../static/vpn/compose.js';
-import { createLab, labScripts } from '../static/vpn/lab.js';
+import { createLab as createInitialLab, labScripts } from '../static/vpn/lab.js';
 import { DEFAULTS, VENDORS, PROTOCOLS, generate, cidr, ipv4, support } from '../static/vpn/engine.js';
 import { TOOLS, defaultsFor, generateTool } from '../static/vpn/catalog.js';
 import { planVlsm, vlsmTsv } from '../static/vpn/vlsm.js';
+function createLab(){const lab=createInitialLab();Object.assign(lab.a,{local:'10.10.0.0/24',lanIp:'10.10.0.1',switchIp:'10.10.0.2',hostIp:'10.10.0.10'});return lab;}
 let passed = 0;
 const results = [];
 function test(name, fn) {
@@ -11,7 +12,7 @@ function test(name, fn) {
   catch (error) { results.push(`FAIL ${name}: ${error.message}`); }
 }
 function assert(condition, message = 'Assertion failed') { if (!condition) throw new Error(message); }
-function config() { const c = structuredClone(DEFAULTS); c.a.psk = c.b.psk = 'ExampleKey_0123456789'; return c; }
+function config() { const c = structuredClone(DEFAULTS);Object.assign(c.a,{local:'10.10.0.0/24',lanIp:'10.10.0.1'});c.b.remote='10.10.0.0/24'; c.a.psk = c.b.psk = 'ExampleKey_0123456789'; return c; }
 function blocked(c, text) {
   const r = generate(c); assert(r.errors.some(e => e.includes(text)), JSON.stringify(r.errors));
   assert(r.a === '' && r.b === '', 'Invalid configuration exposed output');
@@ -154,7 +155,7 @@ test('Standard ACL has no protocol/destination, TCP ACL handles source and desti
   d.destPort='65536';assert(generateTool('acl',d).errors.length);
 });
 test('DHCP merges exclusions, excludes gateway and rejects exhausted pools',()=>{
-  const d=defaultsFor('dhcp');d.exclusions='192.168.10.10 192.168.10.20';let r=generateTool('dhcp',d);assert(r.scripts[0].code.includes('excluded-address 192.168.10.1\n'));
+  const d={...defaultsFor('dhcp'),network:'192.168.10.0/24',gateway:'192.168.10.1'};d.exclusions='192.168.10.10 192.168.10.20';let r=generateTool('dhcp',d);assert(r.scripts[0].code.includes('excluded-address 192.168.10.1\n'));
   d.exclusions='192.168.10.1 192.168.10.254';assert(generateTool('dhcp',d).errors.length);
 });
 test('Static routes support interface, next-hop, distance, permanent and mask validation',()=>{
@@ -246,6 +247,7 @@ test('IS-IS validates NET and level; uses wide metrics and addressed-interface a
 test('CoPP targets ICMP only and uRPF preserves the selected validation semantics',()=>{const d=featureDefaults('copp','ios'),r=generateFeature('copp',d);assert(!r.errors.length);assert(r.scripts[0].code.includes('permit icmp any any'));assert(!r.scripts[0].code.includes('\ncontrol-plane\n'));assert(generateFeature('copp',{...d,attachPolicy:true}).scripts[0].code.includes('service-policy input NOC-COPP'));assert(generateFeature('copp',{...d,rate:'0'}).errors.length);const u=featureDefaults('urpf','ios');assert(generateFeature('urpf',u).scripts[0].code.includes('reachable-via rx allow-default'));assert(generateFeature('urpf',{...u,mode:'any',allowDefault:false}).scripts[0].code.includes('reachable-via any\n'));assert(generateFeature('urpf',{...u,mode:'disable'}).errors.length);});
 test('Every new Cisco feature rejects unsupported vendor pairs without output',()=>{for(const id of ['portforward','gre_tunnel','vxlan','bfd','ipsla','isis','copp','urpf'])for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){const r=generateFeature(id,featureDefaults(id,vendor));assert(r.errors.length&&!r.scripts.length);}});
 
+test('Initial LAN, gateway, switch and DNS defaults are coherent',()=>{const lab=createInitialLab();assert(lab.a.local==='192.168.1.0/24');assert(lab.a.lanIp==='192.168.1.1');assert(lab.a.switchIp==='192.168.1.254');assert(lab.a.hostIp==='192.168.1.10');assert(!labScripts(lab).errors.length);assert(DEFAULTS.a.local===lab.a.local&&DEFAULTS.a.lanIp===lab.a.lanIp&&DEFAULTS.b.remote===lab.a.local);for(const vendor of ['ios','mikrotik','fortinet'])assert(featureDefaults('dhcp',vendor).dns==='8.8.8.8');assert(defaultsFor('bootstrap').dns==='8.8.8.8');});
 const failures = results.filter(s => s.startsWith('FAIL'));
 const summary = `${passed}/${results.length} tests passed`;
 if (typeof document !== 'undefined') {
