@@ -26,11 +26,11 @@ async function requestJson(url,fetchImpl,timeoutMs){
     new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('Provider timed out'));},timeoutMs);})
   ]);}finally{clearTimeout(timer);}
 }
-export async function loadNetworkInfo({fetchImpl=fetch,timeoutMs=3500,onUpdate=()=>{}}={}){
+export async function loadNetworkInfo({fetchImpl=fetch,timeoutMs=3500,onUpdate=()=>{},includeLocation=true}={}){
   let result={ip:'',isp:'',country:'',countryCode:'',city:'',provider:''};
   const merge=(data,provider)=>{const candidate=normalizeNetworkInfo(data,provider);if(!candidate||result.ip&&result.ip!==candidate.ip||result.country&&candidate.country&&result.country!==candidate.country)return;result={ip:result.ip||candidate.ip,isp:result.isp||candidate.isp,country:result.country||candidate.country,countryCode:result.countryCode||candidate.countryCode,city:result.city||candidate.city,provider:result.provider||candidate.provider};onUpdate({...result});};
   try{merge(await requestJson('https://ipapi.co/json/',fetchImpl,timeoutMs),'ipapi.co');}catch{}
-  if(!result.ip||!result.isp||!result.country||!result.city){
+  if(!result.ip||!result.isp||includeLocation&&(!result.country||!result.city)){
     const endpoint=`https://ipwho.is/${result.ip?encodeURIComponent(result.ip):''}?lang=en`;
     try{merge(await requestJson(endpoint,fetchImpl,timeoutMs),'ipwho.is');}catch{}
   }
