@@ -256,77 +256,9 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  // Resolve public network information with four provider fallbacks.
-  async function initNetworkInfo() {
-    let publicIp = "";
-    let isp = "";
-    let city = "";
-    let country = "";
-
-    // 1. Public IP, ISP and location provider.
-    try {
-      const response = await fetch('https://ipwho.is/', { cache: 'no-store' });
-      const data = await response.json();
-      if (data && data.success) {
-        publicIp = data.ip;
-        isp = data.connection ? (data.connection.isp || data.connection.org) : '';
-        city = data.city;
-        country = data.country;
-      }
-    } catch (e) {}
-
-    // 2. ipinfo.io
-    if (!publicIp || !isp) {
-      try {
-        const response = await fetch('https://ipinfo.io/json', { cache: 'no-store' });
-        const data = await response.json();
-        if (data && data.ip) {
-          publicIp = publicIp || data.ip;
-          isp = isp || data.org || data.company;
-          city = city || data.city;
-          country = country || data.country;
-        }
-      } catch (e) {}
-    }
-
-    // 3. ipapi.co
-    if (!publicIp || !isp) {
-      try {
-        const response = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-        const data = await response.json();
-        if (data && data.ip && !data.error) {
-          publicIp = publicIp || data.ip;
-          isp = isp || data.org || data.asn;
-          city = city || data.city;
-          country = country || data.country_name;
-        }
-      } catch (e) {}
-    }
-
-    // 4. Public IP fallback.
-    if (!publicIp) {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
-        const data = await response.json();
-        if (data && data.ip) publicIp = data.ip;
-      } catch (e) {}
-    }
-
-    // Display available network metadata.
-    if (publicIp) {
-      document.getElementById('geo-ip-display').textContent = publicIp;
-      document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Unavailable';
-      document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Location unavailable';
-    } else {
-      document.getElementById('geo-ip-display').textContent = 'Unavailable';
-      document.getElementById('geo-isp').textContent = 'Unavailable';
-      document.getElementById('geo-location').textContent = 'Location unavailable';
-    }
-  }
-
-  initNetworkInfo();
 </script>
 
+<script type="module" src="/static/vpn/network-info-ui.js"></script>
 </body>
 </html>
 
