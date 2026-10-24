@@ -346,13 +346,13 @@
     if (publicIp) {
       document.getElementById('geo-ip-display').textContent = publicIp;
       document.getElementById('ws-host').value = publicIp;
-      document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Georgianairlink LLC';
-      document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Tbilisi, Georgia';
+      document.getElementById('geo-isp').textContent = isp ? isp.replace(/^AS\d+\s+/, '') : 'Unavailable';
+      document.getElementById('geo-location').textContent = city ? `${city}, ${country}` : 'Location unavailable';
     } else {
-      document.getElementById('geo-ip-display').textContent = '45.9.46.76';
-      document.getElementById('geo-isp').textContent = 'Georgianairlink LLC';
-      document.getElementById('geo-location').textContent = 'Tbilisi, Georgia';
-      document.getElementById('ws-host').value = '45.9.46.76';
+      document.getElementById('geo-ip-display').textContent = 'Unavailable';
+      document.getElementById('geo-isp').textContent = 'Unavailable';
+      document.getElementById('geo-location').textContent = 'Location unavailable';
+      document.getElementById('ws-host').value = '';
     }
   }
 
@@ -370,14 +370,34 @@
       return;
     }
 
+    host = host.replace(/^https?:\/\//, '').split('/')[0];
+    const numericHost = /^[0-9.]+$/.test(host);
+    const validHost = numericHost
+      ? host.split('.').length === 4 && host.split('.').every(octet => /^(0|[1-9][0-9]{0,2})$/.test(octet) && Number(octet) <= 255)
+      : host.length <= 253 && host.split('.').every(label => /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label));
+    if (!validHost || !/^[0-9]{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
+      resultDiv.textContent = 'Enter a valid hostname or IPv4 address and an integer port between 1 and 65535.';
+      return;
+    }
+    if ([22, 23, 25, 587].includes(Number(port))) {
+      resultDiv.textContent = 'This port is restricted by the browser. Use a dedicated network diagnostic tool.';
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = t.probingText;
     resultDiv.className = "font-mono text-xs text-slate-400 animate-pulse leading-tight min-h-[36px]";
     resultDiv.textContent = 'Checking WebSocket connectivity. This browser-based check does not replace a TCP port scan.';
 
-    host = host.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
     const startTime = Date.now();
-    const socket = new WebSocket(`wss://${host}:${port}`);
+    let socket;
+    try { socket = new WebSocket(`wss://${host}:${port}`); }
+    catch {
+      btn.disabled = false;
+      btn.textContent = t.wsBtn;
+      resultDiv.textContent = 'The browser could not start this WebSocket check. Verify the target and browser port restrictions.';
+      return;
+    }
     
     const timeout = setTimeout(() => {
       socket.close();
