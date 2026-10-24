@@ -27,8 +27,8 @@ class NetworkValidationTests(unittest.TestCase):
         ast.parse(source)
         self.assertNotIn('@app.route("/api/upload"', source)
         self.assertNotIn('/api/speedtest/', source)
-        self.assertIn('validate_public_ip(resolved_ip)', source)
-        self.assertIn('sock.connect_ex((resolved_ip, port))', source)
+        self.assertNotIn('/api/portcheck', source)
+        self.assertNotIn('sock.connect_ex', source)
 
 
 if __name__ == "__main__":

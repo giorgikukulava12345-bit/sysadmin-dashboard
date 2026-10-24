@@ -1,5 +1,8 @@
 """Flask integration checks: python -m unittest discover -s tests."""
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 from app import app
 
 
@@ -33,6 +36,32 @@ class DashboardIntegrationTests(unittest.TestCase):
         response = self.client.get('/api/files')
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.get_json()['files'], list)
+
+    def test_every_production_javascript_asset_is_served(self):
+        base = Path(__file__).resolve().parents[1] / 'static'
+        for file in base.rglob('*.js'):
+            with self.subTest(file=file.name):
+                response = self.client.get('/static/' + file.relative_to(base).as_posix())
+                self.assertEqual(response.status_code, 200)
+                self.assertIn('javascript', response.content_type)
+                response.close()
+
+    def test_missing_optional_repository_directory_returns_empty_list(self):
+        with TemporaryDirectory() as directory, patch('app.UPLOAD_DIR', str(Path(directory) / 'absent')):
+            response = self.client.get('/api/files')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get_json(), {'files': []})
+
+    def test_removed_port_checker_cannot_open_sockets(self):
+        with patch('socket.socket') as socket:
+            response = self.client.post('/api/portcheck', json={'host': '8.8.8.8', 'port': 443})
+            self.assertEqual(response.status_code, 404)
+            socket.assert_not_called()
+
+    def test_download_traversal_and_cross_drive_paths_do_not_raise_500(self):
+        for path in ['/download/../app.py', '/download/D:/outside.txt', '/download/missing.txt']:
+            with self.subTest(path=path):
+                self.assertIn(self.client.get(path).status_code, (403, 404))
 
 
 if __name__ == '__main__':
