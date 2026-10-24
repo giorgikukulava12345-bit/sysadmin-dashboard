@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Submit state regression</title><pre id="regression">Running…</pre><div id="fixture"></div><script type="module">
+import {mountVpn} from '../static/vpn/ui.js';
+const root=document.createElement('div'),scope=document.querySelector('#fixture');scope.append(root);const cleanup=mountVpn(root);
+const check=scope.querySelector('[data-feature="nat"]');check.checked=true;check.dispatchEvent(new Event('change',{bubbles:true}));
+scope.querySelector('[data-generate]').click();
+const before=scope.querySelector('[data-code]').textContent;
+root.querySelector('#vpn-reveal').dispatchEvent(new Event('change',{bubbles:true}));
+const after=scope.querySelector('[data-code]').textContent;
+document.querySelector('#regression').textContent=before.includes('ip nat inside source')&&after===before?'PASS: Submitted NAT survives an unchanged VPN form broadcast.':'FAIL: Unchanged VPN state discarded submitted NAT output.\nBefore: '+before+'\nAfter: '+after;
+cleanup();
+</script></html>

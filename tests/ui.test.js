@@ -1,10 +1,11 @@
+import {FEATURES} from '../static/vpn/features.js';
 ﻿import { mountVpn } from '../static/vpn/ui.js';
 let total=0,passed=0;const failures=[];
 function check(name,ok){total++;if(ok)passed++;else failures.push(name);}
 const fixture=document.createElement('section'),root=document.createElement('div');fixture.append(root);document.body.append(fixture);
 let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,event='input')=>{const el=q(s);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));},toggle=(id,value)=>input(`[data-feature="${id}"]`,value,'change'),submit=()=>q('[data-generate]').click();
 check('vendor-first selector has five vendors',q('[data-vendor]').options.length===5);
-check('router has four categorized sections',fixture.querySelectorAll('[data-category]').length===4);
+check('router has six categorized sections',fixture.querySelectorAll('[data-category]').length===6);
 
 check('standard topology is single-site by default',q('[data-diagram]').dataset.multi==='false');
 check('single-site hides remote physical nodes',q('[data-node="b.router"]').hidden);
@@ -20,9 +21,19 @@ check('no parameter forms until checked',!q('[data-feature-panel]'));
 check('prominent Submit present',q('[data-generate]').textContent==='Submit / Generate Configuration');
 check('nothing copied before submit',q('[data-copy-config]').disabled);
 toggle('nat',true);check('only selected parameters shown',!!q('[data-feature-panel="nat"]')&&!q('[data-feature-panel="acl"]'));check('checking does not generate CLI',q('[data-copy-config]').disabled);submit();check('submit generates PAT',q('[data-code]').textContent.includes('ip nat inside source list'));
+
+const submittedNat=q('[data-code]').textContent;root.querySelector('#vpn-reveal').dispatchEvent(new Event('change',{bubbles:true}));check('unchanged VPN broadcasts do not discard submitted NAT',q('[data-code]').textContent===submittedNat&&!q('[data-copy-config]').disabled);
+const originalVendors=FEATURES.nat.vendors;FEATURES.nat.vendors=null;submit();check('unexpected generation errors become visible and never leave draft text',q('[data-generation-status]').dataset.state==='error'&&q('[data-errors]').textContent.includes('Generation failed')&&!q('[data-code]').textContent.includes('Draft changed'));FEATURES.nat.vendors=originalVendors;submit();check('generation recovers after an error',!q('[data-copy-config]').disabled);
+
 input('[data-feature-panel="nat"] [name="natMode"]','static');check('changing parameters invalidates previous CLI',q('[data-copy-config]').disabled&&!q('[data-code]').textContent.includes('ip nat inside source list'));submit();check('static NAT submits',q('[data-code]').textContent.includes('ip nat inside source static'));
 input('[data-feature-panel="nat"] [name="natMode"]','dynamic');submit();check('dynamic pool submits without overload',q('[data-code]').textContent.includes('ip nat pool NOC-POOL')&&!q('[data-code]').textContent.includes('overload'));
 toggle('nat',false);submit();check('unchecking removes generated feature',q('[data-copy-config]').disabled);
+
+for(const[id,expected]of Object.entries({portforward:'ip nat inside source static tcp',gre_tunnel:'tunnel mode gre ip',vxlan:'bridge-domain 100',bfd:'bfd interval',ipsla:'ip sla schedule',isis:'ip router isis',copp:'policy-map NOC-COPP',urpf:'ip verify unicast source reachable-via'})){
+  toggle(id,true);submit();check('Submit renders '+id+' CLI',q('[data-code]').textContent.includes(expected)&&!q('[data-copy-config]').disabled);q('[data-clear-output]').click();check('Clear invalidates '+id+' output but preserves selection',q('[data-copy-config]').disabled&&q('[data-feature="'+id+'"]').checked&&q('[data-code]').textContent.includes('Output cleared'));submit();check('resubmit after Clear renders '+id, q('[data-code]').textContent.includes(expected));toggle(id,false);
+}
+toggle('portforward',true);input('[data-feature-panel="portforward"] [name="internalPort"]','8080');q('[data-feature-panel="portforward"] [name="internalPort"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));check('Enter submits feature inputs to the output panel',q('[data-code]').textContent.includes('10.10.0.10 8080 interface'));input('[data-feature-panel="portforward"] [name="externalPort"]','0');submit();check('invalid ports show validation instead of draft placeholder',q('[data-errors]').textContent.includes('External port')&&!q('[data-code]').textContent.includes('Draft changed'));toggle('portforward',false);submit();check('empty Submit has an explicit empty state',q('[data-generation-status]').dataset.state==='empty'&&q('[data-copy-config]').disabled);
+
 toggle('ntp_syslog',true);submit();check('infrastructure CLI emitted',q('[data-code]').textContent.includes('ntp server 192.0.2.123'));
 input('[data-side]','b','change');check('context change invalidates old output',q('[data-copy-config]').disabled);input('[data-side]','a','change');check('selection persists per device',q('[data-feature="ntp_syslog"]').checked);
 for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
