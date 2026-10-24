@@ -4,7 +4,18 @@ function check(name,ok){total++;if(ok)passed++;else failures.push(name);}
 const fixture=document.createElement('section'),root=document.createElement('div');fixture.append(root);document.body.append(fixture);
 let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,event='input')=>{const el=q(s);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));},toggle=(id,value)=>input(`[data-feature="${id}"]`,value,'change'),submit=()=>q('[data-generate]').click();
 check('vendor-first selector has five vendors',q('[data-vendor]').options.length===5);
-check('router has three categorized sections',fixture.querySelectorAll('[data-category]').length===3);
+check('router has four categorized sections',fixture.querySelectorAll('[data-category]').length===4);
+
+check('standard topology is single-site by default',q('[data-diagram]').dataset.multi==='false');
+check('single-site hides remote physical nodes',q('[data-node="b.router"]').hidden);
+toggle('vpn',true);check('VPN selection enables dual-site topology',q('[data-diagram]').dataset.multi==='true'&&!q('[data-node="b.router"]').hidden);toggle('vpn',false);check('unchecking VPN restores single-site topology',q('[data-diagram]').dataset.multi==='false');
+input('[data-side]','b','change');check('single-site can show site B alone',q('[data-node="a.router"]').hidden&&!q('[data-node="b.router"]').hidden);input('[data-side]','a','change');
+for(const id of ['dmvpn','automation','multicast','glbp'])check('expanded '+id+' checkbox present and interactive',!!q('[data-feature="'+id+'"]')&&!q('[data-feature="'+id+'"]').disabled);
+check('playbook has five failure scenarios and vendors',q('[data-scenario]').options.length===5&&q('[data-diagnostic-vendor]').options.length===5);
+for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto'])for(const scenario of ['ipsec','bgp','ospf','vlan','interface']){input('[data-diagnostic-vendor]',vendor,'change');input('[data-scenario]',scenario,'change');check('playbook '+vendor+' / '+scenario+' renders diagnostics',q('[data-diagnostics]').textContent.length>40&&q('[data-cause]').textContent.length>40);}
+input('[data-diagnostic-vendor]','ios','change');input('[data-scenario]','ipsec','change');check('debug includes explicit stop command',q('[data-debug]').textContent.includes('undebug all'));
+toggle('static',true);submit();check('CLI syntax highlighting retains address content',q('[data-code] .cli-address')?.textContent==='192.168.20.0');toggle('static',false);
+
 check('no parameter forms until checked',!q('[data-feature-panel]'));
 check('prominent Submit present',q('[data-generate]').textContent==='Submit / Generate Configuration');
 check('nothing copied before submit',q('[data-copy-config]').disabled);
