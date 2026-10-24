@@ -4,6 +4,8 @@ let total=0,passed=0;const failures=[];
 function check(name,ok){total++;if(ok)passed++;else failures.push(name);}
 const fixture=document.createElement('section'),root=document.createElement('div');fixture.append(root);document.body.append(fixture);
 let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,event='input')=>{const el=q(s);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));},toggle=(id,value)=>input(`[data-feature="${id}"]`,value,'change'),submit=()=>q('[data-generate]').click();
+check('address editor is a permanent section',q('[data-addresses]').tagName==='SECTION'&&!q('[data-addresses]>summary'));
+check('address fields visible immediately',q('[data-side="a"][name="lanIp"]').getClientRects().length>0);
 check('default LAN CIDR is prefilled',q('[aria-label="Side A LAN network CIDR"]').value==='192.168.1.0/24');
 check('default router LAN IPv4 is prefilled',q('[aria-label="Side A Router LAN IPv4"]').value==='192.168.1.1');
 check('default switch management IPv4 is prefilled',q('[aria-label="Side A Switch management IPv4"]').value==='192.168.1.254');
