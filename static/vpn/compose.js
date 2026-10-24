@@ -23,7 +23,7 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   if(address.errors.length)return{errors:address.errors,code:'',empty:false};
   if(role==='host')return{errors:[],code:address.scripts[side==='a'?2:5].code,empty:false};
   const failover=ids.includes('wan_failover'),office=ids.includes('internet_access');
-  if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or use the office preset.');
+  if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise','dhcp','relay'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or use the office preset.');
   if((failover||office)&&ids.includes('static')&&values.static?.destination==='0.0.0.0'&&values.static?.mask==='0.0.0.0')errors.push('Internet Gateway / WAN Failover owns default routing. Remove the separate default static route.');
   if(failover&&ids.some(id=>['vpn','dmvpn','remotevpn','bootstrap','enterprise'].includes(id)))errors.push('Dual ISP needs a separately designed VPN/bootstrap underlay. Generate these templates separately.');
   if(failover&&ids.includes('nat')&&values.nat?.natMode&&values.nat.natMode!=='overload')errors.push('Automatic Dual ISP translation supports interface PAT / Overload only.');

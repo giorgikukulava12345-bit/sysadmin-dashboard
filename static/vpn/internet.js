@@ -1,3 +1,4 @@
+import { officeNetworks, officeServices } from './office-services.js';
 import { cidr, ipv4 } from './address.js';
 import { validateWan } from './interfaces.js';
 
@@ -13,6 +14,8 @@ export function internetFields(id,vendor){
     field('wan2','WAN2 interface',port2[vendor]),field('ip2','WAN2 usable IPv4 (/30)','203.0.113.14'),
     field('gateway2','ISP gateway 2','203.0.113.13'),field('backupDistance',vendor==='paloalto'?'Backup route metric (primary = 1)':'Backup distance / preference (primary = 1)','5','number')
   ]:[];
+  if(id==='internet_access')fields.push(field('poolName','DHCP pool name prefix','OFFICE-LAN'),field('dns1','Primary DNS server','8.8.8.8'),field('dns2','Secondary DNS server','1.1.1.1'));
+  if(id==='internet_access'&&vendor==='fortinet')fields.push(field('dhcpId','First DHCP server ID (unused)','9000','number'));
   if(vendor==='paloalto')fields.push(field('virtualRouter','Classic virtual router','default'));
   if(id==='internet_access'&&['juniper','paloalto'].includes(vendor))fields.push(field('trustZone','LAN security zone','NOC-TRUST'),field('untrustZone','WAN security zone','NOC-UNTRUST'));
   if(vendor==='fortinet'){
@@ -35,7 +38,7 @@ export function validateInternet(d,backup=false){
   const host=ipv4(d.lanIp);if(host===null||host<=lan.network||host>=lan.end)throw Error('LAN gateway must be a usable host in the LAN network.');
   if(overlap(lan,cidr(`${d.ip}/30`)))throw Error('WAN1 and LAN must not overlap.');
   if(d.vendor==='paloalto')name(d.virtualRouter,'Virtual router');
-  if(d.vendor==='juniper'&&[d.wan,d.lan,d.wan2].filter(Boolean).some(x=>/\.\d+$/.test(x)))throw Error('Junos requires physical interface names; unit 0 is generated.');
+  if(d.vendor==='juniper'&&[d.wan,...(d.officeVlans?[]:[d.lan]),d.wan2].filter(Boolean).some(x=>/\.\d+$/.test(x)))throw Error('Junos requires physical interface names; unit 0 is generated.');
   if(d.vendor==='fortinet')integer(d.routeId,1,4294967294,'Primary route ID');
   if(backup){
     name(d.wan2,'WAN2 interface');
@@ -74,7 +77,7 @@ export function iosInternetPat(d,acl='NOC-INTERNET-NAT'){
 }
 export function officeConfig(d){
   validateInternet(d,Boolean(d.wan2));
-  const paths=[d.wan,...(d.wan2?[d.wan2]:[])];let body='';
+  const paths=[d.wan,...(d.wan2?[d.wan2]:[])],rows=officeNetworks(d),lanPorts=rows.map(r=>r.port),networks=rows.map(r=>r.network);let body='';
   if(['juniper','paloalto'].includes(d.vendor)){
     name(d.trustZone,'LAN zone');name(d.untrustZone,'WAN zone');if(d.trustZone===d.untrustZone)throw Error('LAN and WAN security zones must differ.');
   }
@@ -82,19 +85,26 @@ export function officeConfig(d){
     body=iosInternetPat(d)+`\nzone security NOC-OFFICE-LAN\nzone security NOC-OFFICE-WAN\nclass-map type inspect match-any NOC-OFFICE-TRAFFIC\n match protocol tcp\n match protocol udp\n match protocol icmp\n exit\npolicy-map type inspect NOC-OFFICE-INSPECT\n class type inspect NOC-OFFICE-TRAFFIC\n  inspect\n exit\n class class-default\n  drop\n exit\n exit\npolicy-map type inspect NOC-OFFICE-DROP\n class class-default\n  drop\n exit\n exit\nzone-pair security NOC-OFFICE-OUT source NOC-OFFICE-LAN destination NOC-OFFICE-WAN\n service-policy type inspect NOC-OFFICE-INSPECT\n exit\nzone-pair security NOC-OFFICE-SELF-OUT source self destination NOC-OFFICE-WAN\n service-policy type inspect NOC-OFFICE-INSPECT\n exit\nzone-pair security NOC-OFFICE-SELF-IN source NOC-OFFICE-WAN destination self\n service-policy type inspect NOC-OFFICE-DROP\n exit\n${insidePorts(d).map(p=>`interface ${p}\n zone-member security NOC-OFFICE-LAN\n exit`).join('\n')}\n${paths.map(p=>`interface ${p}\n zone-member security NOC-OFFICE-WAN\n exit`).join('\n')}`;
   }
   if(d.vendor==='mikrotik'){
-    body=paths.map(p=>`/ip firewall nat add chain=srcnat src-address=${d.local} out-interface=${p} action=masquerade comment="NOC office PAT"`).join('\n')+
-      `\n/ip firewall filter add chain=input connection-state=established,related action=accept comment="NOC return traffic"\n/ip firewall filter add chain=input connection-state=invalid action=drop\n/ip firewall filter add chain=input in-interface=${d.lan} src-address=${d.local} action=accept comment="NOC LAN management"\n/ip firewall filter add chain=input action=drop comment="NOC deny other router access"\n/ip firewall filter add chain=forward connection-state=established,related action=accept\n/ip firewall filter add chain=forward connection-state=invalid action=drop\n${paths.map(p=>`/ip firewall filter add chain=forward in-interface=${d.lan} src-address=${d.local} out-interface=${p} action=accept comment="NOC LAN internet"`).join('\n')}\n/ip firewall filter add chain=forward action=drop comment="NOC deny unsolicited forwarding"`;
+    body=rows.flatMap(r=>paths.map(p=>`/ip firewall nat add chain=srcnat src-address=${r.network} out-interface=${p} action=masquerade comment="NOC office PAT"`)).join('\n')+
+    '\n/ip firewall filter add chain=input connection-state=established,related action=accept\n/ip firewall filter add chain=input connection-state=invalid action=drop\n'+rows.map(r=>`/ip firewall filter add chain=input in-interface=${r.port} protocol=udp src-port=68 dst-port=67 action=accept comment="NOC DHCP discovery"\n/ip firewall filter add chain=input in-interface=${r.port} src-address=${r.network} action=accept comment="NOC LAN management"`).join('\n')+
+    '\n/ip firewall filter add chain=input action=drop comment="NOC deny other router access"\n/ip firewall filter add chain=forward connection-state=established,related action=accept\n/ip firewall filter add chain=forward connection-state=invalid action=drop\n'+rows.flatMap(r=>paths.map(p=>`/ip firewall filter add chain=forward in-interface=${r.port} src-address=${r.network} out-interface=${p} action=accept comment="NOC LAN internet"`)).join('\n')+'\n/ip firewall filter add chain=forward action=drop comment="NOC deny unsolicited forwarding"';
   }
   if(d.vendor==='fortinet'){
-    integer(d.policyId,1,4294967294,'Firewall policy ID');const n=cidr(d.local);
-    body=`config system interface\n${paths.map(p=>` edit "${p}"\n  unset allowaccess\n next`).join('\n')}\nend\nconfig firewall address\n edit "NOC-OFFICE-LAN"\n  set subnet ${n.ip} ${n.mask}\n next\nend\nconfig firewall policy\n edit ${d.policyId}\n  set name "NOC-OFFICE-INTERNET"\n  set srcintf "${d.lan}"\n  set dstintf ${paths.map(p=>'"'+p+'"').join(' ')}\n  set srcaddr "NOC-OFFICE-LAN"\n  set dstaddr "all"\n  set action accept\n  set schedule "always"\n  set service "ALL"\n  set nat enable\n  set logtraffic all\n next\nend`;
+    integer(d.policyId,1,4294967294,'Firewall policy ID');
+    body=`config system interface\n${paths.map(p=>` edit "${p}"\n  unset allowaccess\n next`).join('\n')}\nend\nconfig firewall address\n${rows.map((r,i)=>{const n=cidr(r.network);return ` edit "NOC-OFFICE-LAN${i+1}"\n  set subnet ${n.ip} ${n.mask}\n next`;}).join('\n')}\nend\nconfig firewall policy\n edit ${d.policyId}\n  set name "NOC-OFFICE-INTERNET"\n  set srcintf ${lanPorts.map(p=>`"${p}"`).join(' ')}\n  set dstintf ${paths.map(p=>`"${p}"`).join(' ')}\n  set srcaddr ${rows.map((r,i)=>`"NOC-OFFICE-LAN${i+1}"`).join(' ')}\n  set dstaddr "all"\n  set action accept\n  set schedule "always"\n  set service "ALL"\n  set nat enable\n  set logtraffic all\n next\nend`;
   }
   if(d.vendor==='juniper'){
-    body=`set security zones security-zone ${d.trustZone} interfaces ${d.lan}.0\n${paths.map(p=>`set security zones security-zone ${d.untrustZone} interfaces ${p}.0`).join('\n')}\nset security nat source rule-set NOC-OFFICE from zone ${d.trustZone}\nset security nat source rule-set NOC-OFFICE to zone ${d.untrustZone}\nset security nat source rule-set NOC-OFFICE rule INTERNET match source-address ${d.local}\nset security nat source rule-set NOC-OFFICE rule INTERNET then source-nat interface\nset security address-book global address NOC-OFFICE-LAN ${d.local}\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT match source-address NOC-OFFICE-LAN\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT match destination-address any\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT match application any\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT then permit\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT then log session-close`;
+    body=rows.map(r=>`set security zones security-zone ${d.trustZone} interfaces ${r.port}${d.officeVlans?'':'.0'}`).join('\n')+'\n'+paths.map(p=>`set security zones security-zone ${d.untrustZone} interfaces ${p}.0`).join('\n')+
+    `\nset security nat source rule-set NOC-OFFICE from zone ${d.trustZone}\nset security nat source rule-set NOC-OFFICE to zone ${d.untrustZone}\nset security nat source rule-set NOC-OFFICE rule INTERNET match source-address [ ${networks.join(' ')} ]\nset security nat source rule-set NOC-OFFICE rule INTERNET then source-nat interface\n`+
+    rows.map((r,i)=>`set security address-book global address NOC-OFFICE-LAN${i+1} ${r.network}`).join('\n')+
+    `\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT match source-address [ ${rows.map((r,i)=>'NOC-OFFICE-LAN'+(i+1)).join(' ')} ]\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT match destination-address any\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT match application any\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT then permit\nset security policies from-zone ${d.trustZone} to-zone ${d.untrustZone} policy NOC-OFFICE-OUT then log session-close`;
   }
   if(d.vendor==='paloalto'){
-    body=`set network virtual-router ${d.virtualRouter} interface [ ${d.lan} ${paths.join(' ')} ]\nset zone ${d.trustZone} network layer3 ${d.lan}\nset zone ${d.untrustZone} network layer3 [ ${paths.join(' ')} ]\n${paths.map((p,i)=>`set rulebase nat rules NOC-OFFICE-ISP${i+1} from ${d.trustZone} to ${d.untrustZone} source ${d.local} destination any service any to-interface ${p}\nset rulebase nat rules NOC-OFFICE-ISP${i+1} source-translation dynamic-ip-and-port interface-address interface ${p}`).join('\n')}\nset rulebase security rules NOC-OFFICE-OUT from ${d.trustZone} to ${d.untrustZone} source ${d.local} destination any application any service application-default action allow log-end yes`;
+    body=`set network virtual-router ${d.virtualRouter} interface [ ${lanPorts.join(' ')} ${paths.join(' ')} ]\nset zone ${d.trustZone} network layer3 [ ${lanPorts.join(' ')} ]\nset zone ${d.untrustZone} network layer3 [ ${paths.join(' ')} ]\n`+
+    paths.map((p,i)=>`set rulebase nat rules NOC-OFFICE-ISP${i+1} from ${d.trustZone} to ${d.untrustZone} source [ ${networks.join(' ')} ] destination any service any to-interface ${p}\nset rulebase nat rules NOC-OFFICE-ISP${i+1} source-translation dynamic-ip-and-port interface-address interface ${p}`).join('\n')+
+    `\nset rulebase security rules NOC-OFFICE-OUT from ${d.trustZone} to ${d.untrustZone} source [ ${networks.join(' ')} ] destination any application any service application-default action allow log-end yes`;
   }
+  body+='\n'+officeServices(d);
   if(!d.wan2)body+='\n'+internetRoutes(d,false);
   return wrap(d.vendor,body);
 }
