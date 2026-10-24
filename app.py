@@ -13,13 +13,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 PORT_CHECK_TIMEOUT = 3.0
 SPEEDTEST_CHUNK_SIZE = 256 * 1024       
-SPEEDTEST_MAX_MB = 500  # ლიმიტი გავზარდოთ 500 მბ-მდე დიდი პროგრამებისთვის (მაგ. iVMS)
+SPEEDTEST_MAX_MB = 500  # Maximum payload size for large application downloads.
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = (SPEEDTEST_MAX_MB + 4) * 1024 * 1024
 
 # ---------------------------------------------------------------------------
-# Google Drive ლინკების მატრიცა დიდი ფაილებისთვის
+# Google Drive links for large files.
 # ---------------------------------------------------------------------------
 DRIVE_LINKS = {
     "SADP.exe": "https://drive.google.com/file/d/165ZxEDG5HcpFB7u8j8Kqub-Kd51qGHMO/view?usp=sharing",
@@ -42,7 +42,7 @@ def index():
 
 
 # ---------------------------------------------------------------------------
-# API: ფაილების ატვირთვის ფუნქცია (ლოკალურად)
+# API: upload files to local storage.
 # ---------------------------------------------------------------------------
 @app.route("/api/upload", methods=["POST"])
 def api_upload_real_file():
@@ -124,7 +124,7 @@ def api_portcheck():
 
 
 # ---------------------------------------------------------------------------
-# API: ფაილების სია დრაივის ბმულების ინტეგრაციით
+# API: list files and integrated Drive links.
 # ---------------------------------------------------------------------------
 @app.route("/api/files")
 def api_files():
@@ -134,7 +134,7 @@ def api_files():
         if os.path.isfile(full_path):
             stat = os.stat(full_path)
             
-            # შემოწმება არის თუ არა ფაილი დრაივის სიაში
+            # Check whether this file has a Drive link.
             if name in DRIVE_LINKS:
                 download_url = DRIVE_LINKS[name]
                 is_cloud = True
@@ -154,13 +154,13 @@ def api_files():
 
 
 # ---------------------------------------------------------------------------
-# API: ფაილის გადმოწერა (გასწორებული ფრჩხილებიანი ფაილებისთვის)
+# API: download files, including filenames with parentheses.
 # ---------------------------------------------------------------------------
 @app.route("/download/<path:filename>")
 def download_file(filename):
     full_path = os.path.join(UPLOAD_DIR, filename)
     
-    # უსაფრთხოების შემოწმება (Directory Traversal-ის პრევენცია)
+    # Prevent directory traversal.
     resolved_path = os.path.abspath(full_path)
     if not resolved_path.startswith(os.path.abspath(UPLOAD_DIR)):
         abort(403)
@@ -213,3 +213,4 @@ def handle_payload_too_large(e):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
