@@ -1,3 +1,4 @@
+import { hasSecondVlan, routedSite } from './dual-vlan.js';
 import { FEATURES, forRole, boundValues, capable, generateFeature, generateRemoteVpn } from './features.js';
 import { labScripts } from './lab.js';
 import { generate as generateVpn } from './engine.js';
@@ -6,6 +7,9 @@ import { cidr } from './address.js';
 /** No DOM dependencies. Each output belongs to one physical device. */
 export function composeDevice({lab,side,role,selected={},values={},bindings=false,vpnConfig,vpnType='ikev2',remote={},linkedEnterprise=null}){
   const errors=[],blocks=[],site=lab[side],vendor=role==='switch'?site.switchVendor:site.vendor;
+  const dual=hasSecondVlan(site);
+  bindings=bindings||dual;
+  const logical=routedSite(site);
   const address=labScripts(lab);
   const ids=Object.keys(selected).filter(id=>selected[id]).sort((a,b)=>(a==='aaa'?1:0)-(b==='aaa'?1:0));
   if(role==='switch'&&linkedEnterprise){
@@ -49,6 +53,13 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   if(ids.includes('nat')&&ids.includes('vpn')&&values.nat?.natMode&&values.nat.natMode!=='overload')errors.push('Automatic VPN NAT exemption supports interface PAT only. Use Overload or design Static/Dynamic NAT exemptions separately.');
   if(ids.includes('pvlan'))for(const key of ['vlan','security'])if(ids.includes(key)&&[values.pvlan?.hostPort,values.pvlan?.promiscuousPort].includes(values[key]?.interface))errors.push('Private-VLAN ports cannot also use ordinary access/trunk or Port Security templates.');
   if(ids.includes('etherchannel'))for(const key of ['vlan','security'])if(ids.includes(key)&&String(values.etherchannel?.members).split(',').map(s=>s.trim()).includes(values[key]?.interface))errors.push('Configure VLAN/Port Security on the bundle, not an individual EtherChannel member.');
+  if(dual&&role==='switch'){
+    const shared=[site.uplink,site.access,site.vlan2Access];
+    if(ids.includes('pvlan'))errors.push('Private VLANs require a separate port design from the two-VLAN lab.');
+    if(ids.includes('etherchannel')&&String(values.etherchannel?.members).split(',').some(p=>shared.includes(p.trim())))errors.push('EtherChannel members cannot reuse the routed-trunk or VLAN access ports.');
+    if(ids.includes('span')&&shared.includes(values.span?.destination))errors.push('SPAN destination must not reuse a VLAN lab port.');
+  }
+  if(dual&&role==='router'&&ids.some(id=>['vpn','zbfw','dmvpn'].includes(id)))errors.push('Generate VPN/firewall overlays separately from the two-VLAN routed-trunk template; both subnets require an explicit policy design.');
   if(bindings){const script=address.scripts[(side==='a'?0:3)+(role==='switch'?1:0)];if(script.unsupported)errors.push('No base switch template for this platform.');else blocks.push({title:'BASE INTERFACE / IP BINDINGS',code:script.code});}
   const vtiOwnNat=ids.includes('vpn')&&vpnType==='vti';
   for(const id of ids){
@@ -59,9 +70,18 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
       else blocks.push({title:'VPN',code:result.scripts?result.scripts[0].code:result[side]});
       continue;
     }
+    if(dual&&role==='switch'&&id==='vlan')continue; // Shared topology owns both VLANs and their ports.
     if(id==='nat'&&vtiOwnNat)continue; // VTI already emits its NAT ACL and bindings.
-    const data=boundValues(id,values[id]||{}, {...site,vendor,role});
+    const data=boundValues(id,values[id]||{}, {...logical,vendor,role});
+    for(const key of ['interface','inside'])if(dual&&role==='router'&&data[key]===site.lan)data[key]=logical.lan;
     let result=generateFeature(id,data);
+    if(dual&&role==='router'&&!result.errors.length&&id==='nat'&&(!data.natMode||data.natMode==='overload')){
+      const n=cidr(site.vlan2Subnet);result.scripts.push({code:`configure terminal\nip access-list standard ${data.acl}\n permit ${n.networkAddress||n.ip} ${n.wildcard}\n exit\ninterface ${site.lan}.${site.vlan2}\n ip nat inside\n exit\nend`});
+    }
+    if(dual&&role==='router'&&!result.errors.length&&id==='dhcp'){
+      const extra=generateFeature('dhcp',{...data,name:`${data.name||'NOC'}-V${site.vlan2}`,network:site.vlan2Subnet,gateway:site.vlan2Gateway,exclusions:`${site.vlan2Gateway}\n${site.vlan2SwitchIp}`});
+      if(extra.errors.length)result.errors.push(...extra.errors);else result.scripts.push(...extra.scripts);
+    }
     if(id==='nat'&&vendor==='ios'&&ids.includes('vpn')&&!['openvpn','ssl','wireguard'].includes(vpnType)&&!result.errors.length){
       const local=cidr(site.local),remote=cidr(lab[side==='a'?'b':'a'].local),name=data.acl;
       result={errors:[],scripts:[{code:`configure terminal\n! Dedicated extended NAT ACL: merge existing device NAT policy before applying.\nip access-list extended ${name}\n 10 deny ip ${local.ip} ${local.wildcard} ${remote.ip} ${remote.wildcard}\n 20 permit ip ${local.ip} ${local.wildcard} any\n exit\ninterface ${site.lan}\n ip nat inside\n exit\ninterface ${site.wan}\n ip nat outside\n exit\nip nat inside source list ${name} interface ${site.wan} overload\nend`}]};

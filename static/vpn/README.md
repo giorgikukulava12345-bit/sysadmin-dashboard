@@ -88,3 +88,11 @@ Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feat
 ## Initial local-site defaults
 
 LAN 192.168.1.0/24; router LAN 192.168.1.1; switch management 192.168.1.254; host 192.168.1.10; DNS 8.8.8.8. The remote site retains a distinct subnet for valid site-to-site configurations. The VPN model and topology share the new local subnet. Cisco DHCP excludes the switch address; dynamic pools end before it. Local static NAT and port-forward forms take their server defaults from the host node.
+
+## Optional second VLAN (Cisco IOS)
+
+Open Configure second VLAN / Switch addressing, enable Second VLAN mode, and edit VLAN ID, canonical CIDR, router gateway, separate switch management SVI and access port. Defaults: VLAN20, 192.168.20.0/24, gateway192.168.20.1, SVI192.168.20.254, FastEthernet0/2. Primary VLAN10 remains native on both ends; VLAN20 is tagged. The router physical LAN port becomes a trunk with two gateway subinterfaces. Both networks are directly connected. The switch uses two management SVIs, not duplicate gateway addresses. This template assumes an L2 switch; it does not disable existing routing automatically. Use a dot1q-capable IOS router and switch.
+
+Submit Router and Switch separately; base bindings are automatic in this mode. PAT and DHCP selections include both subnets. Feature routing policies remain explicitly configured; VPN/firewall overlay combinations are rejected pending a complete two-subnet policy design. Unsupported vendors, overlapping subnets, duplicate VLANs/IPs and conflicting ports fail atomically. The default single-VLAN workflow is unchanged while disabled.
+
+Tests: node tests/engine.test.js; node tests/second-vlan.test.js; browser tests/index.html.
