@@ -10,7 +10,7 @@ export function analyzeConfig(source,{complete=false}={}){
   if(typeof source!=='string'||!source.trim())throw Error('Paste a running configuration or CLI snippet first.');
   if(source.length>200000||source.split('\n').length>5000)throw Error('Use at most 200,000 characters / 5,000 lines per analysis.');
   const findings=[],interfaces=[],pools=[],routes=[],nat=[],acls=new Map(),vlans=new Set(),globalDns=[];
-  const add=(id,severity,line,title,detail,steps,repair='')=>findings.push({id,severity,line,title,detail,steps,repair});
+  const add=(id,severity,line,title,detail,steps,repair='')=>{if(findings.length<200)findings.push({id,severity,line,title,detail,steps,repair});};
   if(/^(?:set (?:interfaces|network|system|security)|config system|\/ip |\/interface )/m.test(source))return {findings:[{id:'platform',severity:'info',line:0,title:'Platform outside this analyzer',detail:'Deep configuration analysis currently supports Cisco IOS / IOS XE. Use the vendor-specific diagnostic playbooks below for RouterOS, FortiOS, Junos or PAN-OS.',steps:['Select the matching vendor in the diagnostic playbook.'],repair:''}],commands:'',interfaces:0,pools:0};
   let context=null;
   const lines=source.replace(/\r/g,'').split('\n');
@@ -77,5 +77,6 @@ export function analyzeConfig(source,{complete=false}={}){
   if(nat.length&&!interfaces.some(p=>p.inside))add('nat-inside','warning',nat[0].line,'No NAT inside interface found','PAT rules exist but the parsed configuration has no inside interface.',['Identify the actual routed LAN interfaces and confirm ip nat inside on each.']);
   if(complete&&nat.length&&!routes.some(r=>r.ip==='0.0.0.0'&&r.mask==='0.0.0.0'))add('default-route','info',0,'No static default route found','A dynamic routing protocol or DHCP client may supply the default route.',['Run show ip route 0.0.0.0.','If no default exists, configure one using the assigned ISP next hop.']);
   if(!findings.length)add('no-findings','info',0,'No issues detected by the implemented checks','This does not establish syntax validity, hardware support, policy correctness or end-to-end connectivity.',['Validate the candidate on the target platform.','Check routes, NAT counters, DHCP leases and client connectivity.']);
+  if(findings.length===200)findings.push({id:'limit',severity:'info',line:0,title:'Finding limit reached',detail:'Only the first 200 findings are displayed. Analyze a smaller configuration section for additional detail.',steps:['Split the configuration by device or feature.'],repair:''});
   return {findings,commands:findings.filter(f=>f.repair).map(f=>`! ${f.title}\n${f.repair}`).join('\n\n'),interfaces:interfaces.length,pools:pools.length};
 }
