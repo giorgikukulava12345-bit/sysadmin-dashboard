@@ -30,13 +30,13 @@ FEATURES.qos.category='security';FEATURES.fhrp.roles=['router','switch'];FEATURE
 export const forRole=(feature,role)=>(feature.roles||[feature.role]).includes(role);
 export const VPN_TYPES={ikev2:'IPsec · IKEv2',ikev1:'IPsec · IKEv1',vti:'VTI · Cisco IKEv1',gre:'GRE over IPsec',wireguard:'WireGuard',openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'};
 export const capable=(id,vendor)=>Boolean(FEATURES[id]?.vendors.includes(vendor));
-export function featureDefaults(id,vendor){if(INTERNET_FEATURES[id])return {vendor,...internetDefaults(id,vendor)};if(ENTERPRISE_FEATURES[id])return enterpriseDefaults(id,vendor);if(id==='remotevpn'){const remoteType=vendor==='mikrotik'?'openvpn':'ssl';return{vendor,remoteType,...remoteDefaults(remoteType)};}const d={...(FEATURES[id]?.tool?defaultsFor(FEATURES[id].tool):{}),vendor,...(['ospf','bgp'].includes(id)?{protocol:id}:{})};for(const f of featureFields(id,vendor))if(!Object.hasOwn(d,f.key))d[f.key]=f.value;if(id==='dhcp'&&vendor!=='ios')d.dns='8.8.8.8';return d;}
+export function featureDefaults(id,vendor){if(INTERNET_FEATURES[id])return {vendor,...internetDefaults(id,vendor)};if(ENTERPRISE_FEATURES[id])return enterpriseDefaults(id,vendor);if(id==='remotevpn'){const remoteType=vendor==='mikrotik'?'openvpn':'ssl';return{vendor,remoteType,...remoteDefaults(remoteType)};}const d={...(FEATURES[id]?.tool?defaultsFor(FEATURES[id].tool):{}),vendor,...(['ospf','bgp'].includes(id)?{protocol:id}:{})};for(const f of featureFields(id,vendor))if(!Object.hasOwn(d,f.key))d[f.key]=f.value;if(id==='dhcp'&&vendor!=='ios')d.dns='8.8.8.8';if(id==='dhcp'&&vendor==='mikrotik')d.name='NOC-DHCP';return d;}
 export function featureFields(id,vendor) {
   if(INTERNET_FEATURES[id])return internetFields(id,vendor);
   if(id==='vpn')return [];
   if(ENTERPRISE_FEATURES[id])return enterpriseFields(id,vendor);
   if(id==='remotevpn')return[{key:'remoteType',label:'Remote-access technology',value:vendor==='mikrotik'?'openvpn':'ssl',type:'select',options:{openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'}},...Object.entries(REMOTE_VPN_FIELDS).flatMap(([kind,fields])=>fields.map(f=>({...f,type:f.type||'text',when:d=>d.remoteType===kind})))];
-  if(id==='dhcp'&&vendor!=='ios')return [{key:'leaseMinutes',label:'DHCP lease duration (minutes)',value:'1440',type:'number'},{key:'poolStart',label:'DHCP pool start',value:'10.10.0.50',type:'text'},{key:'poolEnd',label:'DHCP pool end',value:'10.10.0.200',type:'text'},{key:'dns',label:'DNS server',value:'8.8.8.8',type:'text'},...(vendor==='fortinet'?[{key:'serverId',label:'Unused DHCP server ID',value:'9000',type:'number'}]:[])];
+  if(id==='dhcp'&&vendor!=='ios')return [...(vendor==='mikrotik'?[{key:'name',label:'DHCP server name',value:'NOC-DHCP',type:'text'}]:[]),{key:'leaseMinutes',label:'DHCP lease duration (minutes)',value:'1440',type:'number'},{key:'poolStart',label:'DHCP pool start',value:'10.10.0.50',type:'text'},{key:'poolEnd',label:'DHCP pool end',value:'10.10.0.200',type:'text'},{key:'dns',label:'DNS server',value:'8.8.8.8',type:'text'},...(vendor==='fortinet'?[{key:'serverId',label:'Unused DHCP server ID',value:'9000',type:'number'}]:[])];
   const fields=TOOLS[FEATURES[id].tool].fields.filter(f=>!['vendor',...(['ospf','bgp'].includes(id)?['protocol']:[])].includes(f.key)&&!(id==='nat'&&vendor==='mikrotik'&&f.key==='acl')&&!(id==='static'&&vendor!=='ios'&&['permanent','interface'].includes(f.key))&&!(vendor==='juniper'&&id==='ospf'&&['process','networks'].includes(f.key))&&!(id==='vlan'&&vendor!=='ios'&&f.key==='lastPort'));
   if(vendor==='juniper'&&id==='ospf')fields.push({key:'ospfInterfaces',label:'OSPF logical interfaces (comma separated)',value:'ge-0/0/1.0',type:'text'});
   if(id==='static'&&vendor==='paloalto')fields.push({key:'virtualRouter',label:'Existing virtual router',value:'default',type:'text'},{key:'routeName',label:'Static route name',value:'NOC-STATIC',type:'text'});
@@ -48,6 +48,11 @@ export function featureFields(id,vendor) {
 const safeName=(v,label='Name')=>{if(!/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(v||''))throw Error(`${label}: invalid CLI identifier.`);return v;};
 const unicast=(v,label)=>{ip(v,label);if(ipv4(v)===0||ipv4(v)>=3758096384||v.startsWith('127.'))throw Error(`${label}: use a unicast IPv4 address.`);return v;};
 // Shared bindings are authoritative for address-dependent features.
+export function lanBinding(s,target){
+  const physical=s.physicalLan||s.lan.replace(/\.\d+$/,'');
+  const second=s.vlan2Enabled==='on'&&[`${physical}.${s.vlan2}`,`Vlan${s.vlan2}`,`irb.${s.vlan2}`].includes(target);
+  return second?{network:s.vlan2Subnet,ip:s.role==='switch'?s.vlan2SwitchIp:s.vlan2Gateway,reserved:[s.vlan2Gateway,s.vlan2SwitchIp]}:{network:s.local,ip:s.role==='switch'?s.switchIp:s.lanIp,reserved:[s.lanIp,s.switchIp,s.hostIp]};
+}
 export function boundValues(id,d,s){
   const result={...d,vendor:s.vendor};
   if(INTERNET_FEATURES[id])return {...s,...d,vendor:s.vendor,wan:s.wan,lan:s.lan,ip:s.ip,gateway:s.gateway,wanPrefix:s.wanPrefix,local:s.local,lanIp:s.lanIp};
@@ -55,7 +60,7 @@ export function boundValues(id,d,s){
   if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan,lanIp:s.lanIp,reserved:[s.switchIp]});
   if(id==='dhcp'){Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan,reserved:[s.switchIp,s.hostIp].filter(Boolean)});if(s.vendor==='ios')result.exclusions=[d.exclusions||'',...result.reserved].filter(Boolean).join('\n');}
   if(id==='bootstrap')Object.assign(result,{wan:s.wan,wanAddress:`${s.ip}/${s.wanPrefix}`,gateway:s.gateway,lan:`${s.lanIp}/${s.local.split('/')[1]}`});
-  if(['relay','fhrp'].includes(id))Object.assign(result,{localIp:s.role==='switch'?s.switchIp:s.lanIp,localNetwork:s.local});
+  if(['relay','fhrp'].includes(id)){const binding=lanBinding(s,d.interface);Object.assign(result,{localIp:binding.ip,localNetwork:binding.network});}
   if(id==='remotevpn')Object.assign(result,{wan:s.wan,lan:s.lan,local:s.local,ip:s.ip,wanPrefix:s.wanPrefix});
   return result;
 }
@@ -80,7 +85,8 @@ export function generateFeature(id,data){
       const start=ipv4(data.poolStart),end=ipv4(data.poolEnd),gw=ipv4(data.gateway);if(start===null||end===null||start> end||start<=n.network||end>=n.end||gw<=n.network||gw>=n.end||gw>=start&&gw<=end)throw Error('DHCP range must be inside LAN, ordered, and exclude the gateway.');
       for(const reserved of data.reserved||[])if(ipv4(reserved)>=start&&ipv4(reserved)<=end)throw Error('DHCP pool includes a reserved topology address: '+reserved);
       const lease=number(data.leaseMinutes??'1440',data.vendor==='fortinet'?5:2,data.vendor==='fortinet'?14400:43200,'Lease duration (minutes)');
-      let code;if(data.vendor==='mikrotik')code=`/ip pool add name=NOC-DHCP-POOL ranges=${data.poolStart}-${data.poolEnd}\n/ip dhcp-server add name=NOC-DHCP interface=${data.interface} address-pool=NOC-DHCP-POOL lease-time=${lease}m disabled=no\n/ip dhcp-server network add address=${n.canonical} gateway=${data.gateway} dns-server=${data.dns}\n# LAN interface must already have the gateway IP; review existing DHCP servers.`;
+      const serverName=safeName(data.name??'NOC-DHCP','DHCP server name');
+      let code;if(data.vendor==='mikrotik')code=`/ip pool add name=${serverName}-POOL ranges=${data.poolStart}-${data.poolEnd}\n/ip dhcp-server add name=${serverName} interface=${data.interface} address-pool=${serverName}-POOL lease-time=${lease}m disabled=no\n/ip dhcp-server network add address=${n.canonical} gateway=${data.gateway} dns-server=${data.dns}\n# LAN interface must already have the gateway IP; review existing DHCP servers.`;
       else{number(data.serverId,1,4294967294,'DHCP server ID');code=`config system dhcp server\n edit ${data.serverId}\n  set interface "${data.interface}"\n  set default-gateway ${data.gateway}\n  set netmask ${n.mask}\n  set lease-time ${lease*60}\n  set dns-service specify\n  set dns-server1 ${data.dns}\n  config ip-range\n   edit 1\n    set start-ip ${data.poolStart}\n    set end-ip ${data.poolEnd}\n   next\n  end\n next\nend`;}
       return{errors:[],scripts:[{title:`${PLATFORMS[data.vendor]} · DHCP`,code}]};
     }
@@ -146,8 +152,8 @@ export function generateRemoteVpn(type,d,s){
   try{
     if(type==='openvpn'){
       if(s.vendor!=='mikrotik')throw Error('OpenVPN client template requires RouterOS 7.12+.');
-      if(!/^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/.test(d.server)||/\.\.|^\d+\.\d+\.\d+\.\d+$/.test(d.server)&&ipv4(d.server)===null)throw Error('Use a valid server DNS name or IPv4.');
-      safeName(d.certificate,'Certificate');if(!/^[A-Za-z0-9_@.-]{1,27}$/.test(d.username))throw Error('Username: use 1–27 CLI-safe characters.');
+      if(typeof d.server!=='string'||!/^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/.test(d.server)||/\.\.|^\d+\.\d+\.\d+\.\d+$/.test(d.server)&&ipv4(d.server)===null)throw Error('Use a valid server DNS name or IPv4.');
+      safeName(d.certificate,'Certificate');if(typeof d.username!=='string'||!/^[A-Za-z0-9_@.-]{1,27}$/.test(d.username))throw Error('Username: use 1–27 CLI-safe characters.');
       if(!/^[A-Za-z0-9_@%+=:,.-]{16,100}$/.test(d.password))throw Error('VPN password: use 16–100 CLI-safe characters.');number(d.port,1,65535,'Port');
       return{errors:[],scripts:[{title:'RouterOS 7.12+ · OpenVPN client',code:`# Import the trusted CA and client certificate/private key first.\n# Server must offer AES256-CBC/SHA256 and a certificate matching connect-to.\n/interface ovpn-client add name=NOC-OVPN connect-to=${d.server} port=${d.port} protocol=tcp mode=ip user="${d.username}" password="${d.password}" certificate=${d.certificate} verify-server-certificate=yes tls-version=only-1.2 auth=sha256 cipher=aes256-cbc add-default-route=no route-nopull=yes disabled=no\n# Add only approved remote-prefix routes through NOC-OVPN after reachability validation.`}]};
     }
