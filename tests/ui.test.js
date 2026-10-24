@@ -97,5 +97,17 @@ input('[data-analyzer-input]','ip name-server 9.9.9.9\nip dhcp pool OFFICE\n net
 q('[data-analyze]').click();check('analyzer displays actionable findings',q('[data-analyzer-findings]').textContent.includes('DHCP gateway outside')&&q('[data-analyzer-code]').textContent.includes('dns-server 9.9.9.9'));
 input('[data-analyzer-input]','<img src=x onerror=alert(1)>');q('[data-analyze]').click();check('pasted markup is never rendered as HTML',!q('[data-analyzer-findings] img'));
 q('[data-analyzer-clear]').click();check('analyzer clears input and corrections',!q('[data-analyzer-input]').value&&q('[data-analyzer-terminal]').hidden);
+cleanup();root.replaceChildren();cleanup=mountVpn(root);
+q('[data-office-preset]').click();input('[data-vendor]','mikrotik','change');q('[data-role="switch"]').click();
+check('switch included cards clear after router vendor reset',!q('[data-feature="vlan"]').checked&&q('[data-feature="vlan"]').closest('label').dataset.presetManaged==='false');
+q('[data-role="router"]').click();input('[data-side]','b','change');input('[data-side="b"][name="ip"]','invalid');input('[data-side]','a','change');toggle('nat',true);submit();
+check('invalid hidden peer does not block single-site output',!q('[data-copy-config]').disabled&&!q('[data-errors]').textContent.includes('Side B'));
+input('[data-side]','b','change');input('[data-side="b"][name="ip"]','198.51.100.22');input('[data-side]','a','change');input('[data-vendor]','juniper','change');q('[data-office-preset]').click();toggle('nat',false);toggle('ospf',true);
+check('Junos OSPF form uses tagged logical interface',q('[data-feature-panel="ospf"] [name="ospfInterfaces"]').value.endsWith('.10'));submit();
+check('Junos tagged OSPF generates current interface',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('interface ge-0/0/1.10'));
+input('[data-side="a"][name="lan"]','ge-0/0/3');check('topology port edit updates contextual OSPF form',q('[data-feature-panel="ospf"] [name="ospfInterfaces"]').value==='ge-0/0/3.10');submit();check('topology port edit reaches generated OSPF CLI',q('[data-code]').textContent.includes('interface ge-0/0/3.10')&&!q('[data-code]').textContent.includes('interface ge-0/0/1.10'));
+cleanup();root.replaceChildren();cleanup=mountVpn(root);q('[data-office-preset]').click();q('[data-role="switch"]').click();toggle('snmp3',true);input('[data-feature-panel="snmp3"] [name="authSecret"]','AuditAuth_0123456789');input('[data-feature-panel="snmp3"] [name="privSecret"]','AuditPriv_0123456789');q('[data-role="router"]').click();submit();
+check('companion switch credentials are masked by default',!q('[data-office-companion]').hidden&&!q('[data-companion-code]').textContent.includes('AuditAuth_0123456789')&&q('[data-companion-code]').textContent.includes('auth sha ***'));
+check('companion-only secrets expose the shared reveal control',!q('[data-reveal-label]').hidden);input('[data-reveal]',true,'change');check('shared reveal control reveals companion credentials',q('[data-companion-code]').textContent.includes('AuditAuth_0123456789'));input('[data-reveal]',false,'change');q('[data-clear-secrets]').click();check('clearing companion secrets invalidates both outputs',q('[data-copy-config]').disabled&&q('[data-office-companion]').hidden);
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
