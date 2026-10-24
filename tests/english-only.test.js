@@ -10,7 +10,7 @@ async function scan(folder){for(const entry of await readdir(folder,{withFileTyp
 await scan(path.join(root,'templates'));await scan(path.join(root,'static'));
 const backend=await readFile(path.join(root,'app.py'),'utf8');assert(!georgian.test(backend));
 const html=await readFile(path.join(root,'templates/index.html'),'utf8');
-assert.match(html,/<html lang="en">/);assert.doesNotMatch(html,/currentLang|setLanguage|lang-ka|lang-en/);
-for(const text of ['Network Information','Public IP Address','Internet Service Provider (ISP)','Connection Diagnostics','Check Port','Checking...','Enter a target hostname or IP address and a port number.'])assert(html.includes(text),text);
+assert.match(html,/<html lang="en">/);assert(!/ws-host|ws-port|ws-btn|probePortWS|PORT_MESSAGES/.test(html),'Port Checker is removed');assert.doesNotMatch(html,/currentLang|setLanguage|lang-ka|lang-en/);
+for(const text of ['Network Information','Public IP Address','ISP / Provider','Location','Checking...'])assert(html.includes(text),text);
 for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(match[1].trim())new vm.Script(match[1]);
 console.log(`English-only audit passed: ${count} frontend files, backend comments, document language, labels, notifications and inline script syntax.`);
