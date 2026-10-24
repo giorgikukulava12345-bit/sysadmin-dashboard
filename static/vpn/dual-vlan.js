@@ -1,5 +1,5 @@
 import {officeRouterVlans} from './office-vlans.js';
-import { cidr, ipv4 } from './address.js';
+import { cidr, ipv4, unicastNetwork } from './address.js';
 
 export const hasSecondVlan=site=>site.vlan2Enabled==='on';
 const physical=value=>/^(?:FastEthernet|GigabitEthernet|TenGigabitEthernet|Ethernet)\d+(?:\/\d+)*$/.test(value||'');
@@ -12,7 +12,7 @@ export function validateSecondVlan(site,peer){
   if(!validVlan(site.vlan)||!validVlan(site.vlan2))errors.push('Both VLAN IDs must be 1–4094, excluding reserved VLANs 1002–1005.');
   if(site.officeVlans&&[+site.vlan,+site.vlan2].includes(1))errors.push('Office tagged VLANs must differ from the unused native VLAN 1.');
   if(+site.vlan===+site.vlan2)errors.push('Second VLAN ID must differ from the primary LAN VLAN.');
-  if(!n||n.canonical!==site.vlan2Subnet||+site.vlan2Subnet.split('/')[1]>30||n.network<16777216||n.end>=0xe0000000)errors.push('Second VLAN subnet must be a canonical unicast IPv4 network with usable hosts (/1–/30).');
+  if(!n||n.canonical!==site.vlan2Subnet||+site.vlan2Subnet.split('/')[1]>30||!unicastNetwork(n))errors.push('Second VLAN subnet must be a canonical unicast IPv4 network with usable hosts (/1–/30).');
   for(const[label,address]of [['gateway',gateway],['switch SVI',svi]])if(!n||address===null||address<=n.network||address>=n.end)errors.push(`Second VLAN ${label} must be a usable host within its subnet.`);
   if(gateway===svi)errors.push('Second VLAN router gateway and switch SVI IP must differ.');
   for(const[label,other]of [['primary LAN',cidr(site.local)],['WAN',cidr(`${site.ip}/${site.wanPrefix}`)],['remote site LAN',cidr(peer?.local)],['remote second VLAN',hasSecondVlan(peer||{})?cidr(peer.vlan2Subnet):null]])if(overlap(n,other))errors.push(`Second VLAN subnet must not overlap the ${label}.`);

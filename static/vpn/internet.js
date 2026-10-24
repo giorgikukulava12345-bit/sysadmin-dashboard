@@ -14,6 +14,7 @@ export function internetFields(id,vendor){
     field('wan2','WAN2 interface',port2[vendor]),field('ip2','WAN2 usable IPv4 (/30)','203.0.113.14'),
     field('gateway2','ISP gateway 2','203.0.113.13'),field('backupDistance',vendor==='paloalto'?'Backup route metric (primary = 1)':'Backup distance / preference (primary = 1)','5','number')
   ]:[];
+  if(id==='wan_failover'&&vendor==='ios')fields.push(field('trackId','First unused WAN link track ID (also reserves ID + 1)','900','number'));
   if(id==='internet_access')fields.push(field('poolName','DHCP pool name prefix','OFFICE-LAN'),field('dns1','Primary DNS server','8.8.8.8'),field('dns2','Secondary DNS server','1.1.1.1'));
   if(id==='internet_access'&&vendor==='fortinet')fields.push(field('dhcpId','First DHCP server ID (unused)','9000','number'));
   if(vendor==='paloalto')fields.push(field('virtualRouter','Classic virtual router','default'));
@@ -41,6 +42,7 @@ export function validateInternet(d,backup=false){
   if(d.vendor==='juniper'&&[d.wan,...(d.officeVlans?[]:[d.lan]),d.wan2].filter(Boolean).some(x=>/\.\d+$/.test(x)))throw Error('Junos requires physical interface names; unit 0 is generated.');
   if(d.vendor==='fortinet')integer(d.routeId,1,4294967294,'Primary route ID');
   if(backup){
+    if(d.vendor==='ios')integer(d.trackId??'900',1,999,'First WAN track ID');
     name(d.wan2,'WAN2 interface');
     if([d.wan,d.lan,d.physicalLan].includes(d.wan2))throw Error('WAN2 must use a dedicated interface, distinct from WAN1 and LAN.');
     const errors2=validateWan({ip:d.ip2,gateway:d.gateway2,wanPrefix:'30'});if(errors2.length)throw Error('WAN2: '+errors2.join(' '));
@@ -54,7 +56,11 @@ const wrap=(vendor,body)=>vendor==='ios'?`configure terminal\n${body}\nend\n`:['
 export function internetRoutes(d,backup=false){
   validateInternet(d,backup);const distance=d.backupDistance||'5';
   const paths=[{port:d.wan,ip:d.ip,gateway:d.gateway,preference:1,id:d.routeId,label:'PRIMARY'},...(backup?[{port:d.wan2,ip:d.ip2,gateway:d.gateway2,preference:distance,id:d.backupRouteId,label:'BACKUP'}]:[])];
-  if(d.vendor==='ios')return paths.map(p=>`ip route 0.0.0.0 0.0.0.0 ${p.gateway} ${p.preference}`).join('\n');
+  if(d.vendor==='ios'){
+    const start=Number(d.trackId??'900');
+    const tracking=backup?paths.map((p,i)=>`track ${start+i} interface ${p.port} line-protocol\n exit`).join('\n')+'\n':'';
+    return tracking+paths.map((p,i)=>`ip route 0.0.0.0 0.0.0.0 ${p.gateway} ${p.preference}${backup?' track '+(start+i):''}`).join('\n');
+  }
   if(d.vendor==='mikrotik')return paths.map(p=>`/ip route add dst-address=0.0.0.0/0 gateway=${p.gateway}%${p.port} distance=${p.preference} check-gateway=ping comment="NOC-${p.label}"`).join('\n');
   if(d.vendor==='juniper')return `set routing-options static route 0.0.0.0/0 next-hop ${d.gateway}\nset routing-options static route 0.0.0.0/0 preference 1${backup?`\nset routing-options static route 0.0.0.0/0 qualified-next-hop ${d.gateway2} preference ${distance}`:''}`;
   if(d.vendor==='fortinet')return `config router static\n${paths.map(p=>` edit ${p.id}\n  set dst 0.0.0.0 0.0.0.0\n  set gateway ${p.gateway}\n  set device "${p.port}"\n  set distance ${p.preference}\n next`).join('\n')}\nend`;
