@@ -1,20 +1,31 @@
-# Network Engineering Command Center
+# Cisco Workbench: Submit fix and enterprise templates
 
-34 categorized CCNA/CCNP features. Choose a vendor/device, check features, edit only their parameters, then Submit / Generate Configuration. Any draft change invalidates the previous snapshot; Copy Config is disabled until resubmitted. Syntax coloring never interprets CLI as HTML. Secrets stay in memory and require explicit reveal.
+The deployed repository is Flask/Jinja plus browser-local ES modules. This update preserves that application and supplies a separate React/Next.js component package sharing the same generators.
 
-## Platform and integration
+## Confirmed Submit regression and fix
 
-The existing live repository is Flask/Jinja with browser ES modules, not Next.js. The dashboard overlay updates that application in place. The React package provides an App Router client boundary plus optional controlled components, sharing the same validation and generator modules. No React migration is required for the deployed site.
+An unchanged VPN form broadcast caused onVpnState → renderOutput to discard a valid submitted configuration, even while configuring unrelated NAT. tests/submit-regression.html reproduces the failure with the previous workbench and passes with this version. The workbench now captures a per-device input snapshot, preserves a submitted result when that snapshot is unchanged, and invalidates it for real edits. Unexpected generation exceptions become visible errors rather than leaving the Draft placeholder. Enter in single-line inputs also submits; multiline fields retain Enter. Submit focuses and scrolls to output, with a line-count / validation status. Clear resets output/copy state without deleting the draft. No configuration is executed or sent to a router.
 
-## Topology
+## Added Cisco IOS / IOS XE features
 
-Standard tasks show one selected site (Host ↔ Switch ↔ Router ↔ ISP). Site A or B can be selected independently. A Site-to-Site VPN, DMVPN or Remote Access VPN selection makes the dual-site preview visible. Public/LAN interfaces, gateway, host and management addresses share the existing topology model. The diagram is configuration state, not live telemetry; DMVPN is not an automatic two-node mesh orchestrator.
+- Port Forwarding: TCP/UDP external port → internal LAN host/port, topology-bound WAN/public IP and interfaces, source-prefix restriction, named inbound ACL permit. WAN ACL matches the pre-NAT public address and external port. By default the ACL is not attached, so an existing WAN policy is not replaced. Explicit dedicated attachment adds a deny-all remainder and is limited to standalone generation; it is not a full stateful firewall. PAT can be combined when the permit is merged with a reviewed existing ACL. The internal server needs a return route via the NAT router; application/host firewalls and upstream routing must permit it.
+- Plain GRE: dedicated Tunnel interface, source/destination, transit addressing, MTU/MSS and remote route. Unencrypted; use the existing GRE-over-IPsec workflow when encryption is needed.
+- VXLAN: platform-specific IOS XE router static VXLAN + EFP/bridge-domain template. Dedicated VTEP loopback, static ingress replication, VLAN tag/EFP and bridge-domain/VNI mapping. Not NX-OS or Catalyst EVPN syntax; verify image and hardware support. Underlay VTEP /32 reachability, UDP 4789 and adequate MTU must exist. EFP ports cannot reuse the routed topology LAN/WAN.
+- BFD: interface timers, optional existing OSPF interface or single-hop BGP neighbor integration. Timers alone do not start a session; both peers/client registration and hardware timer support are prerequisites.
+- IP SLA: scheduled ICMP echo plus reachability tracking. Existing unused IDs required; does not silently replace default routes.
+- IS-IS: private 49-area NET, unique nonzero system ID, L1/L2/L1-2, wide metrics and interface activation. Existing addressing and compatible peer required; no authentication or redistribution implied.
+- CoPP: ICMP CPU-traffic MQC policy. Unattached by default; explicit attachment requires merging/reviewing existing control-plane policy. Not a replacement for Catalyst system CPP.
+- uRPF: CEF + strict/loose source validation with explicit allow-default. Strict mode requires symmetric routing; allow-default behavior is intentional.
 
-## Feature support
+Existing VLAN/trunking, STP/RSTP/MST, EtherChannel LACP/PAgP remain under Switch Configuration. All feature checkboxes remain interactive across the five vendors; these new templates are Cisco-only and unsupported vendor combinations produce a clear error with no partial CLI.
 
-All checkboxes remain interactive across five vendors. Unsupported vendor/feature combinations block the entire selected-device output with an explanation; no partial or substitute vendor syntax is emitted. These are reviewed lab starters, not claims of universal firmware/hardware compatibility.
+## UI
 
-| Feature | Cisco IOS/XE | MikroTik | FortiGate | Juniper | Palo Alto |
+Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feature-card grid (mobile / md / lg), slate borders, cyan selection, native checkbox checkmarks, focus-visible rings and tooltip/helper notes. Terminal retains safe syntax coloring, Copy success feedback and a new Clear action. The unified four-column command bar and troubleshooting playbooks are retained.
+
+## Capability matrix
+
+| Feature | Cisco | MikroTik | FortiGate | Juniper | Palo Alto |
 |---|---|---|---|---|---|
 | NAT / PAT · Static, Dynamic, Overload | Template | Template | No template | No template | No template |
 | Standard & Extended ACLs | Template | No template | No template | No template | No template |
@@ -33,6 +44,14 @@ All checkboxes remain interactive across five vendors. Unsupported vendor/featur
 | Multicast · PIM Sparse Mode | Template | No template | No template | No template | No template |
 | Network Automation · NETCONF / RESTCONF | Template | No template | No template | No template | No template |
 | Advanced VPN · DMVPN Phase 3 | Template | No template | No template | No template | No template |
+| Port Forwarding · NAT Port Redirection | Template | No template | No template | No template | No template |
+| GRE Tunnels · Generic Routing Encapsulation | Template | No template | No template | No template | No template |
+| VXLAN · IOS XE EFP / Bridge Domain | Template | No template | No template | No template | No template |
+| BFD · Bidirectional Forwarding Detection | Template | No template | No template | No template | No template |
+| IP SLA · ICMP Echo & Reachability Tracking | Template | No template | No template | No template | No template |
+| IS-IS · Integrated IPv4 Routing | Template | No template | No template | No template | No template |
+| CoPP · Control Plane Policing | Template | No template | No template | No template | No template |
+| uRPF · Unicast Reverse Path Forwarding | Template | No template | No template | No template | No template |
 | STP / RSTP / MST | Template | Template | No template | Template | No template |
 | EtherChannel · LACP / PAgP | Template | Template | No template | Template | No template |
 | DHCP Snooping | Template | Template | No template | No template | No template |
@@ -51,32 +70,17 @@ All checkboxes remain interactive across five vendors. Unsupported vendor/featur
 | SNMPv3 Monitoring | Template | Template | Template | Template | No template |
 | QoS · Classification & Marking | Template | Template | No template | Template | No template |
 
-Protocol-specific restrictions still apply (for example Cisco VTI, RouterOS WireGuard, PAgP and GLBP). OSPFv3 adjacency templates do not include advanced authentication/summarization.
-
-## New advanced template assumptions
-
-- BPDU Guard: dedicated host-facing access port only; never a switch uplink.
-- SPAN/RSPAN: Catalyst IOS/XE-style sessions (1–66, platform-dependent capacity). RSPAN configures the source switch only and requires the same remote-span VLAN carried to a separately configured destination. Analyzer ports must be dedicated.
-- GLBP: existing supported routed LAN interface and same-L2 peer. HSRP/VRRP and GLBP cannot be selected together.
-- PIM sparse mode: existing RP and unicast reachability; static RP mapping limited to a 239.0.0.0/8 subprefix. Configure all intended routed hops separately.
-- NETCONF/RESTCONF: existing authorized AAA users, management filtering and approved HTTPS certificate. No new credentials or wildcard access ACLs are generated. APIs are not enabled on real devices by this application.
-- DMVPN Phase 3: overlay-only hub or spoke with an existing audited IPsec profile and IKE peer authentication. Dedicated Tunnel interface, NHRP authentication, MTU/MSS and IPsec protection are included. Underlay reachability, overlay routing and peer PKI are prerequisites. No wildcard PSKs or unencrypted fallback. Cannot mix this starter with NAT/ZBFW/other VPN templates without designing the policies separately.
-
-## Troubleshooting
-
-Five scenarios × five vendors: IPsec tunnel down, BGP stuck, OSPF adjacency, VLAN trunk loss, interface errors/CPU. Each shows three investigation steps, diagnostic CLI, likely causes, remediation guidance and platform-specific illustrative commands. PAN-OS repairs that depend on existing peer groups/profiles are described rather than invented. Cisco, RouterOS, Junos and FortiOS examples use clearly named lab objects. Junos examples stop at commit check; no commit/reset/clear is automated. Optional IKE debug includes stop commands. Commands are never executed or sent to an appliance.
-
 ## Validation
 
-350/350 engine checks passed in Node and Chromium; 98/98 browser UI checks passed. React TSX syntax transpilation is a separate check, not a Next.js production build or complete type check. No appliance CLI was executed.
+371/371 Node and Chromium generator tests; 128/128 Chromium UI checks. The dedicated Submit regression was observed failing against the previous workbench and passing against the fix. React source is syntax-transpiled separately, not a production Next.js build or complete typecheck. No appliance CLI has been executed.
 
 ## Primary references
 
-- [Cisco IOS XE DMVPN](https://www.cisco.com/c/en/us/td/docs/routers/ios-xe/security-vpn/security-vpn/m_sec-conn-dmvpn-dmvpn-0.html)
-- [Catalyst SPAN/RSPAN](https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-14/configuration_guide/nmgmt/b_1714_nmgmt_9300_cg/configuring_span_and_rspan.html)
-- [Cisco IOS XE RESTCONF](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/prog/configuration/1718/b-1718-programmability-cg/restconf_protocol.html)
-- [RouterOS BGP CLI](https://manual.mikrotik.com/docs/cli-reference/routing/bgp/connection/)
-
-## Unified top command bar
-
-The dashboard top card contains four equal desktop columns: Public IP, ISP, Location and integrated Port Checker. It stacks below 768px. IPs and port inputs use monospace; provider/location values and labels use Inter. Each cell has the same padding/border/radius. Port Checker preserves the existing probe, translations, status region and network-info updates. There is no separate Port Checker panel.
+- [Cisco NAT configuration](https://www.cisco.com/c/en/us/support/docs/ip/network-address-translation-nat/13772-12.html)
+- [Cisco NAT order of operations](https://www.cisco.com/c/en/us/support/docs/ip/network-address-translation-nat/6209-5.html)
+- [IOS XE router VXLAN / EFP](https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/application-services/b-application-services/vxlan.html)
+- [BFD configuration](https://www.cisco.com/c/en/us/td/docs/routers/ios-xe/ip-routing/b-ip-routing/m_irb-bi-fwd-det-0.html)
+- [IP SLA ICMP echo](https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-addressing/b-ip-addressing/m_sla_icmp_echo.html)
+- [IS-IS IOS XE model](https://netascode.cisco.com/docs/data_models/iosxe/device/isis/)
+- [IOS XE CoPP](https://www.cisco.com/c/en/us/td/docs/routers/ios-xe/quality-of-service/quality-of-service/m_qos-plcshp-ctrl-pln-plc-0.html)
+- [uRPF command reference](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/security/d1/sec-d1-cr-book/sec-cr-i3.html)

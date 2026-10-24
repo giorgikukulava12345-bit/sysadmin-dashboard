@@ -16,6 +16,23 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   if(!ids.length&&!bindings)return{errors:[],code:'',empty:true};
   if(address.errors.length)return{errors:address.errors,code:'',empty:false};
   if(role==='host')return{errors:[],code:address.scripts[side==='a'?2:5].code,empty:false};
+  if(ids.includes('portforward')){
+    const d=values.portforward||{};
+    if(d.attachAcl&&ids.length>1)errors.push('A dedicated inbound port-forward ACL is a standalone restricted policy. Leave attachment unchecked and merge its permit with the existing WAN ACL when combining features.');
+    if(ids.includes('nat')&&d.acl===values.nat?.acl)errors.push('Port-forward and source NAT ACL names must differ.');
+    if(ids.includes('acl')&&d.acl===values.acl?.name)errors.push('Port-forward and traffic-filter ACL names must differ.');
+    if(ids.includes('nat')&&values.nat?.natMode&&values.nat.natMode!=='overload')errors.push('Combine port forwarding with PAT / Overload, or design full static/dynamic NAT precedence separately.');
+  }
+  if(ids.includes('vxlan')){
+    const access=values.vxlan?.accessInterface;
+    if([site.wan,site.lan].includes(access))errors.push('VXLAN EFP access must use a dedicated physical port, separate from the routed WAN/LAN topology ports.');
+    if([site.ip,site.lanIp,site.hostIp,site.switchIp].includes(values.vxlan?.localVtep))errors.push('VTEP Loopback must use an unused /32, not an address already assigned in the topology.');
+  }
+  if(ids.includes('gre_tunnel')){
+    const d=values.gre_tunnel||{},local=cidr(site.local),remote=cidr(d.remoteNetwork),tunnel=cidr(d.address);
+    if(local&&remote&&local.network<=remote.end&&local.end>=remote.network)errors.push('GRE remote LAN must not overlap the local LAN.');
+    if(local&&tunnel&&local.network<=tunnel.end&&local.end>=tunnel.network)errors.push('GRE transit subnet must not overlap the local LAN.');
+  }
   if(ids.includes('bootstrap')&&(ids.length>1||bindings))errors.push('Initial setup is a complete empty-router preset. Disable other features and interface bindings.');
   if(ids.includes('enterprise')&&(ids.length>1||bindings))errors.push('Router-on-a-stick is a complete router/switch preset. Disable other features and interface bindings.');
   if(role==='switch'&&ids.includes('vlan')&&ids.includes('security')&&values.vlan?.mode==='trunk')errors.push('Port security in this lab requires an access port. Disable port security or select Access mode.');

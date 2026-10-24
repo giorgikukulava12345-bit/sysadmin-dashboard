@@ -19,11 +19,12 @@ export const FEATURES = {
   remotevpn:{title:'Remote Access / SSL VPN',role:'router',category:'security',vendors:['mikrotik','fortinet'],note:'RouterOS OpenVPN client or FortiOS 7.4 SSL VPN server. Existing PKI/server or authenticated user-group prerequisites apply.'},
   ...ENTERPRISE_FEATURES,
 };
-export const CATEGORIES={switching:'01 // SWITCHING & LAYER 2',routing:'02 // ADVANCED ROUTING',infrastructure:'03 // MANAGEMENT, SERVICES & ACCESS',security:'04 // SECURITY, NAT & ENTERPRISE VPN'};
+export const CATEGORIES={switching:'01 // SWITCHING & LAYER 2',routing:'02 // ROUTING PROTOCOLS',tunneling:'03 // TUNNELING',security:'04 // SECURITY, NAT & ENTERPRISE VPN',hardening:'05 // ADVANCED SECURITY & HARDENING',infrastructure:'06 // MANAGEMENT & SERVICES',performance:'07 // HIGH AVAILABILITY & PERFORMANCE'};
 for(const[id,feature]of Object.entries(FEATURES))if(!feature.category)feature.category=['vlan','security'].includes(id)?'switching':['static','ospf','bgp'].includes(id)?'routing':['bootstrap','enterprise'].includes(id)?'presets':['dhcp'].includes(id)?'infrastructure':'security';
 FEATURES.vlan.title='VLAN & 802.1Q Trunking';FEATURES.static.title='Static Routing · IPv4';FEATURES.ospf.title='OSPFv2 · Basic';FEATURES.bgp.title='BGP · eBGP / iBGP';FEATURES.acl.title='Standard & Extended ACLs';FEATURES.hardening.title='SSH & Device Hardening';FEATURES.vpn.title='Site-to-Site VPN';FEATURES.nat.title='NAT / PAT · Static, Dynamic, Overload';
-for(const id of ['hardening','aaa'])FEATURES[id].category='infrastructure';
-FEATURES.qos.category='security';FEATURES.fhrp.category='switching';FEATURES.fhrp.roles=['router','switch'];FEATURES.glbp.roles=['router','switch'];FEATURES.automation.roles=['router','switch'];
+for(const id of ['hardening','aaa'])FEATURES[id].category='hardening';
+FEATURES.fhrp.category='performance';FEATURES.glbp.category='performance';FEATURES.dmvpn.category='tunneling';
+FEATURES.qos.category='security';FEATURES.fhrp.roles=['router','switch'];FEATURES.glbp.roles=['router','switch'];FEATURES.automation.roles=['router','switch'];
 export const forRole=(feature,role)=>(feature.roles||[feature.role]).includes(role);
 export const VPN_TYPES={ikev2:'IPsec · IKEv2',ikev1:'IPsec · IKEv1',vti:'VTI · Cisco IKEv1',gre:'GRE over IPsec',wireguard:'WireGuard',openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'};
 export const capable=(id,vendor)=>Boolean(FEATURES[id]?.vendors.includes(vendor));
@@ -43,6 +44,7 @@ const unicast=(v,label)=>{ip(v,label);if(ipv4(v)===0||ipv4(v)>=3758096384||v.sta
 // Shared bindings are authoritative for address-dependent features.
 export function boundValues(id,d,s){
   const result={...d,vendor:s.vendor};
+  if(id==='portforward')Object.assign(result,{publicIp:s.ip,inside:s.lan,outside:s.wan,localNetwork:s.local,lanIp:s.lanIp});
   if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan});
   if(id==='dhcp')Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan});
   if(id==='bootstrap')Object.assign(result,{wan:s.wan,wanAddress:`${s.ip}/${s.wanPrefix}`,gateway:s.gateway,lan:`${s.lanIp}/${s.local.split('/')[1]}`});
