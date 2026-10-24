@@ -73,7 +73,8 @@ check('fixed-address repair examples removed',!q('[data-repair]'));
 toggle('dhcp',true);input('[data-feature-panel="dhcp"] [name="leaseMinutes"]','1950');submit();check('DHCP lease UI reaches CLI',q('[data-code]').textContent.includes('lease 1 8 30'));toggle('dhcp',false);
 input('[data-vendor]','paloalto','change');toggle('static',true);input('[data-feature-panel="static"] [name="virtualRouter"]','CORP-VR');input('[data-feature-panel="static"] [name="routeName"]','BRANCH-ROUTE');submit();check('PAN route context UI reaches CLI',q('[data-code]').textContent.includes('virtual-router CORP-VR')&&q('[data-code]').textContent.includes('static-route BRANCH-ROUTE'));
 
-for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
+input('[data-vendor]','ios','change');toggle('wan_failover',true);q('[data-office-preset]').click();check('Cisco ACL-only dual-WAN PAT is rejected clearly',q('[data-errors]').textContent.includes('egress paths')&&q('[data-copy-config]').disabled);toggle('wan_failover',false);submit();check('Cisco office preset recovers without WAN2',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('ip dhcp pool OFFICE-LAN-V20'));
+for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){
  input('[data-vendor]',vendor,'change');toggle('wan_failover',true);
  check(vendor+' WAN2 settings appear',!!q('[data-feature-panel="wan_failover"] [name="ip2"]'));
  input('[data-feature-panel="wan_failover"] [name="ip2"]','198.18.60.6');input('[data-feature-panel="wan_failover"] [name="gateway2"]','198.18.60.5');
