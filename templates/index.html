@@ -122,62 +122,36 @@
 
 <main class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
 
-  <!-- Network Info სექცია -->
-  <section class="panel rounded-lg p-4 sm:p-6 relative overflow-hidden">
-    <div class="flex items-center justify-between mb-3 sm:mb-4">
-      <div>
-        <h2 id="title-net-info" class="font-mono text-xs sm:text-sm font-bold text-cyan-glow tracking-wider">ქსელის ინფორმაცია</h2>
+  <!-- Unified edge command bar: four equal desktop columns -->
+  <section class="panel noc-command-bar bg-slate-900/60 backdrop-blur-md border border-slate-800/60" aria-labelledby="title-net-info">
+    <div class="noc-command-heading"><h2 id="title-net-info">ქსელის ინფორმაცია</h2><span>NETWORK EDGE / COMMAND BAR</span></div>
+    <div class="noc-command-grid grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="noc-command-cell">
+        <span id="lbl-public-ip" class="noc-metric-label">საჯარო IP მისამართი</span>
+        <strong id="geo-ip-display" class="noc-metric-value noc-metric-mono">მოწმდება...</strong>
       </div>
-    </div>
-
-    <div class="noc-network-summary">
-      <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
-        <span id="lbl-public-ip" class="font-mono text-[10px] text-slate-500 uppercase block">საჯარო IP მისამართი</span>
-        <span id="geo-ip-display" class="font-mono text-lg sm:text-xl font-bold text-slate-100 mt-1 block tracking-wide">მოწმდება...</span>
+      <div class="noc-command-cell">
+        <span id="lbl-isp" class="noc-metric-label">ინტერნეტ პროვაიდერი (ISP)</span>
+        <strong id="geo-isp" class="noc-metric-value">მოწმდება...</strong>
       </div>
-      <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
-        <span id="lbl-isp" class="font-mono text-[10px] text-slate-500 uppercase block">ინტერნეტ პროვაიდერი (ISP)</span>
-        <span id="geo-isp" class="font-mono text-xs sm:text-sm font-semibold text-slate-200 mt-1 sm:mt-2 block truncate">მოწმდება...</span>
+      <div class="noc-command-cell">
+        <span id="lbl-location" class="noc-metric-label">მდებარეობა</span>
+        <strong id="geo-location" class="noc-metric-value">მოწმდება...</strong>
       </div>
-      <div class="bg-base-950/60 border border-base-border p-3 sm:p-4 rounded-md">
-        <span id="lbl-location" class="font-mono text-[10px] text-slate-500 uppercase block">მდებარეობა</span>
-        <span id="geo-location" class="font-mono text-xs sm:text-sm font-semibold text-slate-200 mt-1 sm:mt-2 block truncate">მოწმდება...</span>
+      <div class="noc-command-cell noc-port-cell">
+        <span class="noc-metric-label">01 // PORT CHECKER</span>
+        <span id="lbl-conn-diag" class="sr-only">კავშირის დიაგნოსტიკა</span>
+        <span id="lbl-target-socket" class="sr-only">პორტის შემოწმება</span>
+        <div class="noc-port-inputs">
+          <input id="ws-host" aria-label="Port check host" autocomplete="off" spellcheck="false" placeholder="example.com">
+          <input id="ws-port" aria-label="Port number" inputmode="numeric" value="8000" placeholder="8000">
+        </div>
+        <button type="button" onclick="probePortWS()" id="ws-btn">პორტის შემოწმება</button>
+        <div id="ws-result" role="status" aria-live="polite">შეზღუდული პორტები: 22, 23, 25, 587. რეკომენდებულია: 80, 443, 8080.</div>
       </div>
     </div>
   </section>
 
-  <!-- 3-სვეტიანი გრიდი -->
-  <div class="grid grid-cols-1 gap-4 sm:gap-6">
-    
-    <!-- 01 // PORT CHECKER -->
-    <section class="panel rounded-lg p-4 sm:p-6 relative overflow-hidden flex flex-col justify-between">
-      <div>
-        <div class="flex items-center justify-between mb-3 sm:mb-4">
-          <span class="font-mono text-[10px] text-cyan-glow tracking-widest">01 // PORT CHECKER</span>
-          <span id="lbl-conn-diag" class="font-mono text-[10px] text-slate-600">კავშირის დიაგნოსტიკა</span>
-        </div>
-        
-        <p id="lbl-target-socket" class="font-mono text-[10px] sm:text-[11px] text-slate-500 uppercase tracking-wide mb-2 sm:mb-3">პორტის შემოწმება</p>
-        
-        <div class="flex gap-2 sm:gap-3 mb-3">
-          <input id="ws-host" type="text" placeholder="მაგ. example.com ან IP" class="bg-base-900 border border-base-border rounded px-2.5 py-2 text-xs sm:text-sm font-mono text-slate-200 w-full focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-          <input id="ws-port" type="text" placeholder="8000" value="8000" class="bg-base-900 border border-base-border rounded px-2 py-2 text-xs sm:text-sm font-mono text-slate-200 w-20 sm:w-24 text-center focus:outline-none focus:border-cyan-glow/40 placeholder-slate-600">
-        </div>
-        
-        <div id="ws-result" class="font-mono text-[10px] sm:text-[11px] text-slate-500 min-h-[36px] mt-2 bg-base-950/40 p-2 rounded border border-base-border/30 leading-tight">
-          შეზღუდული პორტები: 22, 23, 25, 587. რეკომენდებულია: 80, 443, 8080.
-        </div>
-      </div>
-      
-      <div class="mt-4 sm:mt-6">
-        <button onclick="probePortWS()" id="ws-btn" class="w-full bg-cyan-glow/10 hover:bg-cyan-glow/20 border border-cyan-glow/50 text-cyan-glow font-mono text-xs font-bold uppercase tracking-widest py-3 sm:py-3.5 rounded-md transition text-center">
-          პორტის შემოწმება
-        </button>
-      </div>
-    </section>
-
-  </div>
-        
   {% include 'vpn/configurator.html' %}
 
   <!-- 05 // SYSADMIN FILE REPOSITORY -->
