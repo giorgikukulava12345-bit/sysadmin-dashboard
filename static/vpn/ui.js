@@ -1,3 +1,4 @@
+import { maskSecrets } from './secret-mask.js';
 import { DEFAULTS, VENDORS, PROTOCOLS, generate } from './engine.js';
 import { PORTS } from './platforms.js';
 import { mountWorkbench } from './workbench.js';
@@ -62,7 +63,7 @@ root.innerHTML = `<form id="vpn-form" novalidate>
   <p id="vpn-wg-note" class="mt-4 text-xs text-cyan-glow" hidden>WireGuard uses ChaCha20-Poly1305 and Curve25519. IPsec phase controls are inactive. Enter key pairs generated on the routers.</p>
 </form>
 <div id="vpn-validation" class="my-5 rounded border border-amber-400/30 bg-amber-400/5 p-4 text-xs text-amber-200" role="status" aria-live="polite" aria-atomic="true"></div>
-<div data-vpn-output class="flex flex-wrap items-center justify-between gap-3 mb-3"><p class="text-xs font-mono text-slate-400">CONFIGURATION OUTPUT / LIVE PREVIEW</p><label class="text-xs text-slate-400 flex items-center gap-2"><input id="vpn-reveal" type="checkbox" class="accent-cyan-400">Reveal configurations &amp; secrets</label></div>
+<div data-vpn-output class="flex flex-wrap items-center justify-between gap-3 mb-3"><p class="text-xs font-mono text-slate-400">CONFIGURATION OUTPUT / LIVE PREVIEW</p><label class="text-xs text-slate-400 flex items-center gap-2"><input id="vpn-reveal" type="checkbox" class="accent-cyan-400">Reveal secrets</label></div>
 <div data-vpn-output class="grid xl:grid-cols-2 gap-4">${['a','b'].map(side => `<section class="min-w-0 border border-base-border bg-base-950 rounded-lg overflow-hidden" aria-label="Side ${side.toUpperCase()} configuration"><div class="bg-base-800/60 border-b border-base-border p-3 flex items-center justify-between gap-3"><h3 id="vpn-heading-${side}" class="text-xs font-mono text-slate-300">SIDE ${side.toUpperCase()}</h3><button type="button" class="${buttonClass}" data-copy="${side}" disabled>Copy Config ${side.toUpperCase()}</button></div><pre class="p-4 text-xs leading-6 font-mono text-emerald-200 overflow-auto max-h-[36rem] min-h-[14rem]" tabindex="0" aria-label="Generated CLI side ${side.toUpperCase()}"><code id="vpn-output-${side}"></code></pre></section>`).join('')}</div>
 <p data-vpn-output id="vpn-clipboard-status" class="mt-3 text-xs text-slate-400" role="status" aria-live="polite"></p>
 <p class="text-[11px] text-slate-500 mt-3">Generation stays in your browser. No apply/save commands run automatically. Review existing crypto maps, names, routing and policies before using these templates.</p>`;
@@ -107,7 +108,7 @@ function render() {
   const reveal = root.querySelector('#vpn-reveal').checked;
   for (const side of ['a','b']) {
     root.querySelector(`#vpn-heading-${side}`).textContent = `SIDE ${side.toUpperCase()} // ${VENDORS[state[side].vendor]}`;
-    root.querySelector(`#vpn-output-${side}`).textContent = result.errors.length ? '// Waiting for valid inputs…' : reveal ? result[side] : '// Configuration ready. Reveal to inspect, or Copy Config to copy including secrets.';
+    root.querySelector(`#vpn-output-${side}`).textContent = result.errors.length ? '// Waiting for valid inputs…' : reveal ? result[side] : maskSecrets(result[side]);
     root.querySelector(`[data-copy="${side}"]`).disabled = result.errors.length > 0;
   }
 }
