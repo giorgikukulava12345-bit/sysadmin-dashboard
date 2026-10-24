@@ -79,6 +79,9 @@ for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
  input('[data-feature-panel="wan_failover"] [name="ip2"]','198.18.60.6');input('[data-feature-panel="wan_failover"] [name="gateway2"]','198.18.60.5');
  q('[data-office-preset]').click();
  check(vendor+' preset selects Internet Gateway',q('[data-feature="internet_access"]').checked);
+ for(const id of ['static','nat','zbfw'])check(vendor+' preset highlights '+id,q('[data-feature="'+id+'"]').checked&&q('[data-feature="'+id+'"]').closest('label').dataset.presetManaged==='true');
+ check(vendor+' preset banner summarizes active components',!q('[data-preset-banner]').hidden&&q('[data-preset-components]').textContent.includes('Interface NAT / PAT')&&q('[data-preset-heading]').textContent.includes('Configuration ready'));
+ check(vendor+' included cards do not duplicate routes',!q('[data-feature-panel="static"]')&&!q('[data-feature-panel="nat"]')); 
  check(vendor+' preset preserves Dual ISP',q('[data-feature="wan_failover"]').checked);
  check(vendor+' preset immediately generates router CLI',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('198.18.60.6'));
  check(vendor+' interface bindings automatic',q('[data-include-bindings]').checked&&q('[data-include-bindings]').disabled);
@@ -86,5 +89,6 @@ for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
  check(vendor+' topology shows secondary ISP',q('[data-wan-a]').textContent.includes('198.18.60.5'));
  toggle('wan_failover',false);submit();check(vendor+' unchecking WAN2 removes backup',!q('[data-code]').textContent.includes('198.18.60.6')&&!q('[data-wan-a]').textContent.includes('BACKUP'));
 }
+toggle('nat',false);check('unchecking included card clears composite preset',!q('[data-feature="internet_access"]').checked&&!q('[data-feature="static"]').checked&&q('[data-preset-banner]').hidden);
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
