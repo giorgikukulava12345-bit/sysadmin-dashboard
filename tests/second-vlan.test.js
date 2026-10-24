@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { createLab, labScripts } from '../static/vpn/lab.js';
+import { composeDevice } from '../static/vpn/compose.js';
+const lab=createLab();
+assert.equal(lab.a.vlan2,'20');
+assert.equal(lab.a.vlan2Enabled,'off');
+lab.a.vlan2Enabled='on';
+assert.deepEqual(labScripts(lab).errors,[]);
+const build=(role,selected={},values={})=>composeDevice({lab,side:'a',role,selected,values});
+const router=build('router');
+assert.deepEqual(router.errors,[]);
+assert.match(router.code,/interface GigabitEthernet0\/1\.10\n[\s\S]*encapsulation dot1Q 10 native/);
+assert.match(router.code,/encapsulation dot1Q 20\n ip address 192\.168\.20\.1 255\.255\.255\.0/);
+const sw=build('switch',{vlan:true});
+assert.deepEqual(sw.errors,[]);
+assert.match(sw.code,/switchport trunk allowed vlan 10,20/);
+assert.match(sw.code,/interface FastEthernet0\/2\n switchport mode access\n switchport access vlan 20/);
+assert.match(sw.code,/interface Vlan20\n ip address 192\.168\.20\.254/);
+assert.doesNotMatch(sw.code,/ip address 192\.168\.20\.1 /);
+const dhcp=build('router',{dhcp:true},{dhcp:{name:'NOC-LAN',dns:'8.8.8.8',exclusions:'192.168.1.254'}});
+assert.deepEqual(dhcp.errors,[]);
+assert.match(dhcp.code,/ip dhcp pool NOC-LAN-V20/);
+assert.match(dhcp.code,/ip dhcp excluded-address 192.168.20.254/);
+const nat=build('router',{nat:true},{nat:{acl:'NOC-PAT',natMode:'overload'}});
+assert.deepEqual(nat.errors,[]);
+assert.match(nat.code,/permit 192.168.20.0 0.0.0.255/);
+assert.match(nat.code,/interface GigabitEthernet0\/1\.20\n ip nat inside/);
+for(const [key,value] of [['vlan2','10'],['vlan2Subnet','192.168.1.0/24'],['vlan2Gateway','192.168.20.0'],['vlan2SwitchIp','192.168.20.1'],['vlan2Access',lab.a.access],['vendor','fortinet']]){
+ const old=lab.a[key];lab.a[key]=value;const result=build('router');assert.ok(result.errors.length,key);assert.equal(result.code,'');lab.a[key]=old;
+}
+lab.a.vlan2='30';
+assert.match(build('switch').code,/switchport trunk allowed vlan 10,30/);
+lab.a.vlan2Enabled='off';assert.equal(build('router').empty,true);
+console.log('Second VLAN: defaults, router/switch routing, NAT, DHCP and invalid-input checks passed.');

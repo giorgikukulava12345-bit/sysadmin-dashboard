@@ -55,5 +55,12 @@ q('[data-role="router"]').click();input('[data-vendor]','ios','change');toggle('
 toggle('ospf_advanced',false);toggle('vpn',true);q('[data-action="key"]').click();submit();check('site-to-site VPN still generates',!q('[data-copy-config]').disabled);check('VPN menu limited to site-to-site families',q('[aria-label="VPN technology"]').options.length===5);toggle('vpn',false);
 input('[data-vendor]','mikrotik','change');toggle('remotevpn',true);input('[data-feature-panel="remotevpn"] [name="username"]','nocadmin');input('[data-feature-panel="remotevpn"] [name="password"]','ExampleOnly_ChangeMe26');submit();check('dedicated remote-access feature generates',!q('[data-copy-config]').disabled);
 q('[data-role="host"]').click();submit();check('host generation uses same Submit flow',q('[data-code]').textContent.includes('ip route replace default'));
-cleanup();check('cleanup restores original mount host',!q('.noc-composer')&&root.parentElement===fixture);cleanup=mountVpn(root);check('remount creates one workbench',fixture.querySelectorAll('.noc-composer').length===1);cleanup();fixture.remove();
+cleanup();check('cleanup restores original mount host',!q('.noc-composer')&&root.parentElement===fixture);cleanup=mountVpn(root);check('remount creates one workbench',fixture.querySelectorAll('.noc-composer').length===1);q('[data-edit-vlans]').click();input('[data-side="a"][name="vlan2Enabled"]','on');
+check('second VLAN prefilled',q('[data-side="a"][name="vlan2"]').value==='20');
+q('[data-role="switch"]').click();submit();check('second VLAN switch trunk generated',q('[data-code]').textContent.includes('switchport trunk allowed vlan 10,20'));
+check('second VLAN SVI generated',q('[data-code]').textContent.includes('ip address 192.168.20.254'));
+q('[data-role="router"]').click();submit();check('second VLAN router gateway generated',q('[data-code]').textContent.includes('encapsulation dot1Q 20')&&q('[data-code]').textContent.includes('ip address 192.168.20.1'));
+input('[data-side="a"][name="vlan2"]','10');submit();check('duplicate VLAN blocks CLI',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('differ'));
+input('[data-side="a"][name="vlan2"]','20');input('[data-side="a"][name="vlan2Enabled"]','off');
+cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
