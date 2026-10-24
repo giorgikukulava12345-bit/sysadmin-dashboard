@@ -4,8 +4,8 @@ import { interfaceConfig, validateInterfaces } from './interfaces.js';
 
 export const createLab = () => Object.fromEntries(['a','b'].map((side,i)=>[side,{
   vendor:i?'fortinet':'ios',ip:i?'198.51.100.20':'203.0.113.10',wanPrefix:'24',wan:i?'port1':'GigabitEthernet0/0',lan:i?'port2':'GigabitEthernet0/1',
-  local:`10.${i?20:10}.0.0/24`,lanIp:`10.${i?20:10}.0.1`,gateway:i?'198.51.100.1':'203.0.113.1',
-  switchVendor:'ios',uplink:'GigabitEthernet0/1',access:'FastEthernet0/1',switchIp:`10.${i?20:10}.0.2`,vlan:'10',hostIf:'eth0',hostIp:`10.${i?20:10}.0.10`,
+  local:i?'10.20.0.0/24':'192.168.1.0/24',lanIp:i?'10.20.0.1':'192.168.1.1',gateway:i?'198.51.100.1':'203.0.113.1',
+  switchVendor:'ios',uplink:'GigabitEthernet0/1',access:'FastEthernet0/1',switchIp:i?'10.20.0.2':'192.168.1.254',vlan:'10',hostIf:'eth0',hostIp:i?'10.20.0.10':'192.168.1.10',
 }]));
 const nameOK = v => /^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(v);
 export function labScripts(lab) {

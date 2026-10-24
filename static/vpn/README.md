@@ -72,7 +72,7 @@ Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feat
 
 ## Validation
 
-371/371 Node and Chromium generator tests; 128/128 Chromium UI checks. The dedicated Submit regression was observed failing against the previous workbench and passing against the fix. React source is syntax-transpiled separately, not a production Next.js build or complete typecheck. No appliance CLI has been executed.
+372/372 Node and Chromium generator tests; 133/133 Chromium UI checks. The dedicated Submit regression was observed failing against the previous workbench and passing against the fix. React source is syntax-transpiled separately, not a production Next.js build or complete typecheck. No appliance CLI has been executed.
 
 ## Primary references
 
@@ -84,3 +84,7 @@ Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feat
 - [IS-IS IOS XE model](https://netascode.cisco.com/docs/data_models/iosxe/device/isis/)
 - [IOS XE CoPP](https://www.cisco.com/c/en/us/td/docs/routers/ios-xe/quality-of-service/quality-of-service/m_qos-plcshp-ctrl-pln-plc-0.html)
 - [uRPF command reference](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/security/d1/sec-d1-cr-book/sec-cr-i3.html)
+
+## Initial local-site defaults
+
+LAN 192.168.1.0/24; router LAN 192.168.1.1; switch management 192.168.1.254; host 192.168.1.10; DNS 8.8.8.8. The remote site retains a distinct subnet for valid site-to-site configurations. The VPN model and topology share the new local subnet. Cisco DHCP excludes the switch address; dynamic pools end before it. Local static NAT and port-forward forms take their server defaults from the host node.
