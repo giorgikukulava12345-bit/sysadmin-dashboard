@@ -2,8 +2,10 @@ import { TOOLS, defaultsFor, generateTool, network, number, ip } from './catalog
 import { cidr, ipv4 } from './address.js';
 import { PLATFORMS } from './platforms.js';
 import { ENTERPRISE_FEATURES, enterpriseFields, enterpriseDefaults, enterpriseGenerate } from './enterprise.js';
+import { INTERNET_FEATURES, internetFields, internetDefaults, generateInternet } from './internet.js';
 
 export const FEATURES = {
+  ...INTERNET_FEATURES,
   nat:{title:'NAT / PAT',role:'router',tool:'nat',vendors:['ios','mikrotik']},
   acl:{title:'Access control lists',role:'router',tool:'acl',vendors:['ios']},
   static:{title:'Static routes',role:'router',tool:'static',vendors:Object.keys(PLATFORMS)},
@@ -28,8 +30,9 @@ FEATURES.qos.category='security';FEATURES.fhrp.roles=['router','switch'];FEATURE
 export const forRole=(feature,role)=>(feature.roles||[feature.role]).includes(role);
 export const VPN_TYPES={ikev2:'IPsec · IKEv2',ikev1:'IPsec · IKEv1',vti:'VTI · Cisco IKEv1',gre:'GRE over IPsec',wireguard:'WireGuard',openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'};
 export const capable=(id,vendor)=>Boolean(FEATURES[id]?.vendors.includes(vendor));
-export function featureDefaults(id,vendor){if(ENTERPRISE_FEATURES[id])return enterpriseDefaults(id,vendor);if(id==='remotevpn'){const remoteType=vendor==='mikrotik'?'openvpn':'ssl';return{vendor,remoteType,...remoteDefaults(remoteType)};}const d={...(FEATURES[id]?.tool?defaultsFor(FEATURES[id].tool):{}),vendor,...(['ospf','bgp'].includes(id)?{protocol:id}:{})};for(const f of featureFields(id,vendor))if(!Object.hasOwn(d,f.key))d[f.key]=f.value;if(id==='dhcp'&&vendor!=='ios')d.dns='8.8.8.8';return d;}
+export function featureDefaults(id,vendor){if(INTERNET_FEATURES[id])return {vendor,...internetDefaults(id,vendor)};if(ENTERPRISE_FEATURES[id])return enterpriseDefaults(id,vendor);if(id==='remotevpn'){const remoteType=vendor==='mikrotik'?'openvpn':'ssl';return{vendor,remoteType,...remoteDefaults(remoteType)};}const d={...(FEATURES[id]?.tool?defaultsFor(FEATURES[id].tool):{}),vendor,...(['ospf','bgp'].includes(id)?{protocol:id}:{})};for(const f of featureFields(id,vendor))if(!Object.hasOwn(d,f.key))d[f.key]=f.value;if(id==='dhcp'&&vendor!=='ios')d.dns='8.8.8.8';return d;}
 export function featureFields(id,vendor) {
+  if(INTERNET_FEATURES[id])return internetFields(id,vendor);
   if(id==='vpn')return [];
   if(ENTERPRISE_FEATURES[id])return enterpriseFields(id,vendor);
   if(id==='remotevpn')return[{key:'remoteType',label:'Remote-access technology',value:vendor==='mikrotik'?'openvpn':'ssl',type:'select',options:{openvpn:'OpenVPN · RouterOS client',ssl:'SSL VPN · FortiOS 7.4 server'}},...Object.entries(REMOTE_VPN_FIELDS).flatMap(([kind,fields])=>fields.map(f=>({...f,type:f.type||'text',when:d=>d.remoteType===kind})))];
@@ -47,6 +50,7 @@ const unicast=(v,label)=>{ip(v,label);if(ipv4(v)===0||ipv4(v)>=3758096384||v.sta
 // Shared bindings are authoritative for address-dependent features.
 export function boundValues(id,d,s){
   const result={...d,vendor:s.vendor};
+  if(INTERNET_FEATURES[id])return {...s,...d,vendor:s.vendor,wan:s.wan,lan:s.lan,ip:s.ip,gateway:s.gateway,wanPrefix:s.wanPrefix,local:s.local,lanIp:s.lanIp};
   if(id==='portforward')Object.assign(result,{publicIp:s.ip,inside:s.lan,outside:s.wan,localNetwork:s.local,lanIp:s.lanIp});
   if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan,lanIp:s.lanIp,reserved:[s.switchIp]});
   if(id==='dhcp'){Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan,reserved:[s.switchIp,s.hostIp].filter(Boolean)});if(s.vendor==='ios')result.exclusions=[d.exclusions||'',...result.reserved].filter(Boolean).join('\n');}
@@ -57,6 +61,7 @@ export function boundValues(id,d,s){
 }
 export function generateFeature(id,data){
   try{
+    if(INTERNET_FEATURES[id])return generateInternet(id,data);
     if(!capable(id,data.vendor))throw Error(`${FEATURES[id]?.title||id} has no validated ${PLATFORMS[data.vendor]||'selected vendor'} template.`);
     if(ENTERPRISE_FEATURES[id])return enterpriseGenerate(id,data);
     if(id==='remotevpn')return generateRemoteVpn(data.remoteType,data,data);

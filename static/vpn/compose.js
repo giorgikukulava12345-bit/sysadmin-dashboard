@@ -3,6 +3,7 @@ import { FEATURES, forRole, boundValues, capable, generateFeature, generateRemot
 import { labScripts } from './lab.js';
 import { generate as generateVpn } from './engine.js';
 import { cidr } from './address.js';
+import { iosInternetPat } from './internet.js';
 
 /** No DOM dependencies. Each output belongs to one physical device. */
 export function composeDevice({lab,side,role,selected={},values={},bindings=false,vpnConfig,vpnType='ikev2',remote={},linkedEnterprise=null}){
@@ -12,6 +13,7 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   const logical=routedSite(site);
   const address=labScripts(lab);
   const ids=Object.keys(selected).filter(id=>selected[id]).sort((a,b)=>(a==='aaa'?1:0)-(b==='aaa'?1:0));
+  if(role==='router'&&ids.some(id=>['wan_failover','internet_access'].includes(id)))bindings=true;
   if(role==='switch'&&linkedEnterprise){
     if(vendor!=='ios'||ids.length||bindings)return{errors:['The linked router-on-a-stick switch preset requires Cisco and no additional switch features/bindings.'],code:'',empty:false};
     const r=generateFeature('enterprise',{...linkedEnterprise,vendor:'ios'});
@@ -20,6 +22,13 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
   if(!ids.length&&!bindings)return{errors:[],code:'',empty:true};
   if(address.errors.length)return{errors:address.errors,code:'',empty:false};
   if(role==='host')return{errors:[],code:address.scripts[side==='a'?2:5].code,empty:false};
+  const failover=ids.includes('wan_failover'),office=ids.includes('internet_access');
+  if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or use the office preset.');
+  if((failover||office)&&ids.includes('static')&&values.static?.destination==='0.0.0.0'&&values.static?.mask==='0.0.0.0')errors.push('Internet Gateway / WAN Failover owns default routing. Remove the separate default static route.');
+  if(failover&&ids.some(id=>['vpn','dmvpn','remotevpn','bootstrap','enterprise'].includes(id)))errors.push('Dual ISP needs a separately designed VPN/bootstrap underlay. Generate these templates separately.');
+  if(failover&&ids.includes('nat')&&values.nat?.natMode&&values.nat.natMode!=='overload')errors.push('Automatic Dual ISP translation supports interface PAT / Overload only.');
+  if(failover&&ids.includes('zbfw')&&(values.zbfw?.outside!==site.wan||values.zbfw?.inside!==logical.lan))errors.push('Dual ISP ZBFW must use the topology LAN and primary WAN interfaces.');
+  if(failover&&office&&vendor==='paloalto'&&values.wan_failover?.virtualRouter!==values.internet_access?.virtualRouter)errors.push('Internet Gateway and WAN Failover must use the same virtual router.');
   if(ids.includes('nat')&&values.nat?.natMode==='static'&&[site.ip,site.gateway].includes(values.nat.publicHost))errors.push('Static NAT public mapping must not reuse the WAN router or ISP gateway address. Use a separately assigned public address.');
   if(ids.includes('nat')&&values.nat?.natMode==='dynamic'){const start=values.nat.poolStart?.split('.').reduce((a,v)=>a*256+Number(v),0),end=values.nat.poolEnd?.split('.').reduce((a,v)=>a*256+Number(v),0);for(const ip of [site.ip,site.gateway]){const n=ip.split('.').reduce((a,v)=>a*256+Number(v),0);if(n>=start&&n<=end)errors.push('Dynamic NAT pool must exclude WAN router and ISP gateway addresses.');}}
   if(ids.includes('static')&&[site.ip,site.lanIp,site.switchIp,site.hostIp].includes(values.static?.nextHop))errors.push('Static-route next hop must not be an address assigned to this site.');
@@ -75,10 +84,17 @@ export function composeDevice({lab,side,role,selected={},values={},bindings=fals
     }
     if(dual&&role==='switch'&&id==='vlan')continue; // Shared topology owns both VLANs and their ports.
     if(id==='nat'&&vtiOwnNat)continue; // VTI already emits its NAT ACL and bindings.
-    const data=boundValues(id,values[id]||{}, {...logical,vendor,role});
+    let data=boundValues(id,values[id]||{}, {...logical,physicalLan:site.lan,vendor,role});
+    if(id==='internet_access'&&failover){const backup=values.wan_failover||{};data={...data,wan2:backup.wan2,ip2:backup.ip2,gateway2:backup.gateway2,backupDistance:backup.backupDistance,routeId:backup.routeId??data.routeId,backupRouteId:backup.backupRouteId};}
     for(const key of ['interface','inside'])if(dual&&role==='router'&&data[key]===site.lan)data[key]=logical.lan;
     let result=generateFeature(id,data);
-    if(dual&&role==='router'&&!result.errors.length&&id==='nat'&&(!data.natMode||data.natMode==='overload')){
+    if(id==='zbfw'&&failover&&vendor==='ios'&&!result.errors.length)result.scripts.push({code:`configure terminal\ninterface ${values.wan_failover?.wan2}\n zone-member security NOC-UNTRUST\n exit\nend`});
+    if(id==='nat'&&failover&&!result.errors.length){
+      const backup=values.wan_failover||{};
+      if(vendor==='ios')result={errors:[],scripts:[{code:`configure terminal\n${iosInternetPat({...logical,physicalLan:site.lan,wan2:backup.wan2},data.acl)}\nend`}]};
+      if(vendor==='mikrotik')result.scripts.push({code:`/ip firewall nat add chain=srcnat src-address=${site.local} out-interface=${backup.wan2} action=masquerade comment="NOC backup WAN PAT"`});
+    }
+    if(dual&&role==='router'&&!result.errors.length&&id==='nat'&&!failover&&(!data.natMode||data.natMode==='overload')){
       const n=cidr(site.vlan2Subnet);result.scripts.push({code:`configure terminal\nip access-list standard ${data.acl}\n permit ${n.networkAddress||n.ip} ${n.wildcard}\n exit\ninterface ${site.lan}.${site.vlan2}\n ip nat inside\n exit\nend`});
     }
     if(dual&&role==='router'&&!result.errors.length&&id==='dhcp'){
