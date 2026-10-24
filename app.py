@@ -1,10 +1,10 @@
 import os
 import socket
+from network_validation import parse_port, validate_public_ip
 import time
 from datetime import datetime
 
-from flask import Flask, jsonify, request, render_template, send_from_directory, abort, Response, stream_with_context
-from werkzeug.utils import secure_filename
+from flask import Flask, jsonify, request, render_template, send_from_directory, abort
 from werkzeug.exceptions import RequestEntityTooLarge
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -12,11 +12,8 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 PORT_CHECK_TIMEOUT = 3.0
-SPEEDTEST_CHUNK_SIZE = 256 * 1024       
-SPEEDTEST_MAX_MB = 500  # Maximum payload size for large application downloads.
-
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = (SPEEDTEST_MAX_MB + 4) * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 
 # ---------------------------------------------------------------------------
 # Google Drive links for large files.
@@ -42,46 +39,21 @@ def index():
 
 
 # ---------------------------------------------------------------------------
-# API: upload files to local storage.
-# ---------------------------------------------------------------------------
-@app.route("/api/upload", methods=["POST"])
-def api_upload_real_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part in the request"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file:
-        filename = secure_filename(file.filename)
-        if not filename:
-            filename = file.filename
-            
-        destination = os.path.join(UPLOAD_DIR, filename)
-        file.save(destination)
-        
-        return jsonify({
-            "success": True,
-            "message": f"File {filename} uploaded successfully.",
-            "filename": filename
-        }), 200
-
-
-# ---------------------------------------------------------------------------
 # API: Port checker
 # ---------------------------------------------------------------------------
 @app.route("/api/portcheck", methods=["POST"])
 def api_portcheck():
     data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
     host = str(data.get("host", "")).strip()
     port_raw = data.get("port")
 
-    if not host:
+    if not host or len(host) > 253:
         return jsonify({"error": "Host / IP is required."}), 400
 
     try:
-        port = int(port_raw)
+        port = parse_port(port_raw)
     except (TypeError, ValueError):
         return jsonify({"error": "Port must be a number."}), 400
 
@@ -97,6 +69,11 @@ def api_portcheck():
             "status": "error",
             "message": "Could not resolve host.",
         }) or {}, 200
+
+    try:
+        resolved_ip = validate_public_ip(resolved_ip)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
 
     start = time.monotonic()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -161,8 +138,8 @@ def download_file(filename):
     full_path = os.path.join(UPLOAD_DIR, filename)
     
     # Prevent directory traversal.
-    resolved_path = os.path.abspath(full_path)
-    if not resolved_path.startswith(os.path.abspath(UPLOAD_DIR)):
+    resolved_path = os.path.realpath(full_path)
+    if os.path.commonpath([resolved_path, os.path.realpath(UPLOAD_DIR)]) != os.path.realpath(UPLOAD_DIR):
         abort(403)
         
     if not os.path.isfile(resolved_path):
@@ -171,46 +148,11 @@ def download_file(filename):
     return send_from_directory(UPLOAD_DIR, filename, as_attachment=True)
 
 
-# ---------------------------------------------------------------------------
-# API: Speed test
-# ---------------------------------------------------------------------------
-@app.route("/api/speedtest/ping")
-def api_speedtest_ping():
-    resp = jsonify({"pong": True, "t": time.time()})
-    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    return resp
-
-
-@app.route("/api/speedtest/download")
-def api_speedtest_download():
-    try:
-        mb = float(request.args.get("mb", 10))
-    except (TypeError, ValueError):
-        mb = 10.0
-    mb = max(1.0, min(mb, SPEEDTEST_MAX_MB))
-    total_bytes = int(mb * 1024 * 1024)
-
-    def generate():
-        remaining = total_bytes
-        while remaining > 0:
-            chunk = min(SPEEDTEST_CHUNK_SIZE, remaining)
-            yield os.urandom(chunk)
-            remaining -= chunk
-
-    headers = {
-        "Content-Type": "application/octet-stream",
-        "Content-Length": str(total_bytes),
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "X-Speedtest-Bytes": str(total_bytes),
-    }
-    return Response(stream_with_context(generate()), headers=headers)
-
-
 @app.errorhandler(RequestEntityTooLarge)
 def handle_payload_too_large(e):
-    return jsonify({"error": f"Payload too large. Max test size is {SPEEDTEST_MAX_MB} MB."}), 413
+    return jsonify({"error": "Request body exceeds the 64 KiB limit."}), 413
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
 
