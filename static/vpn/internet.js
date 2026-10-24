@@ -54,7 +54,7 @@ const wrap=(vendor,body)=>vendor==='ios'?`configure terminal\n${body}\nend\n`:['
 export function internetRoutes(d,backup=false){
   validateInternet(d,backup);const distance=d.backupDistance||'5';
   const paths=[{port:d.wan,ip:d.ip,gateway:d.gateway,preference:1,id:d.routeId,label:'PRIMARY'},...(backup?[{port:d.wan2,ip:d.ip2,gateway:d.gateway2,preference:distance,id:d.backupRouteId,label:'BACKUP'}]:[])];
-  if(d.vendor==='ios')return paths.map(p=>`ip route 0.0.0.0 0.0.0.0 ${p.port} ${p.gateway} ${p.preference}`).join('\n');
+  if(d.vendor==='ios')return paths.map(p=>`ip route 0.0.0.0 0.0.0.0 ${p.gateway} ${p.preference}`).join('\n');
   if(d.vendor==='mikrotik')return paths.map(p=>`/ip route add dst-address=0.0.0.0/0 gateway=${p.gateway}%${p.port} distance=${p.preference} check-gateway=ping comment="NOC-${p.label}"`).join('\n');
   if(d.vendor==='juniper')return `set routing-options static route 0.0.0.0/0 next-hop ${d.gateway}\nset routing-options static route 0.0.0.0/0 preference 1${backup?`\nset routing-options static route 0.0.0.0/0 qualified-next-hop ${d.gateway2} preference ${distance}`:''}`;
   if(d.vendor==='fortinet')return `config router static\n${paths.map(p=>` edit ${p.id}\n  set dst 0.0.0.0 0.0.0.0\n  set gateway ${p.gateway}\n  set device "${p.port}"\n  set distance ${p.preference}\n next`).join('\n')}\nend`;
@@ -72,8 +72,9 @@ export function failoverConfig(d){
 const subnets=d=>[d.local,...(d.vlan2Enabled==='on'?[d.vlan2Subnet]:[])];
 const insidePorts=d=>d.vlan2Enabled==='on'?[`${d.physicalLan||d.lan}.${d.vlan}`,`${d.physicalLan||d.lan}.${d.vlan2}`]:[d.lan];
 export function iosInternetPat(d,acl='NOC-INTERNET-NAT'){
+  if(d.wan2)throw Error('Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.');
   name(acl,'NAT ACL');const paths=[d.wan,...(d.wan2?[d.wan2]:[])];
-  return `ip access-list standard ${acl}\n${subnets(d).map(n=>{const c=cidr(n);return ` permit ${c.ip} ${c.wildcard}`;}).join('\n')}\n exit\n${insidePorts(d).map(p=>`interface ${p}\n ip nat inside\n exit`).join('\n')}\n${paths.map((p,i)=>`interface ${p}\n ip nat outside\n exit\nroute-map NOC-INTERNET-ISP${i+1} permit 10\n match ip address ${acl}\n match interface ${p}\n exit\nip nat inside source route-map NOC-INTERNET-ISP${i+1} interface ${p} overload`).join('\n')}`;
+  return `ip access-list standard ${acl}\n${subnets(d).map(n=>{const c=cidr(n);return ` permit ${c.ip} ${c.wildcard}`;}).join('\n')}\n exit\n${insidePorts(d).map(p=>`interface ${p}\n ip nat inside\n exit`).join('\n')}\n${paths.map((p,i)=>`interface ${p}\n ip nat outside\n exit\nroute-map NOC-INTERNET-ISP${i+1} permit 10\n match ip address ${acl}\n exit\nip nat inside source route-map NOC-INTERNET-ISP${i+1} interface ${p} overload`).join('\n')}`;
 }
 export function officeConfig(d){
   validateInternet(d,Boolean(d.wan2));
