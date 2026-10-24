@@ -72,5 +72,19 @@ check('duplicate hidden device terminals removed',!q('[data-bindings] .lab-outpu
 check('fixed-address repair examples removed',!q('[data-repair]'));
 toggle('dhcp',true);input('[data-feature-panel="dhcp"] [name="leaseMinutes"]','1950');submit();check('DHCP lease UI reaches CLI',q('[data-code]').textContent.includes('lease 1 8 30'));toggle('dhcp',false);
 input('[data-vendor]','paloalto','change');toggle('static',true);input('[data-feature-panel="static"] [name="virtualRouter"]','CORP-VR');input('[data-feature-panel="static"] [name="routeName"]','BRANCH-ROUTE');submit();check('PAN route context UI reaches CLI',q('[data-code]').textContent.includes('virtual-router CORP-VR')&&q('[data-code]').textContent.includes('static-route BRANCH-ROUTE'));
+
+for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
+ input('[data-vendor]',vendor,'change');toggle('wan_failover',true);
+ check(vendor+' WAN2 settings appear',!!q('[data-feature-panel="wan_failover"] [name="ip2"]'));
+ input('[data-feature-panel="wan_failover"] [name="ip2"]','198.18.60.6');input('[data-feature-panel="wan_failover"] [name="gateway2"]','198.18.60.5');
+ q('[data-office-preset]').click();
+ check(vendor+' preset selects Internet Gateway',q('[data-feature="internet_access"]').checked);
+ check(vendor+' preset preserves Dual ISP',q('[data-feature="wan_failover"]').checked);
+ check(vendor+' preset immediately generates router CLI',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('198.18.60.6'));
+ check(vendor+' interface bindings automatic',q('[data-include-bindings]').checked&&q('[data-include-bindings]').disabled);
+ check(vendor+' switch script separate and visible',!q('[data-office-companion]').hidden&&q('[data-companion-code]').textContent.includes('ip default-gateway 192.168.1.1'));
+ check(vendor+' topology shows secondary ISP',q('[data-wan-a]').textContent.includes('198.18.60.5'));
+ toggle('wan_failover',false);submit();check(vendor+' unchecking WAN2 removes backup',!q('[data-code]').textContent.includes('198.18.60.6')&&!q('[data-wan-a]').textContent.includes('BACKUP'));
+}
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;

@@ -1,3 +1,4 @@
+import { PORTS } from '../static/vpn/platforms.js';
 import { FEATURES, featureDefaults, featureFields, generateFeature, boundValues, remoteDefaults, generateRemoteVpn } from '../static/vpn/features.js';
 import { validateWan } from '../static/vpn/interfaces.js';
 import { composeDevice } from '../static/vpn/compose.js';
@@ -191,7 +192,7 @@ for(const[id,f]of Object.entries(FEATURES).filter(([id])=>id!=='vpn'))for(const 
   if(id==='vlan'&&vendor!=='ios')d.interface=vendor==='juniper'?'ge-0/0/1':'ether2';
   if(id==='ospf'&&vendor==='juniper')d.ospfInterfaces='ge-0/0/1.0';
   if(id==='dhcp'&&vendor!=='ios')Object.assign(d,{network:'10.10.0.0/24',gateway:'10.10.0.1',interface:vendor==='fortinet'?'port2':'ether2'});
-  const r=generateFeature(id,['remotevpn','relay','fhrp'].includes(id)?boundValues(id,d,{...createLab().a,vendor}):d);assert(!r.errors.length,r.errors.join(';'));assert(r.scripts.length>0&&!r.scripts.some(s=>/undefined|NaN|\[object Object\]/.test(s.code)));
+  const r=generateFeature(id,['remotevpn','relay','fhrp','wan_failover','internet_access'].includes(id)?boundValues(id,d,{...createLab().a,vendor,...(['wan_failover','internet_access'].includes(id)?{wan:PORTS[vendor][0],lan:PORTS[vendor][1]}:{})}):d);assert(!r.errors.length,r.errors.join(';'));assert(r.scripts.length>0&&!r.scripts.some(s=>/undefined|NaN|\[object Object\]/.test(s.code)));
 });
 test('Composition includes only enabled features',()=>{const lab=createLab(),values={nat:featureDefaults('nat','ios'),acl:featureDefaults('acl','ios')};const r=composeDevice({lab,side:'a',role:'router',selected:{nat:true,acl:false},values});assert(!r.errors.length);assert(r.code.includes('ip nat inside source list'));assert(!r.code.includes('NOC-ACL'));});
 test('IOS NAT + VPN composes a real remote-prefix exemption',()=>{const lab=createLab(),c=config();c.a={...c.a,...lab.a};c.b={...c.b,...lab.b};const r=composeDevice({lab,side:'a',role:'router',selected:{nat:true,vpn:true},values:{nat:featureDefaults('nat','ios')},vpnConfig:c});assert(!r.errors.length,r.errors.join(';'));assert(r.code.includes('10 deny ip 10.10.0.0 0.0.0.255 10.20.0.0 0.0.0.255'));assert(!r.code.includes('ip access-list standard NOC-PAT'));});

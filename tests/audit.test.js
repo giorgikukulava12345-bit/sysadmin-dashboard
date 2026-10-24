@@ -53,7 +53,7 @@ for(const[id,f]of Object.entries(FEATURES).filter(([id])=>id!=='vpn'))for(const 
  let d=featureDefaults(id,vendor);for(const field of featureFields(id,vendor))if(field.type==='password')d[field.key]=field.key==='privSecret'?'PrivacyOnly_ChangeMe26':'ExampleOnly_ChangeMe26';
  if(id==='dmvpn')d.nhrpSecret='NocLab26';if(id==='remotevpn')Object.assign(d,{username:'nocadmin',server:'audit-vpn.example.org'});if(id==='hardening')d.secret=d.enableSecret='ExampleOnly_0123456789';if(id==='vlan'&&vendor!=='ios')d.interface=vendor==='juniper'?'ge-0/0/1':'ether2';
  if(id==='dhcp'&&vendor!=='ios')Object.assign(d,{network:'10.10.0.0/24',gateway:'10.10.0.1',interface:vendor==='fortinet'?'port2':'ether2'});
- if(['remotevpn','relay','fhrp'].includes(id))d=boundValues(id,d,{...lab.a,local:'10.10.0.0/24',lanIp:'10.10.0.1',vendor});
+ if(['remotevpn','relay','fhrp','wan_failover','internet_access'].includes(id))d=boundValues(id,d,{...lab.a,local:'10.10.0.0/24',lanIp:'10.10.0.1',vendor,...(['wan_failover','internet_access'].includes(id)?{wan:PORTS[vendor][0],lan:PORTS[vendor][1]}:{})});
  const baseline=generateFeature(id,d);check(!baseline.errors.length,`${id}/${vendor}: ${baseline.errors}`);pairs++;
  for(const field of featureFields(id,vendor).filter(f=>!['select','checkbox'].includes(f.type)&&(!f.when||f.when(d)))){
   const r=generateFeature(id,{...d,[field.key]:String(d[field.key])+'\nAUDIT-INJECT'});check(r.errors.length?!r.scripts.length:r.scripts.every(s=>!s.code.includes('AUDIT-INJECT')),`${id}/${vendor}/${field.key}: CLI injection`);mutations++;
