@@ -63,6 +63,7 @@ ${gre ? `interface Tunnel100
  exit
 ip route ${remote.ip} ${remote.mask} ${r.tunnel}` : `ip route ${remote.ip} ${remote.mask} ${s.gateway}`}
 end
+! Policy-based crypto map target: IOS XE 17.6–17.9. Later releases need a reviewed route-based design.
 ! Merge NAT exemption into the existing NAT ACL before any translation permits.
 ! Preserve WAN reachability to ${r.ip} outside the tunnel.
 ! Verify: show crypto ${v2 ? 'ikev2 sa' : 'isakmp sa'}; show crypto ipsec sa`;
