@@ -4,7 +4,7 @@
 .noc-header-metric{min-width:0;margin:0}.noc-header-metric dt{font:500 9px/1.6 Inter,ui-sans-serif,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#a1a1aa;margin-bottom:3px}
 .noc-header-metric dd{margin:0;color:#e4e4e7;font:550 12px/1.6 Inter,ui-sans-serif,sans-serif;overflow-wrap:anywhere}
 .noc-header-ip dd{font-family:'JetBrains Mono',ui-monospace,monospace;color:#a5f3fc;font-size:13px;font-weight:600}
-.noc-country-flag{display:inline-flex;flex:0 0 27px;width:27px;overflow:hidden;border:1px solid #ffffff30;border-radius:4px;box-shadow:0 2px 8px #0005}.noc-country-flag svg{width:100%;height:auto;display:block}
+
 
 .noc-nav-status{justify-content:flex-end;flex-direction:column;align-items:flex-end;gap:4px}.noc-nav-status>span.text-slate-600{display:none}
 .noc-nav-status>span:last-child{font-size:8px;letter-spacing:.12em}
