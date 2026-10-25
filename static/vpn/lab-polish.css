@@ -37,3 +37,7 @@ select{color-scheme:dark}select option{background:#111118;color:#e4e4e7}
 [data-repository-files] [hidden]{display:none!important}
 
 .noc-composer .noc-feature-toggle[data-unsupported=true]:hover{transform:none;box-shadow:none}
+
+.noc-composer .noc-preset-components button[data-remove-preset]{border:1px solid #22d3ee30;background:#08334430;border-radius:6px;padding:5px 9px;color:#a5f3fc;font:11px/1.7 Inter,sans-serif;display:inline-flex;align-items:center;gap:8px}
+.noc-composer .noc-preset-components button[data-remove-preset]::after{content:'\00d7';color:#94a3b8;font-size:14px}
+.noc-composer .noc-preset-components button[data-remove-preset]:hover{border-color:#fb718566;background:#88133730;color:#ffe4e6}

@@ -14,13 +14,13 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(!lab?.a||!lab?.b||!['a','b'].includes(side)||!['router','switch','host'].includes(role))throw Error('Invalid topology context.');
   const errors=[],blocks=[],site=lab[side],vendor=role==='switch'?site.switchVendor:site.vendor;
   const dual=hasSecondVlan(site);
-  bindings=bindings||dual;
+  const customNoInterfaces=role==='router'&&selected.internet_access&&values.internet_access?.parts?.interfaces===false;bindings=customNoInterfaces?false:bindings||dual;
   const logical=routedSite(site);
   const ids=Object.keys(selected).filter(id=>selected[id]).sort((a,b)=>(a==='aaa'?1:0)-(b==='aaa'?1:0));
   const paired=ids.includes('vpn')||ids.includes('gre_tunnel');
   const address=labScripts(lab,{sides:paired?['a','b']:[side]});
   const baseIndex=paired&&side==='b'?3:0;
-  if(role==='router'&&ids.some(id=>['wan_failover','internet_access'].includes(id)))bindings=true;
+  if(role==='router'&&!customNoInterfaces&&ids.some(id=>['wan_failover','internet_access'].includes(id)))bindings=true;
   if(role==='switch'&&linkedEnterprise){
     if(vendor!=='ios'||ids.length||bindings)return{errors:['The linked router-on-a-stick switch preset requires Cisco and no additional switch features/bindings.'],code:'',empty:false};
     const r=generateFeature('enterprise',{...linkedEnterprise,vendor:'ios'});
@@ -34,7 +34,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise','dhcp','relay'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or use the office preset.');
   if((failover||office)&&ids.includes('static')&&values.static?.destination==='0.0.0.0'&&values.static?.mask==='0.0.0.0')errors.push('Internet Gateway / WAN Failover owns default routing. Remove the separate default static route.');
   if(failover&&ids.some(id=>['vpn','dmvpn','remotevpn','bootstrap','enterprise'].includes(id)))errors.push('Dual ISP needs a separately designed VPN/bootstrap underlay. Generate these templates separately.');
-  if(vendor==='ios'&&failover&&(office||ids.includes('nat')))return {errors:['Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.'],code:'',empty:false};
+  if(vendor==='ios'&&failover&&((office&&values.internet_access?.parts?.nat!==false)||ids.includes('nat')))return {errors:['Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.'],code:'',empty:false};
   if(failover&&ids.includes('nat')&&values.nat?.natMode&&values.nat.natMode!=='overload')errors.push('Automatic Dual ISP translation supports interface PAT / Overload only.');
   if(failover&&ids.includes('zbfw')&&(values.zbfw?.outside!==site.wan||values.zbfw?.inside!==logical.lan))errors.push('Dual ISP ZBFW must use the topology LAN and primary WAN interfaces.');
   if(failover&&office&&vendor==='paloalto'&&values.wan_failover?.virtualRouter!==values.internet_access?.virtualRouter)errors.push('Internet Gateway and WAN Failover must use the same virtual router.');
@@ -124,7 +124,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
     if(result.errors.length)errors.push(...result.errors.map(e=>`${FEATURES[id].title}: ${e}`));
     else for(const script of id==='enterprise'?result.scripts.slice(0,1):result.scripts)blocks.push({title:script.title||FEATURES[id].title,code:script.code});
   }
-  if(errors.length)return{errors:[...new Set(errors)],code:'',empty:false};
+  if(errors.length)return{errors:[...new Set(errors)],code:'',empty:false};if(!blocks.length)return{errors:[],code:'',empty:true};
   // Do not concatenate configuration modes blindly: each fragment exits its own mode.
   const comment=vendor==='ios'?'!':'#';
   return{errors:[],code:blocks.map(b=>`${comment} === ${b.title} ===\n${b.code.trim()}`).join('\n\n')+'\n',empty:false};
