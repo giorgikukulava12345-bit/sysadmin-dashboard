@@ -170,7 +170,7 @@ test('Invalid CLI strings and enums never reach output',()=>{
   const h=defaultsFor('hardening');h.secret=h.enableSecret='abc\nusername backdoor'.padEnd(20,'x');assert(generateTool('hardening',h).errors.length);
 });
 test('VLAN ranges and trunk allow lists validate',()=>{
-  const d=defaultsFor('vlan');d.lastPort='24';assert(generateTool('vlan',d).scripts[0].code.includes('interface range FastEthernet0/1 - 24'));
+  const d=defaultsFor('vlan');d.lastPort='24';assert(generateTool('vlan',d).scripts[0].code.includes('interface range GigabitEthernet0/2 - 24'));
   d.mode='trunk';d.allowed='10,10';assert(generateTool('vlan',d).errors.length);
 });
 test('VLSM allocates largest first, computes masks and never overlaps',()=>{

@@ -14,7 +14,7 @@ assert.match(router.code,/encapsulation dot1Q 20\n ip address 192\.168\.20\.1 25
 const sw=build('switch',{vlan:true});
 assert.deepEqual(sw.errors,[]);
 assert.match(sw.code,/switchport trunk allowed vlan 10,20/);
-assert.match(sw.code,/interface FastEthernet0\/2\n switchport mode access\n switchport access vlan 20/);
+assert.match(sw.code,/interface GigabitEthernet0\/3\n switchport mode access\n switchport access vlan 20/);
 assert.match(sw.code,/interface Vlan20\n ip address 192\.168\.20\.254/);
 assert.doesNotMatch(sw.code,/ip address 192\.168\.20\.1 /);
 const dhcp=build('router',{dhcp:true},{dhcp:{name:'NOC-LAN',dns:'8.8.8.8',exclusions:'192.168.1.254'}});
