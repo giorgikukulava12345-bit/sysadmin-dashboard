@@ -21,7 +21,7 @@ export const FEATURES = {
   remotevpn:{title:'Remote Access / SSL VPN',role:'router',category:'security',vendors:['mikrotik','fortinet'],note:'RouterOS OpenVPN client or FortiOS 7.4 SSL VPN server. Existing PKI/server or authenticated user-group prerequisites apply.'},
   ...ENTERPRISE_FEATURES,
 };
-export const CATEGORIES={switching:'01 // SWITCHING & LAYER 2',routing:'02 // ROUTING PROTOCOLS',tunneling:'03 // TUNNELING',security:'04 // SECURITY, NAT & ENTERPRISE VPN',hardening:'05 // ADVANCED SECURITY & HARDENING',infrastructure:'06 // MANAGEMENT & SERVICES',performance:'07 // HIGH AVAILABILITY & PERFORMANCE'};
+export const CATEGORIES={switching:'SWITCHING & LAYER 2',routing:'ROUTING PROTOCOLS',tunneling:'TUNNELING',security:'SECURITY, NAT & ENTERPRISE VPN',hardening:'ADVANCED SECURITY & HARDENING',infrastructure:'MANAGEMENT & SERVICES',performance:'HIGH AVAILABILITY & PERFORMANCE'};
 for(const[id,feature]of Object.entries(FEATURES))if(!feature.category)feature.category=['vlan','security'].includes(id)?'switching':['static','ospf','bgp'].includes(id)?'routing':['bootstrap','enterprise'].includes(id)?'presets':['dhcp'].includes(id)?'infrastructure':'security';
 FEATURES.vlan.title='VLAN & 802.1Q Trunking';FEATURES.static.title='Static Routing · IPv4';FEATURES.ospf.title='OSPFv2 · Basic';FEATURES.bgp.title='BGP · eBGP / iBGP';FEATURES.acl.title='Standard & Extended ACLs';FEATURES.hardening.title='SSH & Device Hardening';FEATURES.vpn.title='Site-to-Site VPN';FEATURES.nat.title='NAT / PAT · Static, Dynamic, Overload';
 for(const id of ['hardening','aaa'])FEATURES[id].category='hardening';
