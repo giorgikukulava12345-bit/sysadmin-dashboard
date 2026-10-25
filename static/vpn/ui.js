@@ -20,7 +20,7 @@ function site(side) {
     <label class="block mb-4 text-xs text-slate-400" for="vpn-${side}-vendor">Platform<select id="vpn-${side}-vendor" name="${side}.vendor" class="${inputClass} mt-1">${options(VENDORS)}</select></label>
     <div class="grid sm:grid-cols-2 gap-4">
       ${field(side, 'ip', 'Public IPv4')}${field(side, 'local', 'Local subnet (CIDR)')}${field(side, 'remote', 'Remote subnet (CIDR)')}
-      ${field(side, 'psk', 'Pre-shared key', 'password', 'IPsec: 16–64 safe characters. WireGuard: optional base64 key.')}
+      ${field(side, 'psk', 'Pre-shared key', 'password', 'IPsec: at least 4 CLI-safe characters; words or digits accepted. WireGuard: optional base64 key.')}
     </div>
     <div data-wg class="grid sm:grid-cols-2 gap-4 mt-4" hidden>${field(side, 'privateKey', 'WireGuard private key', 'password')}${field(side, 'publicKey', 'This side’s public key')}${field(side, 'port', 'Listen UDP port', 'number')}</div>
     <div data-overlay class="mt-4" hidden>${field(side, 'tunnel', 'Tunnel IPv4 (host in a shared /30)')}</div>

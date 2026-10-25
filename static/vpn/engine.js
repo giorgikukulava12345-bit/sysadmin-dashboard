@@ -55,7 +55,7 @@ export function validate(c) {
     const contextFields = c.protocol === 'wireguard' ? [] : s.vendor === 'paloalto' ? ['wan', 'zone', 'vr'] : ['wan', 'lan'];
     for (const field of contextFields) if (!/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(s[field])) errors.push(`${label}: invalid ${field} name.`);
     if (c.protocol !== 'wireguard' && ['ios','asa'].includes(s.vendor) && ipv4(s.gateway) === null) errors.push(`${label}: a valid WAN next-hop is required.`);
-    if (c.protocol !== 'wireguard' && !/^[A-Za-z0-9_@%+=:,.-]{16,64}$/.test(s.psk)) errors.push(`${label}: PSK must be 16–64 CLI-safe characters (letters, digits, _ @ % + = : , . -).`);
+    if (c.protocol !== 'wireguard' && !/^[A-Za-z0-9_@%+=:,.-]{4,}$/.test(s.psk)) errors.push(`${label}: PSK must contain at least 4 CLI-safe characters (letters, digits, _ @ % + = : , . -).`);
     if (['gre','wireguard','vti'].includes(c.protocol)) {
       const n = ipv4(s.tunnel);
       if (n === null || n % 4 === 0 || n % 4 === 3) errors.push(`${label}: tunnel IP must be a usable /30 host.`);
