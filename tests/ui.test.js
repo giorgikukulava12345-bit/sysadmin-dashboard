@@ -102,7 +102,8 @@ for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){
  check(vendor+' topology shows secondary ISP',q('[data-wan-a]').textContent.includes('198.18.60.5'));
  toggle('wan_failover',false);submit();check(vendor+' unchecking WAN2 removes backup',!q('[data-code]').textContent.includes('198.18.60.6')&&!q('[data-wan-a]').textContent.includes('BACKUP'));
 }
-toggle('nat',false);check('unchecking included card clears composite preset',!q('[data-feature="internet_access"]').checked&&!q('[data-feature="static"]').checked&&q('[data-preset-banner]').hidden);
+toggle('nat',false);check('unchecking included card customizes only that component',!q('[data-feature="nat"]').checked&&q('[data-feature="static"]').checked&&q('[data-preset-heading]').textContent.startsWith('Custom configuration'));
+ toggle('internet_access',false);
 input('[data-analyzer-input]','ip name-server 9.9.9.9\nip dhcp pool OFFICE\n network 192.168.1.0 255.255.255.0\n default-router 172.16.19.1');
 q('[data-analyze]').click();check('analyzer displays actionable findings',q('[data-analyzer-findings]').textContent.includes('DHCP gateway outside')&&q('[data-analyzer-code]').textContent.includes('dns-server 9.9.9.9'));
 input('[data-analyzer-input]','<img src=x onerror=alert(1)>');q('[data-analyze]').click();check('pasted markup is never rendered as HTML',!q('[data-analyzer-findings] img'));
@@ -119,5 +120,27 @@ input('[data-side="a"][name="lan"]','ge-0/0/3');check('topology port edit update
 cleanup();root.replaceChildren();cleanup=mountVpn(root);officePreset();q('[data-role="switch"]').click();toggle('snmp3',true);input('[data-feature-panel="snmp3"] [name="authSecret"]','AuditAuth_0123456789');input('[data-feature-panel="snmp3"] [name="privSecret"]','AuditPriv_0123456789');q('[data-role="router"]').click();submit();
 check('companion switch credentials are masked by default',!q('[data-office-companion]').hidden&&!q('[data-companion-code]').textContent.includes('AuditAuth_0123456789')&&q('[data-companion-code]').textContent.includes('auth sha ***'));
 check('companion-only secrets expose the shared reveal control',!q('[data-reveal-label]').hidden);input('[data-reveal]',true,'change');check('shared reveal control reveals companion credentials',q('[data-companion-code]').textContent.includes('AuditAuth_0123456789'));input('[data-reveal]',false,'change');q('[data-clear-secrets]').click();check('clearing companion secrets invalidates both outputs',q('[data-copy-config]').disabled&&q('[data-office-companion]').hidden);
+
+cleanup();root.replaceChildren();cleanup=mountVpn(root);
+for(const key of ['nat','route','hardening','ntp_syslog','dhcp','dns','interfaces','switch','vlans']){
+ officePreset();const chip=q(`[data-remove-preset="${key}"]`);check(key+' preset chip is an accessible button',chip?.tagName==='BUTTON'&&chip.getAttribute('aria-label').startsWith('Remove '));chip.click();
+ check(key+' chip exits preset mode',q('[data-preset-heading]').textContent.startsWith('Custom configuration'));
+ check(key+' chip removal invalidates Copy and Download',q('[data-copy-config]').disabled&&q('[data-download-config]').disabled);
+ check(key+' removed chip disappears',!q(`[data-remove-preset="${key}"]`));
+ if(['nat','route','dhcp','hardening','ntp_syslog'].includes(key)){const id=key==='route'?'static':key;check(key+' checkbox reflects chip removal',!q(`[data-feature="${id}"]`).checked);}
+ if(key!=='nat')check(key+' removal preserves NAT selection',q('[data-feature=nat]').checked);
+ if(key!=='hardening')check(key+' removal preserves SSH selection',q('[data-feature=hardening]').checked);
+ submit();check(key+' remaining configuration generates',!q('[data-copy-config]').disabled&&!q('[data-errors]').textContent);
+ const cli=q('[data-code]').textContent;
+ if(key==='nat')check('NAT chip removes NAT commands only',!cli.includes('ip nat inside source')&&cli.includes('ip route 0.0.0.0')&&cli.includes('ip dhcp pool'));
+ if(key==='route')check('route chip removes default route only',!cli.includes('ip route 0.0.0.0')&&cli.includes('ip nat inside source'));
+ if(key==='hardening')check('SSH chip removes credentials only',!cli.includes('username nocadmin')&&cli.includes('ip dhcp pool'));
+ if(key==='dhcp')check('DHCP chip keeps DNS without lease pools',!cli.includes('ip dhcp pool')&&cli.includes('ip name-server'));
+ if(key==='dns')check('DNS chip keeps DHCP without DNS configuration',cli.includes('ip dhcp pool')&&!cli.includes('ip name-server')&&!cli.includes(' dns-server '));
+ if(key==='interfaces')check('interface chip disables base addressing',!q('[data-include-bindings]').checked&&!cli.includes('BASE INTERFACE / IP BINDINGS'));
+ if(key==='switch')check('switch chip removes companion output',q('[data-office-companion]').hidden);
+ if(key==='vlans')check('VLAN chip removes secondary subnet only',!cli.includes('172.16.19.')&&cli.includes('192.168.1.1'));
+}
+officePreset();q('[data-remove-preset=nat]').click();toggle('nat',true);check('custom component can be independently re-enabled',q('[data-feature=nat]').checked&&!!q('[data-remove-preset=nat]'));submit();check('re-enabled NAT appears in CLI',q('[data-code]').textContent.includes('ip nat inside source'));
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
