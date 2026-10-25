@@ -76,6 +76,7 @@
 <link rel="stylesheet" href="/static/vpn/command-center.css">
 <link rel="stylesheet" href="/static/vpn/obsidian.css">
 <link rel="stylesheet" href="/static/vpn/header-network.css">
+<link rel="stylesheet" href="/static/vpn/lab-polish.css">
 </head>
 
 <body class="font-sans text-slate-300 min-h-screen relative">
@@ -123,7 +124,7 @@
       <span class="font-mono text-[10px] text-slate-600">GOOGLE DRIVE REPOSITORY</span>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+    <label class="sr-only" for="repository-search">Search repository files</label><input id="repository-search" class="noc-repository-search" data-repository-search type="search" placeholder="Search files by name..." autocomplete="off"><p data-repository-status role="status" class="text-xs text-slate-400 mb-3"></p><div data-repository-files class="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
       <a href="https://drive.google.com/file/d/13B0csq6U8tLfLNW3T8YHEcnzoS8uzHRk/view?usp=sharing" target="_blank" class="flex items-center gap-3 bg-base-950/60 hover:bg-base-800 border border-base-border rounded-md px-3.5 py-2.5 sm:px-4 sm:py-3 transition group">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <div class="flex-1 min-w-0">
@@ -256,6 +257,7 @@
 </script>
 
 <script type="module" src="/static/vpn/network-info-ui.js"></script>
+<script type="module" src="/static/vpn/repository-search.js"></script>
 </body>
 </html>
 
