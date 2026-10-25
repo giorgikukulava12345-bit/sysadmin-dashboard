@@ -16,9 +16,9 @@
 .noc-composer .noc-feature-toggle[data-unsupported=true]{opacity:.42;cursor:not-allowed;transform:none;box-shadow:none}
 .noc-composer .noc-advanced-routing{margin-top:18px;border-top:1px solid #ffffff12;padding-top:12px}
 .noc-composer .noc-advanced-routing>summary{font-size:12px;color:#a5f3fc}
-.noc-composer button[data-office-preset]{background:linear-gradient(110deg,#5b21b6,#4338ca);border-color:#a78bfa88;color:#f5f3ff;box-shadow:0 6px 24px #7c3aed28;font:600 12px/1.6 Inter,sans-serif;padding:13px 18px}
-.noc-composer button[data-office-preset]:hover{background:#6d28d9;box-shadow:0 6px 28px #8b5cf64d}
-.noc-composer button.noc-generate[data-generate]{box-shadow:0 0 0 1px #67e8f940,0 0 30px #22d3ee33;background:linear-gradient(110deg,#0891b2,#0e7490);font-weight:700}
+.noc-composer .noc-actions button[data-office-preset]{background:linear-gradient(110deg,#5b21b6,#4338ca);border-color:#a78bfa88;color:#f5f3ff;box-shadow:0 6px 24px #7c3aed28;font:600 12px/1.6 Inter,sans-serif;padding:13px 18px}
+.noc-composer .noc-actions button[data-office-preset]:hover{background:#6d28d9;box-shadow:0 6px 28px #8b5cf64d}
+.noc-composer .noc-actions button.noc-generate[data-generate]{box-shadow:0 0 0 1px #67e8f940,0 0 30px #22d3ee33;background:linear-gradient(110deg,#0891b2,#0e7490);font-weight:700}
 .noc-output-state{transition:color .25s,background .25s;padding:8px 0}
 .noc-incident-badge{border:1px solid #fbbf2440;color:#fbbf24;background:#78350f25;border-radius:999px;padding:5px 10px;font:600 10px/1.6 Inter,sans-serif}
 .noc-incident-badge[data-severity=critical]{color:#fda4af;border-color:#fb718540;background:#88133725}
@@ -35,3 +35,5 @@ select{color-scheme:dark}select option{background:#111118;color:#e4e4e7}
 @media(prefers-reduced-motion:reduce){.noc-output-state{transition:none}}
 
 [data-repository-files] [hidden]{display:none!important}
+
+.noc-composer .noc-feature-toggle[data-unsupported=true]:hover{transform:none;box-shadow:none}
