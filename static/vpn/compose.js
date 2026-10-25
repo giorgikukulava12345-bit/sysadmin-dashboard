@@ -94,6 +94,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
     if(dual&&role==='switch'&&id==='vlan')continue; // Shared topology owns both VLANs and their ports.
     if(id==='nat'&&vtiOwnNat)continue; // VTI already emits its NAT ACL and bindings.
     let data=boundValues(id,values[id]||{}, {...logical,physicalLan:site.lan,vendor,role});
+    if(id==='wan_failover'&&vendor==='ios'&&ids.includes('ipsla')){if(values.ipsla?.target!==site.gateway||values.ipsla?.sourceInterface!==site.wan)errors.push('Linked failover IP SLA must probe the primary ISP gateway from the primary WAN interface.');data.primarySlaTrack=values.ipsla?.track;}
     if(id==='internet_access'&&failover){const backup=values.wan_failover||{};data={...data,wan2:backup.wan2,ip2:backup.ip2,gateway2:backup.gateway2,backupDistance:backup.backupDistance,routeId:backup.routeId??data.routeId,backupRouteId:backup.backupRouteId};}
     for(const key of ['interface','inside'])if(dual&&role==='router'&&data[key]===site.lan)data[key]=logical.lan;
     let result=generateFeature(id,data);
@@ -108,6 +109,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
       if(vendor==='ios')result.scripts.push({code:`configure terminal\nip access-list standard ${data.acl}\n permit ${n.ip} ${n.wildcard}\n exit\ninterface ${site.lan}.${site.vlan2}\n ip nat inside\n exit\nend`});
       if(vendor==='mikrotik')for(const port of [site.wan,...(failover?[values.wan_failover.wan2]:[])])result.scripts.push({code:`/ip firewall nat add chain=srcnat src-address=${n.canonical} out-interface=${port} action=masquerade comment="NOC second VLAN PAT"`});
     }
+    if(dual&&role==='router'&&!result.errors.length&&id==='relay'&&[site.lan,logical.lan].includes(values.relay?.interface)){const extra=generateFeature('relay',{...data,interface:`${site.lan}.${site.vlan2}`,localIp:site.vlan2Gateway,localNetwork:site.vlan2Subnet,relayName:`NOC-RELAY-V${site.vlan2}`});if(extra.errors.length)result.errors.push(...extra.errors);else result.scripts.push(...extra.scripts);}
     if(dual&&role==='router'&&!result.errors.length&&id==='dhcp'){
       const ranges=leaseRanges(site.vlan2Subnet,[site.vlan2Gateway,site.vlan2SwitchIp]);
       const asNumber=ip=>ip.split('.').reduce((a,v)=>a*256+Number(v),0);

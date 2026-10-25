@@ -42,7 +42,7 @@ export function validateInternet(d,backup=false){
   if(d.vendor==='juniper'&&[d.wan,...(d.officeVlans?[]:[d.lan]),d.wan2].filter(Boolean).some(x=>/\.\d+$/.test(x)))throw Error('Junos requires physical interface names; unit 0 is generated.');
   if(d.vendor==='fortinet')integer(d.routeId,1,4294967294,'Primary route ID');
   if(backup){
-    if(d.vendor==='ios')integer(d.trackId??'900',1,999,'First WAN track ID');
+    if(d.vendor==='ios'){integer(d.trackId??'900',1,999,'First WAN track ID');if(d.primarySlaTrack!==undefined)integer(d.primarySlaTrack,1,1000,'Primary IP SLA track ID');}
     name(d.wan2,'WAN2 interface');
     if([d.wan,d.lan,d.physicalLan].includes(d.wan2))throw Error('WAN2 must use a dedicated interface, distinct from WAN1 and LAN.');
     const errors2=validateWan({ip:d.ip2,gateway:d.gateway2,wanPrefix:'30'});if(errors2.length)throw Error('WAN2: '+errors2.join(' '));
@@ -58,8 +58,8 @@ export function internetRoutes(d,backup=false){
   const paths=[{port:d.wan,ip:d.ip,gateway:d.gateway,preference:1,id:d.routeId,label:'PRIMARY'},...(backup?[{port:d.wan2,ip:d.ip2,gateway:d.gateway2,preference:distance,id:d.backupRouteId,label:'BACKUP'}]:[])];
   if(d.vendor==='ios'){
     const start=Number(d.trackId??'900');
-    const tracking=backup?paths.map((p,i)=>`track ${start+i} interface ${p.port} line-protocol\n exit`).join('\n')+'\n':'';
-    return tracking+paths.map((p,i)=>`ip route 0.0.0.0 0.0.0.0 ${p.gateway} ${p.preference}${backup?' track '+(start+i):''}`).join('\n');
+    const tracking=backup?paths.map((p,i)=>i===0&&d.primarySlaTrack!==undefined?'':`track ${start+i} interface ${p.port} line-protocol\n exit`).filter(Boolean).join('\n')+'\n':'';
+    return tracking+paths.map((p,i)=>`ip route 0.0.0.0 0.0.0.0 ${p.gateway} ${p.preference}${backup?' track '+(i===0&&d.primarySlaTrack!==undefined?d.primarySlaTrack:start+i):''}`).join('\n');
   }
   if(d.vendor==='mikrotik')return paths.map(p=>`/ip route add dst-address=0.0.0.0/0 gateway=${p.gateway}%${p.port} distance=${p.preference} check-gateway=ping comment="NOC-${p.label}"`).join('\n');
   if(d.vendor==='juniper')return `set routing-options static route 0.0.0.0/0 next-hop ${d.gateway}\nset routing-options static route 0.0.0.0/0 preference 1${backup?`\nset routing-options static route 0.0.0.0/0 qualified-next-hop ${d.gateway2} preference ${distance}`:''}`;

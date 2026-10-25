@@ -1,0 +1,37 @@
+/* Bounded workspaces, progressive detail and explicit state. */
+.noc-composer .noc-node [data-ports],.noc-composer .noc-node [data-gateway]{display:none}
+.noc-composer .noc-node{padding:16px;min-height:100px}
+.noc-composer .noc-node [data-kind]{font:11px/1.7 Inter,sans-serif;color:#94a3b8}
+.noc-composer .noc-node [data-ip]{margin-top:8px;color:#a5f3fc}
+.noc-composer .lab-address-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.lab-address-columns>section{display:grid;align-content:start;gap:12px;min-width:0}
+.lab-address-columns h5{font:600 10px/1.6 Inter,sans-serif;letter-spacing:.12em;color:#67e8f9;margin:0}
+.noc-composer .lab-device{scroll-margin-top:140px}
+.noc-composer .lab-wire{display:none}
+.noc-composer .lab-device:focus-within{border-color:#22d3ee70;box-shadow:0 0 20px #22d3ee0b}
+.noc-composer .lab-device,.noc-composer .noc-feature-settings{position:relative;overflow:visible}
+.lab-device:focus-within,.noc-feature-settings:focus-within{z-index:6}
+.noc-composer .noc-select-menu{min-width:min(100%,220px);font-size:12px}
+.noc-composer .noc-select-trigger{min-height:42px}
+.noc-composer .noc-feature-toggle[data-unsupported=true]{opacity:.42;cursor:not-allowed;transform:none;box-shadow:none}
+.noc-composer .noc-advanced-routing{margin-top:18px;border-top:1px solid #ffffff12;padding-top:12px}
+.noc-composer .noc-advanced-routing>summary{font-size:12px;color:#a5f3fc}
+.noc-composer button[data-office-preset]{background:linear-gradient(110deg,#5b21b6,#4338ca);border-color:#a78bfa88;color:#f5f3ff;box-shadow:0 6px 24px #7c3aed28;font:600 12px/1.6 Inter,sans-serif;padding:13px 18px}
+.noc-composer button[data-office-preset]:hover{background:#6d28d9;box-shadow:0 6px 28px #8b5cf64d}
+.noc-composer button.noc-generate[data-generate]{box-shadow:0 0 0 1px #67e8f940,0 0 30px #22d3ee33;background:linear-gradient(110deg,#0891b2,#0e7490);font-weight:700}
+.noc-output-state{transition:color .25s,background .25s;padding:8px 0}
+.noc-incident-badge{border:1px solid #fbbf2440;color:#fbbf24;background:#78350f25;border-radius:999px;padding:5px 10px;font:600 10px/1.6 Inter,sans-serif}
+.noc-incident-badge[data-severity=critical]{color:#fda4af;border-color:#fb718540;background:#88133725}
+.noc-composer .noc-finding{border-left:3px solid #34d399;padding:14px 18px;background:#064e3b14;border-radius:8px;margin:12px 0}
+.noc-composer .noc-finding[data-severity=error]{border-color:#fb7185;background:#88133718}
+.noc-composer .noc-finding[data-severity=warning]{border-color:#fbbf24;background:#78350f18}
+[data-analyzer-status][data-severity=success]{color:#6ee7b7}
+[data-analyzer-status][data-severity=error]{color:#fda4af}
+[data-analyzer-status][data-severity=warning]{color:#fcd34d}
+.noc-repository-search{width:100%;max-width:420px;padding:11px 14px;margin-bottom:18px;background:#09090b99;border:1px solid #ffffff1a;border-radius:9px;color:#e4e4e7;font:12px/1.6 Inter,sans-serif}
+.noc-repository-search:focus{outline:2px solid #22d3ee77;outline-offset:2px}
+select{color-scheme:dark}select option{background:#111118;color:#e4e4e7}
+@media(max-width:640px){.noc-composer .lab-address-columns{grid-template-columns:1fr}.noc-composer .noc-terminal-actions{display:flex;flex-wrap:wrap;gap:8px}}
+@media(prefers-reduced-motion:reduce){.noc-output-state{transition:none}}
+
+[data-repository-files] [hidden]{display:none!important}

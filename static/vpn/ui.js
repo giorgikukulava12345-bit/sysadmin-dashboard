@@ -1,3 +1,5 @@
+import { mountSelectionMenu } from './selection-menu.js';
+import { vpnAvailable } from './lab-policy.js';
 import { maskSecrets } from './secret-mask.js';
 import { DEFAULTS, VENDORS, PROTOCOLS, generate } from './engine.js';
 import { PORTS } from './platforms.js';
@@ -79,6 +81,7 @@ function syncInputs() {
   }
 }
 function render() {
+  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor);mountSelectionMenu(el,controller.signal)();}}
   const wg = state.protocol === 'wireguard', overlay = wg || ['gre','vti'].includes(state.protocol);
   root.querySelector('[data-vti]').hidden = state.protocol !== 'vti';
   root.querySelectorAll('[data-wg]').forEach(el => { el.hidden = !wg; });
