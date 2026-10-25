@@ -142,5 +142,14 @@ for(const key of ['nat','route','hardening','ntp_syslog','dhcp','dns','interface
  if(key==='vlans')check('VLAN chip removes secondary subnet only',!cli.includes('172.16.19.')&&cli.includes('192.168.1.1'));
 }
 officePreset();q('[data-remove-preset=nat]').click();toggle('nat',true);check('custom component can be independently re-enabled',q('[data-feature=nat]').checked&&!!q('[data-remove-preset=nat]'));submit();check('re-enabled NAT appears in CLI',q('[data-code]').textContent.includes('ip nat inside source'));
+cleanup();cleanup=mountVpn(root);disableBaseline();toggle('static',true);
+input('[data-existing]','hostname EXISTING\ninterface Loopback10\n ip address 10.255.0.1 255.255.255.255\nusername operator secret test');
+input('[data-integrate]',true,'change');submit();
+check('integration renders preserved context with selected route: '+q('[data-errors]').textContent,!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('hostname EXISTING')&&q('[data-code]').textContent.includes('ip route '));
+check('integration masks pasted credentials',q('[data-code]').textContent.includes('secret ***')&&!q('[data-code]').textContent.includes('secret test'));
+input('[data-existing]','hostname CHANGED');check('editing existing context invalidates generated output',q('[data-copy-config]').disabled);
+input('[data-side]','b','change');check('existing context is isolated per site',q('[data-existing]').value==='');input('[data-side]','a','change');check('existing context returns with selected site',q('[data-existing]').value==='hostname CHANGED');
+input('[data-existing]','ip route 192.168.20.0 255.255.255.0 203.0.113.1');submit();check('conflicting route blocks merged output',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('Conflicting'));
+q('[data-clear-secrets]').click();check('clear secrets also clears pasted configuration',q('[data-existing]').value==='');
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
