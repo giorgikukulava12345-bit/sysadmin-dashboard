@@ -32,3 +32,26 @@ header{background:#09090be8!important;border-bottom:1px solid #ffffff12!importan
 @keyframes noc-success{0%{transform:scale(.94);box-shadow:0 0 0 0 #34d39920}65%{transform:scale(1.035);box-shadow:0 0 0 5px #34d39908}100%{transform:scale(1)}}
 @media(max-width:640px){.noc-composer .noc-card{padding:18px;border-radius:14px}.noc-composer .noc-category{padding:16px}.noc-composer .noc-terminal pre{padding:16px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.noc-composer .noc-feature-toggle:hover,.noc-composer .noc-node:hover,.noc-command-cell:hover,.noc-composer input:checked{transform:none!important}}
+
+/* Compact device context with fully themed, keyboard-operated dropdowns. */
+.noc-composer.noc-composer .noc-selection{z-index:5}
+.noc-selection .noc-hero-copy{margin-bottom:14px;font-size:15px}
+.noc-selection .noc-actions{margin:12px 0;gap:10px}
+.noc-composer.noc-composer .noc-selection-instructions{max-width:760px;margin:12px 0 18px;font-size:12px;line-height:1.65}
+.noc-composer.noc-composer .noc-selection-note{margin:14px 0 0;padding-top:12px;border-top:1px solid #ffffff0a;font-size:11px;line-height:1.6}
+.noc-selection .noc-field{font-size:10px;font-weight:600;letter-spacing:.035em}
+.noc-select{position:relative;min-width:0}
+.noc-composer.noc-composer .noc-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;padding:11px 14px;background:#09090bd9;border:1px solid #ffffff18;color:#e4e4e7;text-align:left;font:500 12px/1.6 Inter,sans-serif}
+.noc-select-trigger::after{content:'';width:6px;height:6px;border-right:1.5px solid #a1a1aa;border-bottom:1.5px solid #a1a1aa;transform:rotate(45deg);margin-right:3px;margin-top:-4px;flex:none}
+.noc-composer.noc-composer .noc-select-trigger:hover,.noc-composer.noc-composer .noc-select-trigger[aria-expanded=true]{border-color:#22d3ee60;background:#111119;box-shadow:0 0 18px #22d3ee0d}
+.noc-select-menu{position:absolute;top:calc(100% + 7px);left:0;right:0;z-index:30;padding:5px;max-height:240px;overflow-y:auto;border:1px solid #22d3ee36;border-radius:10px;background:#111118;box-shadow:0 16px 40px #0009,0 0 20px #22d3ee0a;color:#e4e4e7;font:500 12px/1.6 Inter,sans-serif;letter-spacing:normal}
+.noc-select-menu [role=option]{padding:10px 12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.noc-select-menu [role=option][aria-selected=true]{color:#a5f3fc;background:#164e6333}
+.noc-select-menu [role=option][aria-selected=true]::after{content:'\2713';color:#67e8f9}
+.noc-select-menu [role=option][data-active=true]{background:#164e6366;color:#ecfeff;outline:1px solid #22d3ee25}
+.noc-composer.noc-composer .noc-tabs button{display:inline-flex;align-items:center;gap:9px;padding:10px 14px;font:500 12px/1.6 Inter,sans-serif}
+.noc-tabs svg{width:18px;height:18px;flex:none;opacity:.85}
+
+.noc-composer>.noc-card.noc-selection:first-of-type{overflow:visible}
+
+.noc-composer.noc-composer .noc-selection .noc-field{display:flex;flex-direction:column;gap:7px;color:#94a3b8;font-size:11px}
