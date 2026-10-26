@@ -40,3 +40,18 @@ Run `node tests/internet.test.js`, `node tests/engine.test.js`, `node tests/audi
 - [Fortinet inactive route behavior](https://community.fortinet.com/fortigate-3/technical-tip-how-to-identify-inactive-routes-in-the-routing-table-99133)
 - [PAN-OS static route metrics](https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id=kA10g000000Clz2CAC&lang=en_US)
 - [PAN-OS NAT CLI](https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id=kA10g000000ClEqCAK&lang=en_US)
+
+## Cisco Standard Office Quick Setup
+
+The Quick Setup button uses a complete, ordered IOS configuration: global services and timezone/NTP, USERS and IT DHCP pools, local AAA/SSH, interfaces, extended NAT ACLs and interface PAT, stateful firewall policy, and the ISP default route. The normal standalone Internet Gateway feature retains its existing behavior.
+
+SVI mode creates gateway interfaces Vlan10 and Vlan20 and a trunk on the selected physical LAN switch port. It requires a router with integrated Layer 2 switch ports and an IOS image supporting the generated NAT, ZBFW and type 9 scrypt commands. Choose router-on-a-stick mode for a routed Ethernet LAN port; that mode uses tagged dot1Q subinterfaces instead. The companion Cisco Layer 2 switch configuration remains a separate device output.
+
+All addresses, VLAN IDs and physical interfaces use the current topology. Pool names, DNS, the reserved address count, extra management source CIDRs/hosts, and timezone are editable in the Internet Gateway form. By default, DHCP excludes the first 49 usable addresses of each LAN plus all configured gateway, switch and static-host assignments. Generation blocks exhausted scopes and invalid inputs without emitting partial commands.
+
+Enter administrator and enable secrets in the existing SSH settings; the preset never creates default credentials. IOS hashes these inputs with scrypt when applied. The preview masks them; Copy and Download include the entered values. SSH_NEW allows the local LANs and any explicitly supplied additional sources, then denies other SSH. Both VTY ranges 0–4 and 5–15 use local AAA and SSH only. The NTP server is editable in NTP & Syslog; the Syslog collector is optional in this preset.
+
+The preset owns the complete Cisco device configuration. Generate additional protocol/AAA/VPN features separately, and design egress-aware translation before using Dual ISP. Existing component toggles still remove individual routing, NAT, firewall, interface addressing, DHCP or DNS components.
+
+Validation: `node tests/run-all.js` includes `standard-office.test.js`. `tests/index.html` also checks preset activation, SVI/router-on-a-stick switching, SSH source input and timezone changes in the browser. No physical IOS device validation is implied.
+

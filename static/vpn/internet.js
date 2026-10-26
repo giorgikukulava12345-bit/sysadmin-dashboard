@@ -17,6 +17,20 @@ export function internetFields(id,vendor){
   ]:[];
   if(id==='wan_failover'&&vendor==='ios')fields.push(field('trackId','First unused WAN link track ID (also reserves ID + 1)','900','number'));
   if(id==='internet_access')fields.push(field('poolName','DHCP pool name prefix','OFFICE-LAN'),field('dns1','Primary DNS server','8.8.8.8'),field('dns2','Secondary DNS server','1.1.1.1'));
+  if(id==='internet_access'&&vendor==='ios'){
+    const office=d=>Boolean(d.standardOffice);
+    fields[0].when=d=>!d.standardOffice;
+    fields.push(
+      {...field('iosLanMode','Cisco LAN interface mode','svi','select'),options:{svi:'SVIs / integrated Layer 2 switch ports',subinterfaces:'Router-on-a-stick / routed Ethernet port'},when:office},
+      {...field('usersPool','Primary DHCP pool name','USERS'),when:office},
+      {...field('itPool','Secondary DHCP pool name','IT'),when:office},
+      {...field('staticReserve','Reserved addresses from start of each LAN (0–254)','49','number'),when:office},
+      {...field('managementSources','Additional SSH source CIDRs or hosts (one per line)','','textarea'),when:office},
+      {...field('timezoneName','Timezone abbreviation','UTC'),when:office},
+      {...field('timezoneHours','UTC offset hours (-23 to 23)','0','number'),when:office},
+      {...field('timezoneMinutes','UTC offset minutes (0 to 59)','0','number'),when:office}
+    );
+  }
   if(id==='internet_access'&&vendor==='fortinet')fields.push(field('dhcpId','First DHCP server ID (unused)','9000','number'));
   if(vendor==='paloalto')fields.push(field('virtualRouter','Classic virtual router','default'));
   if(id==='internet_access'&&['juniper','paloalto'].includes(vendor))fields.push(field('trustZone','LAN security zone','NOC-TRUST'),field('untrustZone','WAN security zone','NOC-UNTRUST'));
@@ -77,7 +91,7 @@ export function failoverConfig(d){
   return wrap(d.vendor,binding+'\n'+internetRoutes(d,true));
 }
 const subnets=d=>[d.local,...(d.vlan2Enabled==='on'?[d.vlan2Subnet]:[])];
-const insidePorts=d=>d.vlan2Enabled==='on'?[`${d.physicalLan||d.lan}.${d.vlan}`,`${d.physicalLan||d.lan}.${d.vlan2}`]:[d.lan];
+const insidePorts=d=>d.standardOffice&&d.iosLanMode==='svi'?[`Vlan${d.vlan}`,...(d.vlan2Enabled==='on'?[`Vlan${d.vlan2}`]:[])]:d.vlan2Enabled==='on'?[`${d.physicalLan||d.lan}.${d.vlan}`,`${d.physicalLan||d.lan}.${d.vlan2}`]:[d.lan];
 export function iosInternetPat(d,acl='NOC-INTERNET-NAT'){
   if(d.wan2)throw Error('Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.');
   name(acl,'NAT ACL');const paths=[d.wan,...(d.wan2?[d.wan2]:[])];
@@ -120,3 +134,4 @@ export function generateInternet(id,d){
   try{const code=id==='wan_failover'?failoverConfig(d):officeConfig(d);return{errors:[],scripts:code.trim()?[{title:id==='internet_access'&&d.parts?'Custom Gateway Components':INTERNET_FEATURES[id].title,code}]:[]};}
   catch(e){return{errors:[e.message],scripts:[]};}
 }
+
