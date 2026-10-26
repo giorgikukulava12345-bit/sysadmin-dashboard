@@ -66,7 +66,7 @@ Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feat
 | Zone-Based Firewall (ZBFW) | Template | No template | No template | No template | No template |
 | HSRP / VRRP | Template | Template | Template | Template | No template |
 | DHCP Relay | Template | Template | Template | Template | Template |
-| NTP & Syslog | Template | Template | Template | Template | Template |
+| NTP | Template | Template | Template | Template | Template |
 | SNMPv3 Monitoring | Template | Template | Template | Template | No template |
 | QoS · Classification & Marking | Template | Template | No template | Template | No template |
 
@@ -108,3 +108,4 @@ Validation:383 engine checks,142 browser UI checks and focused second-VLAN regre
 ## Engineering audit
 
 See [AUDIT.md](AUDIT.md) for the verified findings, fixes, test coverage, firmware scope and deployment limitations.
+

@@ -48,7 +48,6 @@ function build(s,selected,values){
   if(selected.ntp_syslog){
     const clock=values.ntp_syslog||{};
     sections[0]+=`\nntp server ${unicast(clock.ntp,'NTP server')} prefer`;
-    if(clock.syslog)sections[0]+=`\nlogging host ${unicast(clock.syslog,'Syslog collector')}\nlogging trap informational\nlogging on`;
   }
   const dns=[d.dns1??'8.8.8.8',d.dns2??'1.1.1.1'].map(value=>parts.dns?unicast(value,'DNS server'):value);
   if(parts.dns)sections[0]+=`\nip name-server ${[...new Set(dns)].join(' ')}`;
