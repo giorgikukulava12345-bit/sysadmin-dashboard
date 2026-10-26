@@ -1,0 +1,13 @@
+# Free local topology photo import
+
+Open **Import topology image · Free local OCR** under LAB TOPOLOGY. Choose, drop or paste a PNG/JPEG/WebP image (up to 10 MiB and 12 million pixels), then select **Analyze image locally**. The pinned Tesseract.js 7.0.0 library, WASM core and English recognition data download from jsDelivr on first use. The photo is decoded in the browser and processed by a local worker; it is not posted to the application server or an AI service. No API key or paid account is used.
+
+The importer combines OCR text boxes with long straight colored/black wire detection and spatial port pairing. It suggests an office segment containing one named router, one switch, an optional host and ISP. Device captions should identify their roles (R-/Router, SW-/Switch, ISP/Cloud, Win/PC/Linux). Sharp, readable EVE-NG and GNS3 screenshots work best. Crossed/bent lines, unlabeled icons, complex multi-router networks and low resolution may require manual correction. Uncertain or missing fields remain editable; no recognition result is a verified network inventory.
+
+Review the normalized port labels, all IPs and prefix lengths, and the three endpoint pairings against the image. Enter the actual ISP gateway if it is not shown. Host IP and OS adapter name are optional: host commands are emitted only when an IP is supplied. The access VLAN is an explicit review setting (initially VLAN 1), not inferred from unlabeled images. Confirm the review checkbox and generate separate Cisco router, Cisco Layer 2 switch and optional Windows/Linux host scripts. Each device has its own Copy/Download output. Edits invalidate previously generated output.
+
+The photo workspace is separate from the existing two-site /30 sample lab. It supports reviewed /1–/30 WAN and LAN masks, including /24, while the existing lab keeps its current addressing policy. Generated office services are optional DHCP, source PAT, ISP default route and NTP (129.250.35.251); device management authentication is configured separately in the existing workbench. No script is applied to a network device.
+
+Only this browser tab retains the photo/results. Clear revokes the preview URL, clears inputs/results, and cancels active OCR. Closing or unmounting the workspace terminates its worker. OCR runtime/language assets may remain cached by the browser, but image data is not placed in localStorage or IndexedDB by this feature.
+
+Run `node tests/topology-photo.test.js` for extraction/generation tests, `node tests/run-all.js` for the existing regression suites, and `tests/photo-preview.html` for real image browser QA. The supplied photo is a manual test input, not a repository asset. No physical router validation is implied.
