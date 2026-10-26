@@ -3,11 +3,12 @@ import {FEATURES,capable} from '../static/vpn/features.js';
 let total=0,passed=0;const failures=[];
 function check(name,ok){total++;if(ok)passed++;else failures.push(name);}
 const fixture=document.createElement('section'),root=document.createElement('div');fixture.append(root);document.body.append(fixture);
-let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,event='input')=>{const el=q(s);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));if(s==='[data-vendor]')disableBaseline();},toggle=(id,value)=>{input(`[data-feature="${id}"]`,value,'change');if(id==='ntp_syslog'&&value){input('[data-feature-panel=ntp_syslog] [name=ntp]','192.0.2.123');input('[data-feature-panel=ntp_syslog] [name=syslog]','192.0.2.50');}},submit=()=>q('[data-generate]').click();
+let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,event='input')=>{const el=q(s);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));if(s==='[data-vendor]')disableBaseline();},toggle=(id,value)=>{input(`[data-feature="${id}"]`,value,'change');if(id==='ntp_syslog'&&value){input('[data-feature-panel=ntp_syslog] [name=ntp]','192.0.2.123');}},submit=()=>q('[data-generate]').click();
 function disableBaseline(){for(const id of ['hardening','ntp_syslog'])if(q(`[data-feature="${id}"]`)?.checked)toggle(id,false);}
-function completeBaseline(){for(const id of ['hardening','ntp_syslog']){const box=q(`[data-feature="${id}"]`);if(box&&!box.disabled&&!box.checked)toggle(id,true);}for(const [key,value]of Object.entries({secret:'FixtureSecret_2026',enableSecret:'FixtureEnable_2026',ntp:'198.18.0.123',syslog:'198.18.0.50'})){const field=q(`[data-settings] [name="${key}"]`);if(field)input(`[data-settings] [name="${key}"]`,value);}}
+function completeBaseline(){for(const id of ['hardening','ntp_syslog']){const box=q(`[data-feature="${id}"]`);if(box&&!box.disabled&&!box.checked)toggle(id,true);}for(const [key,value]of Object.entries({secret:'FixtureSecret_2026',enableSecret:'FixtureEnable_2026',ntp:'198.18.0.123'})){const field=q(`[data-settings] [name="${key}"]`);if(field)input(`[data-settings] [name="${key}"]`,value);}}
 function officePreset(){completeBaseline();q('[data-office-preset]').click();}
 check('supported baseline defaults preselected',q('[data-feature=hardening]').checked&&q('[data-feature=ntp_syslog]').checked);
+check('NTP has no Syslog collector field',!q('[data-feature-panel=ntp_syslog] [name=syslog]')&&q('[data-feature-panel=ntp_syslog] summary').textContent==='NTP');
 check('advanced routing collapsed by default',!q('.noc-advanced-routing').open);
 disableBaseline();
 input('[data-side="a"][name="ip"]','203.0.113.14');check('/30 peer autofill follows previously suggested gateway',q('[data-side="a"][name="gateway"]').value==='203.0.113.13');input('[data-side="a"][name="gateway"]','203.0.113.9');input('[data-side="a"][name="ip"]','203.0.113.10');check('explicit gateway is preserved',q('[data-side="a"][name="gateway"]').value==='203.0.113.9');
@@ -55,7 +56,7 @@ input('[data-side]','b','change');check('context change invalidates old output',
 for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
  input('[data-vendor]',vendor,'change');check(vendor+' capabilities reflected in disabled controls',[...fixture.querySelectorAll('[data-feature]')].every(el=>el.disabled===!capable(el.dataset.feature,vendor)));
  toggle('static6',true);submit();check(vendor+' IPv6 static CLI',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('2001:db8:20::/64'));toggle('static6',false);
- toggle('ntp_syslog',true);submit();check(vendor+' NTP/syslog CLI',!q('[data-copy-config]').disabled);toggle('ntp_syslog',false);
+ toggle('ntp_syslog',true);submit();check(vendor+' NTP CLI',!q('[data-copy-config]').disabled);toggle('ntp_syslog',false);
  toggle('eigrp',true);check(vendor+' EIGRP capability state',vendor==='ios'?q('[data-feature="eigrp"]').checked:q('[data-feature="eigrp"]').disabled);submit();check(vendor+' supported or empty unavailable output',vendor==='ios'?!q('[data-copy-config]').disabled:q('[data-copy-config]').disabled);toggle('eigrp',false);
 }
 input('[data-vendor]','ios','change');q('[data-role="switch"]').click();check('switch has L2 category',!!q('[data-category="switching"]'));for(const id of ['vlan','stp','etherchannel','security','snooping','pvlan'])check('switch includes '+id,!!q(`[data-feature="${id}"]`));

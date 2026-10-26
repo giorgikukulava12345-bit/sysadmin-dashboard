@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createLab} from '../static/vpn/lab.js';
 import {composeDevice} from '../static/vpn/compose.js';
-import {featureDefaults} from '../static/vpn/features.js';
+import {featureDefaults,featureFields,generateFeature} from '../static/vpn/features.js';
 import {maskSecrets} from '../static/vpn/secret-mask.js';
 import {analyzeConfig} from '../static/vpn/config-analyzer.js';
 
@@ -38,7 +38,7 @@ assert.ok(!maskSecrets(code).includes('OfficeUserFixture2026')&&!maskSecrets(cod
 for(const [key,value] of [['iosLanMode','svi\nreload'],['timezoneName','UTC\nreload'],['timezoneHours','24'],['timezoneMinutes','60'],['usersPool','USERS\nreload'],['itPool','USERS'],['managementSources','0.0.0.0/0'],['managementSources','10.3.0.1/24'],['managementSources','10.3.0.1\nreload'],['staticReserve','254'],['dns1','8.8.8.8\nreload']]){
   const input=fixture();input.values.internet_access[key]=value;bad(input);
 }
-for(const path of ['ntp','syslog']){const input=fixture();input.values.ntp_syslog[path]='129.6.15.28\nreload';bad(input);}
+for(const path of ['ntp']){const input=fixture();input.values.ntp_syslog[path]='129.6.15.28\nreload';bad(input);}
 {const input=fixture();input.values.hardening.secret='';bad(input);}
 {const input=fixture();input.selected.ospf=true;input.values.ospf=featureDefaults('ospf','ios');bad(input);}
 {const input=fixture();input.values.internet_access.managementSources='10.50.0.0/24\n10.60.0.5';input.values.internet_access.timezoneName='GET';input.values.internet_access.timezoneHours='4';const cli=good(input);assert.ok(cli.includes('permit tcp 10.50.0.0 0.0.0.255 any eq 22')&&cli.includes('permit tcp 10.60.0.5 0.0.0.0 any eq 22')&&cli.includes('clock timezone GET 4 0'));}
@@ -48,4 +48,11 @@ for(const [key,regex] of [['nat',/ip nat /],['route',/ip route 0\.0\.0\.0/],['dh
 }
 for(const mode of ['svi','subinterfaces']){const input=fixture();input.lab.a.vlan2Enabled='off';input.lab.a.officeVlans=false;input.values.internet_access.iosLanMode=mode;const cli=good(input);assert.doesNotMatch(cli,/172\.16\.19\.|Vlan20|NAT112/);if(mode==='svi')assert.ok(cli.includes('switchport access vlan 10'));else assert.doesNotMatch(cli,/encapsulation dot1Q/);}
 const sw=composeDevice({...base,role:'switch',selected:{},values:{},bindings:true});assert.deepEqual(sw.errors,[]);assert.ok(sw.code.includes('switchport trunk native vlan 1')&&sw.code.includes('allowed vlan 10,20'));assert.doesNotMatch(sw.code,/ip nat |SSH_NEW/);
-console.log('Standard Office: complete ordered IOS output, both LAN modes, VTY ranges, static exclusions, per-VLAN PAT, topology edits, masking, component toggles and atomic validation passed.');
+for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
+  assert.deepEqual(featureFields('ntp_syslog',vendor).map(f=>f.key),['ntp']);
+  const result=generateFeature('ntp_syslog',{...featureDefaults('ntp_syslog',vendor),syslog:'192.0.2.50'});
+  assert.deepEqual(result.errors,[]);const cli=result.scripts.map(s=>s.code).join('\n');
+  assert.ok(cli.includes('129.250.35.251'));assert.doesNotMatch(cli,/syslog|logging host|\/system logging|192\.0\.2\.50/i);
+}
+{const input=fixture();input.values.ntp_syslog.syslog='192.0.2.50';assert.doesNotMatch(good(input),/syslog|logging host|192\.0\.2\.50/i);}
+console.log('Standard Office: complete ordered IOS output, both LAN modes, VTY ranges, static exclusions, per-VLAN PAT, topology edits, masking, component toggles, NTP-only services and atomic validation passed.');
