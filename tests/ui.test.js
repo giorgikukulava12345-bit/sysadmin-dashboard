@@ -83,7 +83,13 @@ check('fixed-address repair examples removed',!q('[data-repair]'));
 toggle('dhcp',true);input('[data-feature-panel="dhcp"] [name="leaseMinutes"]','1950');submit();check('DHCP lease UI reaches CLI',q('[data-code]').textContent.includes('lease 1 8 30'));toggle('dhcp',false);
 input('[data-vendor]','paloalto','change');toggle('static',true);input('[data-feature-panel="static"] [name="virtualRouter"]','CORP-VR');input('[data-feature-panel="static"] [name="routeName"]','BRANCH-ROUTE');submit();check('PAN route context UI reaches CLI',q('[data-code]').textContent.includes('virtual-router CORP-VR')&&q('[data-code]').textContent.includes('static-route BRANCH-ROUTE'));
 
-input('[data-vendor]','ios','change');toggle('wan_failover',true);officePreset();check('Cisco ACL-only dual-WAN PAT is rejected clearly',q('[data-errors]').textContent.includes('egress paths')&&q('[data-copy-config]').disabled);toggle('wan_failover',false);submit();check('Cisco office preset recovers without WAN2',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('ip dhcp pool OFFICE-LAN-V20'));
+input('[data-vendor]','ios','change');toggle('wan_failover',true);officePreset();check('Cisco ACL-only dual-WAN PAT is rejected clearly',q('[data-errors]').textContent.includes('egress paths')&&q('[data-copy-config]').disabled);toggle('wan_failover',false);submit();check('Cisco office preset recovers without WAN2',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('ip dhcp pool IT'));
+check('Cisco Office defaults to selectable SVI mode',q('[data-feature-panel=internet_access] [name=iosLanMode]').value==='svi'&&q('[data-code]').textContent.includes('interface Vlan10')&&q('[data-code]').textContent.includes('interface Vlan20'));
+check('Cisco Office includes SSH ACL on all VTY lines',q('[data-code]').textContent.includes('line vty 5 15')&&q('[data-code]').textContent.includes('access-class SSH_NEW in'));
+input('[data-feature-panel=internet_access] [name=iosLanMode]','subinterfaces');submit();
+check('Cisco Office mode selector binds router-on-a-stick and firewall',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('encapsulation dot1Q 10')&&!q('[data-code]').textContent.includes('interface Vlan10')&&q('[data-code]').textContent.includes('ip access-list extended NAT112'));
+input('[data-feature-panel=internet_access] [name=iosLanMode]','svi');input('[data-feature-panel=internet_access] [name=managementSources]','10.50.0.0/24');input('[data-feature-panel=internet_access] [name=timezoneName]','GET');input('[data-feature-panel=internet_access] [name=timezoneHours]','4');submit();
+check('Cisco Office SSH sources and timezone are editable',q('[data-code]').textContent.includes('permit tcp 10.50.0.0 0.0.0.255 any eq 22')&&q('[data-code]').textContent.includes('clock timezone GET 4 0'));
 for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){
  input('[data-vendor]',vendor,'change');toggle('wan_failover',true);
  check(vendor+' WAN2 settings appear',!!q('[data-feature-panel="wan_failover"] [name="ip2"]'));
@@ -153,3 +159,4 @@ input('[data-existing]','ip route 192.168.20.0 255.255.255.0 203.0.113.1');submi
 q('[data-clear-secrets]').click();check('clear secrets also clears pasted configuration',q('[data-existing]').value==='');
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
+

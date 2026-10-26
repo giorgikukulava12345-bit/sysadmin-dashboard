@@ -5,6 +5,7 @@ import { generate as generateVpn } from './engine.js';
 import { cidr } from './address.js';
 import { iosInternetPat } from './internet.js';
 import {leaseRanges} from './office-services.js';
+import {generateStandardOffice} from './standard-office.js';
 
 /** No DOM dependencies. Each output belongs to one physical device. */
 export function composeDevice(input){
@@ -81,6 +82,10 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
     if(ids.includes('span')&&shared.includes(values.span?.destination))errors.push('SPAN destination must not reuse a VLAN lab port.');
   }
   if(dual&&role==='router'&&ids.some(id=>['vpn','zbfw','dmvpn'].includes(id)))errors.push('Generate VPN/firewall overlays separately from the two-VLAN routed-trunk template; both subnets require an explicit policy design.');
+  if(role==='router'&&vendor==='ios'&&office&&values.internet_access?.standardOffice){
+    if(errors.length)return {errors:[...new Set(errors)],code:'',empty:false};
+    return generateStandardOffice({site,selected,values});
+  }
   if(bindings){const script=address.scripts[baseIndex+(role==='switch'?1:0)];if(script.unsupported)errors.push('No base switch template for this platform.');else blocks.push({title:'BASE INTERFACE / IP BINDINGS',code:script.code});}
   const vtiOwnNat=ids.includes('vpn')&&vpnType==='vti';
   for(const id of ids){
@@ -129,3 +134,4 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   const comment=vendor==='ios'?'!':'#';
   return{errors:[],code:blocks.map(b=>`${comment} === ${b.title} ===\n${b.code.trim()}`).join('\n\n')+'\n',empty:false};
 }
+
