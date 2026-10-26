@@ -158,6 +158,18 @@ input('[data-existing]','hostname CHANGED');check('editing existing context inva
 input('[data-side]','b','change');check('existing context is isolated per site',q('[data-existing]').value==='');input('[data-side]','a','change');check('existing context returns with selected site',q('[data-existing]').value==='hostname CHANGED');
 input('[data-existing]','ip route 192.168.20.0 255.255.255.0 203.0.113.1');submit();check('conflicting route blocks merged output',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('Conflicting'));
 q('[data-clear-secrets]').click();check('clear secrets also clears pasted configuration',q('[data-existing]').value==='');
+cleanup();root.replaceChildren();cleanup=mountVpn(root);
+check('photo import is collapsed and does not load OCR automatically',!q('[data-photo-panel]').open&&q('[data-photo-analyze]').disabled);
+q('[data-photo-panel]').open=true;q('[data-photo-manual]').click();
+check('photo review leaves missing addresses blank',q('[name="photo.gateway"]').value===''&&q('[name="photo.wanIp"]').value==='');
+for(const [key,value]of Object.entries({routerName:'R-Tbilisi',switchName:'SW-1',wanPort:'e1/0',wanIp:'192.168.73.2',wanPrefix:'24',gateway:'192.168.73.1',lanPort:'e1/2',lanIp:'192.168.1.1',lanPrefix:'24',uplink:'e0/0',access:'e0/1'}))input(`[name="photo.${key}"]`,value);
+check('photo generation requires reviewed connections',q('[data-photo-generate]').disabled);
+input('[data-photo-reviewed]',true,'change');q('[data-photo-generate]').click();
+check('reviewed photo creates separate router and switch configurations',q('[data-photo-device]').options.length===2&&!q('[data-photo-result]').hidden);
+check('photo output uses the reviewed /24 WAN and router ports',q('[data-photo-code]').textContent.includes('ip address 192.168.73.2 255.255.255.0')&&q('[data-photo-code]').textContent.includes('interface Ethernet1/2'));
+input('[data-photo-device]','1','change');check('photo device selector shows switch-only ports',q('[data-photo-code]').textContent.includes('interface Ethernet0/0')&&!q('[data-photo-code]').textContent.includes('ip nat'));
+input('[name="photo.gateway"]','192.168.73.3');check('photo edits invalidate the generated snapshot',q('[data-photo-result]').hidden&&q('[data-photo-generate]').disabled&&!q('[data-photo-reviewed]').checked);
+q('[data-photo-clear]').click();check('photo clear releases the workspace',q('[data-photo-layout]').hidden&&q('[data-photo-result]').hidden&&q('[data-photo-analyze]').disabled);
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 
