@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>MikroTik UI regression checks</title><h1>MikroTik model UI checks</h1><pre id="results">Running…</pre><div id="fixture"></div><script type="module">
+import {mountVpn} from '../static/vpn/ui.js';
+const fixture=document.querySelector('#fixture'),root=document.createElement('div');fixture.append(root);const cleanup=mountVpn(root);
+const q=s=>fixture.querySelector(s),checks=[];
+const check=(label,ok)=>{checks.push((ok?'PASS ':'FAIL ')+label);if(!ok)throw Error(label);};
+const input=(selector,value,event='input')=>{const el=q(selector);el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));};
+try{
+ input('[data-vendor]','mikrotik','change');
+ check('MikroTik model selector is visible',!q('[data-model-field]').hidden);
+ input('[data-model-search]','RB5009');check('search finds model',q('[data-router-model]').options.length===4);
+ input('[data-router-model]','MikroTik RB5009UG+S+IN','change');
+ check('WAN defaults to ether1',q('[data-side=a][name=wan]').value==='ether1');
+ check('LAN defaults to ether2',q('[data-side=a][name=lan]').value==='ether2');
+ check('RB5009 has ten-gigabit optical port',q('[data-port-picker=wan][data-port-side=a]').textContent.includes('sfp-sfpplus1'));
+ check('source link is official',q('[data-model-summary] a').href==='https://mikrotik.com/product/rb5009ug_s_in');
+ q('[data-role=switch]').click();input('[data-vendor]','mikrotik','change');
+ input('[data-router-model]','MikroTik CRS326-24G-2S+RM','change');q('[data-generate]').click();
+ check('standalone switch generates bridge configuration',q('[data-code]').textContent.includes('/interface bridge'));
+ q('[data-role=router]').click();q('[data-office-preset]').click();
+ check('Quick Setup preserves MikroTik switch',q('[data-side=a][name=switchVendor]').value==='mikrotik');
+ check('Quick Setup generates companion switch',!q('[data-office-companion]').hidden&&q('[data-companion-code]').textContent.includes('/interface bridge'));
+ check('Quick Setup generates RouterOS router',q('[data-code]').textContent.includes('/ip'));
+ q('[data-role=switch]').click();input('[data-router-model]','MikroTik CSS326-24G-2S+RM','change');q('[data-generate]').click();
+ check('SwOS does not receive RouterOS commands',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('SwOS'));
+ document.querySelector('#results').textContent=checks.join('\n')+'\nALL PASSED';
+}catch(error){document.querySelector('#results').textContent=checks.join('\n')+'\nERROR '+error.stack;}
+</script></html>

@@ -1,9 +1,11 @@
+import {MIKROTIK_PORTS,mikrotikPortOptions} from './mikrotik-models.js';
 import {SWITCH_PORTS,switchPortOptions} from './switch-models.js';
 import {modelPortOptions,ROUTER_PORTS} from './router-models.js';
 // Interface suggestions are examples, not hardware discovery or OS conversion.
 const range=(prefix,start=0,count=8)=>Array.from({length:count},(_,i)=>prefix+(start+i));
 const cisco=[['GigabitEthernet','1 Gbps','Gi'],['FastEthernet','10/100 Mbps','Fa'],['TenGigabitEthernet','10 Gbps','Te'],['TwentyFiveGigE','25 Gbps','Twe'],['FortyGigabitEthernet','40 Gbps','Fo'],['HundredGigE','100 Gbps','Hu'],['Ethernet','Lab Ethernet','e']];
 export function portOptions(vendor,model='',role='wan',exclude=''){
+  if(vendor==='mikrotik'&&MIKROTIK_PORTS[model])return mikrotikPortOptions(model,exclude);
   if(vendor==='ios'&&SWITCH_PORTS[model])return switchPortOptions(model,exclude);
   if(vendor==='ios'&&ROUTER_PORTS[model])return modelPortOptions(model,role,exclude);
   if(vendor==='ios')return cisco.flatMap(([prefix,speed,alias])=>[...['0/','1/','2/','3/','0/0/','1/0/'].flatMap(slot=>range(prefix+slot)),prefix+'1',prefix+'2'].map(value=>({value,label:`${value} · ${speed} (${value.replace(prefix,alias)})`})));

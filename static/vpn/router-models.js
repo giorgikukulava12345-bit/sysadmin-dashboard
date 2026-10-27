@@ -1,3 +1,4 @@
+import {mikrotikModel,populateMikrotikModels,renderMikrotikInfo,selectMikrotikModel,validateMikrotikPorts} from './mikrotik-models.js';
 import {ROUTER_CATALOG,ROUTER_PROFILES,VERIFIED_ROUTER_PORTS,CATALOG_CHECKED_AT,CATALOG_LISTING} from './cisco-router-catalog.js';
 export const CISCO_ROUTERS=ROUTER_CATALOG;
 export {CATALOG_CHECKED_AT,CATALOG_LISTING};
@@ -11,12 +12,14 @@ export const ROUTER_PORTS=Object.fromEntries(CISCO_ROUTERS.map(row=>{
  return [row.model,{wan:inventory.filter(port=>port.role!=='lan'),lan:explicitLan.length?explicitLan:routedLan}];
 }));
 export function modelGenerationError(site){
+ if(site.vendor==='mikrotik')return validateMikrotikPorts(site).join(' ');
  if(site.vendor!=='ios'||!site.routerModel)return '';
  const p=modelProfile(site.routerModel);
  if(!p)return 'Choose a supported Cisco router model.';
  return p.cli_supported?'':site.routerModel+': hardware catalog only ('+p.os+'). '+p.port_note+' Choose Custom / other model only when you have verified an IOS / IOS XE device and its exact interface names.';
 }
-export function populateRouterModels(select,query=''){
+export function populateRouterModels(select,query='',vendor='ios'){
+ if(vendor==='mikrotik')return populateMikrotikModels(select,query);
  const previous=select.value,search=query.trim().toLowerCase();
  select.replaceChildren();const custom=document.createElement('option');custom.value='';custom.textContent='Custom / other model';select.append(custom);
  const groups=new Map();let count=0;
@@ -28,6 +31,7 @@ export function populateRouterModels(select,query=''){
  select.value=previous;return count;
 }
 export function renderRouterModelInfo(container,name){
+ if(mikrotikModel(name))return renderMikrotikInfo(container,name);
  container.replaceChildren();const row=routerModel(name),profile=modelProfile(name);container.hidden=!row;if(!row)return;
  const intro=document.createElement('p');intro.textContent=row.series+' · '+row.form_factor+' · '+(profile.manual_ports?'Enter installed module interfaces':profile.cli_supported?'CLI Ethernet mapping available':'Hardware catalog · '+profile.os)+' · Checked '+CATALOG_CHECKED_AT;container.append(intro);
  const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Ports, modules & official Cisco specifications';details.append(summary);
@@ -42,6 +46,7 @@ export function modelPortOptions(model,role,exclude=''){
   return (ROUTER_PORTS[model]?.[role]||[]).filter(p=>p.value!==exclude).map(p=>({...p,label:p.label||p.value+' · '+p.speed+' · '+p.type+(p.switched?' · LAN switchport':' · routed')}));
 }
 export function selectRouterModel(site,model){
+ if(site.vendor==='mikrotik')return selectMikrotikModel(site,model);
   site.routerModel=ROUTER_PORTS[model]?model:'';
   if(site.vendor!=='ios'||!site.routerModel)return;
   const ports=ROUTER_PORTS[model];
@@ -50,6 +55,7 @@ export function selectRouterModel(site,model){
 }
 export const switchedLan=site=>site.vendor==='ios'&&Boolean(ROUTER_PORTS[site.routerModel]?.lan.some(p=>p.value===site.lan&&p.switched));
 export function validateModelPorts(site){
+ if(site.vendor==='mikrotik')return validateMikrotikPorts(site);
   if(site.vendor!=='ios'||!site.routerModel)return [];
   const ports=ROUTER_PORTS[site.routerModel];
   if(!ports)return ['Choose a supported Cisco router model.'];
