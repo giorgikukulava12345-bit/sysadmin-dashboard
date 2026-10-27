@@ -2,6 +2,7 @@
 export function packetTracerCLI(code){
  return String(code).replace(/\r\n?/g,'\n').split('\n').flatMap(line=>{
   const command=line.trim(),indent=line.slice(0,line.length-line.trimStart().length);
+  if(/^ip virtual-reassembly(?:\s|$)/.test(command))return [];
   if(/^service timestamps (log|debug) datetime\b/.test(command))return indent+command.replace(/\s+(localtime|show-timezone)\b/g,'');
   if(/^ntp server\s+/.test(command))return line.replace(/\s+prefer\s*$/,'');
   if(/^ip name-server\s+/.test(command))return command.slice('ip name-server '.length).trim().split(/\s+/).map(address=>indent+'ip name-server '+address);
