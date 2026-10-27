@@ -125,3 +125,7 @@ Reference: [Cisco IOS command modes](https://developer.cisco.com/docs/iox/phase-
 
 ### Separate device output and initial selections
 The workbench starts with no features selected on either site or device. Quick Setup remains an explicit action that selects the office bundle. Cisco Office uses a routed LAN Ethernet port; switch VLAN creation and access-port settings are emitted in the separate SWITCH CONFIGURATION panel. Switch exports omit generated section banners. Office timezone defaults are GET, UTC +4 hours, 0 minutes, and remain editable.
+
+
+### Minimal Office Quick Setup
+Quick Setup replaces previous selections with only router interfaces, IPv4 default route, DNS, interface PAT, DHCP and NTP. It does not automatically select SSH hardening, stateful firewall, switch bindings, Dual ISP or linked IP SLA. Standalone features remain available for explicit selection. FortiOS requires an outbound security policy for interface NAT; the existing validator blocks this combination until the user explicitly enables that component.
