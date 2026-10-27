@@ -6,7 +6,9 @@ export const ROUTER_PORTS=Object.fromEntries(CISCO_ROUTERS.map(row=>{
  const p=ROUTER_PROFILES[row.model];
  if(VERIFIED_ROUTER_PORTS[row.model])return [row.model,VERIFIED_ROUTER_PORTS[row.model]];
  const inventory=(p.groups||[]).flatMap((g,gi)=>Array.from({length:g.count},(_,i)=>({value:'Hardware'+gi+'Port'+(i+1),label:g.type+' '+(i+1)+' · '+g.speed+' · '+(g.role==='shared'?'WAN / LAN':g.role.toUpperCase())+' · inventory',speed:g.speed,type:g.type,switched:false,role:g.role})));
- return [row.model,{wan:inventory.filter(port=>port.role!=='lan'),lan:inventory.filter(port=>port.role==='lan'||port.role==='shared')}];
+ const explicitLan=inventory.filter(port=>port.role==='lan'||port.role==='shared');
+ const routedLan=!explicitLan.length&&p.os==='IOS XE'?inventory.filter(port=>/Gbps/.test(port.speed)&&/RJ-45|SFP|Ethernet/.test(port.type)).map(port=>({...port,label:'Routed LAN candidate · '+port.label})):[];
+ return [row.model,{wan:inventory.filter(port=>port.role!=='lan'),lan:explicitLan.length?explicitLan:routedLan}];
 }));
 export function modelGenerationError(site){
  if(site.vendor!=='ios'||!site.routerModel)return '';
