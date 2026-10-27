@@ -29,7 +29,7 @@ function build(s,selected,values){
   const extra=Object.keys(selected).filter(id=>selected[id]&&!['internet_access','hardening','ntp_syslog'].includes(id));
   if(extra.length)throw Error('This complete Cisco Office preset owns interfaces, NAT and management. Generate additional features separately; Dual ISP needs egress-aware NAT design.');
   validateInternet(d);
-  const mode=d.iosLanMode??'svi';
+  const mode=d.iosLanMode??'subinterfaces';
   if(!['svi','subinterfaces'].includes(mode))throw Error('Choose SVI or router-on-a-stick LAN mode.');
   if(!/^(?:FastEthernet|GigabitEthernet|TenGigabitEthernet|Ethernet)\d+(?:\/\d+)*$/.test(s.lan))throw Error('LAN binding must be a physical Cisco Ethernet interface.');
   const dual=s.vlan2Enabled==='on';
@@ -42,8 +42,8 @@ function build(s,selected,values){
   const h=values.hardening||{},hostname=h.hostname||'R1',domain=h.domain||'cisco.com';
   if(!/^[A-Za-z][A-Za-z0-9-]{0,62}$/.test(hostname))throw Error('Hostname: use a valid IOS hostname.');
   if(!/^(?=.{3,253}$)[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(domain))throw Error('Enter a valid domain name.');
-  const timezone=identifier(d.timezoneName??'UTC','Timezone name');
-  const hours=integer(d.timezoneHours??'0',-23,23,'Timezone hours'),minutes=integer(d.timezoneMinutes??'0',0,59,'Timezone minutes');
+  const timezone=identifier(d.timezoneName??'GET','Timezone name');
+  const hours=integer(d.timezoneHours??'4',-23,23,'Timezone hours'),minutes=integer(d.timezoneMinutes??'0',0,59,'Timezone minutes');
   const sections=[`hostname ${hostname}\nip routing\nip cef\nno ip domain lookup\nip domain name ${domain}\nclock timezone ${timezone} ${hours} ${minutes}\nservice timestamps log datetime msec localtime show-timezone`];
   if(selected.ntp_syslog){
     const clock=values.ntp_syslog||{};

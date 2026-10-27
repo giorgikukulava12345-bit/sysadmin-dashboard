@@ -132,6 +132,6 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(errors.length)return{errors:[...new Set(errors)],code:'',empty:false};if(!blocks.length)return{errors:[],code:'',empty:true};
   // Do not concatenate configuration modes blindly: each fragment exits its own mode.
   const comment=vendor==='ios'?'!':'#';
-  return{errors:[],code:blocks.map(b=>`${comment} === ${b.title} ===\n${b.code.trim()}`).join('\n\n')+'\n',empty:false};
+  return{errors:[],code:blocks.map(b=>role==='switch'?b.code.trim():`${comment} === ${b.title} ===\n${b.code.trim()}`).join('\n\n')+'\n',empty:false};
 }
 

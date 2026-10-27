@@ -21,12 +21,12 @@ export function internetFields(id,vendor){
     const office=d=>Boolean(d.standardOffice);
     fields[0].when=d=>!d.standardOffice;
     fields.push(
-      {...field('iosLanMode','Cisco LAN interface mode','svi','select'),options:{svi:'SVIs / integrated Layer 2 switch ports',subinterfaces:'Routed Ethernet / switch access port'},when:office},
+      {...field('iosLanMode','Cisco LAN interface mode','subinterfaces','select'),options:{subinterfaces:'Routed Ethernet / switch access port'},when:()=>false},
       {...field('usersPool','Primary DHCP pool name','USERS'),when:office},
       {...field('staticReserve','Reserved addresses from start of each LAN (0–254)','49','number'),when:office},
       {...field('managementSources','Additional SSH source CIDRs or hosts (one per line)','','textarea'),when:office},
-      {...field('timezoneName','Timezone abbreviation','UTC'),when:office},
-      {...field('timezoneHours','UTC offset hours (-23 to 23)','0','number'),when:office},
+      {...field('timezoneName','Timezone abbreviation','GET'),when:office},
+      {...field('timezoneHours','UTC offset hours (-23 to 23)','4','number'),when:office},
       {...field('timezoneMinutes','UTC offset minutes (0 to 59)','0','number'),when:office}
     );
   }

@@ -121,3 +121,7 @@ The output preview, Copy Config, Download Config and companion switch export sha
 Start at a clean privileged EXEC prompt (`Router#`): press Ctrl+U to clear stray text before pasting. If the prompt is `Router>`, run `enable` and complete any password prompt first. `configure terminal` must produce `Router(config)#`; a typo such as `pconfigure terminal` leaves subsequent configuration commands at the wrong prompt. The web page cannot control console paste speed, device prompts or image-specific command support. It never injects an enable password, hidden terminal control characters or a save command.
 
 Reference: [Cisco IOS command modes](https://developer.cisco.com/docs/iox/phase-2-understanding-the-cisco-ios-command-line-interface-cli/). No hardware execution is implied by clipboard/export tests.
+
+
+### Separate device output and initial selections
+The workbench starts with no features selected on either site or device. Quick Setup remains an explicit action that selects the office bundle. Cisco Office uses a routed LAN Ethernet port; switch VLAN creation and access-port settings are emitted in the separate SWITCH CONFIGURATION panel. Switch exports omit generated section banners. Office timezone defaults are GET, UTC +4 hours, 0 minutes, and remain editable.
