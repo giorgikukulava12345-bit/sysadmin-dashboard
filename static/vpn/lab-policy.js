@@ -1,7 +1,8 @@
 import { ipv4 } from './address.js';
 import { capable } from './features.js';
 
-export function suggestGateway(value){
+export function suggestGateway(value,prefix='30'){
+  if(prefix!=='30')return '';
   const ip=ipv4(value);if(ip===null)return '';
   const offset=ip%4;if(offset!==1&&offset!==2)return '';
   const peer=ip+(offset===1?1:-1);return [24,16,8,0].map(n=>(peer>>>n)&255).join('.');
@@ -24,3 +25,4 @@ export function vpnAvailable(type,a,b){
   if(type==='ikev1')return a!=='asa'&&b!=='asa';
   return type==='ikev2';
 }
+

@@ -1,11 +1,12 @@
 import { cidr, ipv4, unicastNetwork } from './address.js';
 
+export const WAN_PREFIXES=Object.freeze(['24','25','26','27','28','29','30']);
 export function validateWan(s) {
-  const errors=[],ip=ipv4(s.ip),gateway=ipv4(s.gateway),n=cidr(`${s.ip}/30`);
+  const errors=[],ip=ipv4(s.ip),gateway=ipv4(s.gateway),validPrefix=WAN_PREFIXES.includes(s.wanPrefix),n=validPrefix?cidr(`${s.ip}/${s.wanPrefix}`):null;
   if(ip!==null&&(ip<16777216||(ip>>>24)===127||ip>=0xe0000000))errors.push('WAN IP must be unicast, outside 0/8, loopback and multicast/reserved space.');
-  if(s.wanPrefix!=='30')errors.push('WAN prefix must be /30 (two usable hosts).');
-  if(ip===null||!n||ip<=n.network||ip>=n.end)errors.push('WAN IP must be a usable /30 host, not the network or broadcast address.');
-  if(!n||gateway===null||gateway<=n.network||gateway>=n.end||gateway===ip)errors.push('ISP gateway must be the other usable host in the same /30 subnet.');
+  if(!validPrefix)errors.push('WAN prefix must be between /24 and /30.');
+  if(ip===null||!n||ip<=n.network||ip>=n.end)errors.push('WAN IP must be a usable host in the selected WAN subnet, not its network or broadcast address.');
+  if(!n||gateway===null||gateway<=n.network||gateway>=n.end||gateway===ip)errors.push('ISP gateway must be a different usable host in the same selected WAN subnet.');
   return errors;
 }
 const validName = value => /^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(value || '');
@@ -88,3 +89,4 @@ exit
     default: throw new Error('Unsupported interface platform');
   }
 }
+

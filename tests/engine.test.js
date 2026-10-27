@@ -254,12 +254,25 @@ test('/30 WAN accepts either host orientation and coherent defaults',()=>{
   for(const [ip,gateway] of [['203.0.113.9','203.0.113.10'],['203.0.113.10','203.0.113.9'],['198.51.100.22','198.51.100.21']])assert(!validateWan({ip,gateway,wanPrefix:'30'}).length);
   const lab=createInitialLab();for(const side of ['a','b'])assert(!validateWan(lab[side]).length);
 });
-for(const patch of [{ip:'203.0.113.8'},{ip:'203.0.113.11'},{gateway:'203.0.113.8'},{gateway:'203.0.113.11'},{gateway:'203.0.113.10'},{gateway:'203.0.113.13'},{ip:'203.0.113.999'},{wanPrefix:'24'},{wanPrefix:'31'}])test('/30 WAN rejects '+JSON.stringify(patch),()=>{
+for(const patch of [{ip:'203.0.113.8'},{ip:'203.0.113.11'},{gateway:'203.0.113.8'},{gateway:'203.0.113.11'},{gateway:'203.0.113.10'},{gateway:'203.0.113.13'},{ip:'203.0.113.999'},{wanPrefix:'23'},{wanPrefix:'31'}])test('/30 WAN rejects '+JSON.stringify(patch),()=>{
  const lab=createInitialLab();Object.assign(lab.a,patch);assert(labScripts(lab).errors.length);assert(!labScripts(lab).scripts.length);
  const c=config();Object.assign(c.a,patch);assert(generate(c).errors.length);assert(generate(c).a==='');
 });
 test('/30 CLI renders the actual WAN mask without changing LAN masks',()=>{
  const lab=createInitialLab(),r=labScripts(lab);assert(r.scripts[0].code.includes('203.0.113.10 255.255.255.252'));assert(r.scripts[0].code.includes('192.168.1.1 255.255.255.0'));
+});
+for(const prefix of ['24','25','26','27','28','29','30'])test('WAN /'+prefix+' validates subnet boundaries and renders all router vendors',()=>{
+ const ip='203.0.113.2',gateway='203.0.113.1',net=cidr(`${ip}/${prefix}`),text=n=>[24,16,8,0].map(b=>(n>>>b)&255).join('.');
+ assert(!validateWan({ip,gateway,wanPrefix:prefix}).length);
+ for(const patch of [{ip:text(net.network)},{ip:text(net.end)},{gateway:text(net.network)},{gateway:text(net.end)},{gateway:ip},{gateway:'203.0.114.1'}])assert(validateWan({ip,gateway,wanPrefix:prefix,...patch}).length,'Invalid '+JSON.stringify(patch)+' on /'+prefix);
+ for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto']){
+  const lab=createInitialLab();Object.assign(lab.a,{vendor,wan:PORTS[vendor][0],lan:PORTS[vendor][1],ip,gateway,wanPrefix:prefix});
+  const base=labScripts(lab,{sides:['a']});assert(!base.errors.length,base.errors.join(';'));
+  const expected=['ios','fortinet'].includes(vendor)?`${ip} ${net.mask}`:`${ip}/${prefix}`;assert(base.scripts[0].code.includes(expected),vendor+' base mask');
+  Object.assign(lab.a,{officeVlans:true,vlan2Enabled:'on',vlan2Subnet:'172.16.19.0/24',vlan2Gateway:'172.16.19.1',vlan2SwitchIp:'172.16.19.254'});
+  const office=composeDevice({lab,side:'a',role:'router',selected:{internet_access:true},values:{internet_access:featureDefaults('internet_access',vendor)}});assert(!office.errors.length,office.errors.join(';'));assert(office.code.includes(expected),vendor+' office mask');
+ }
+ const vpn=config();vpn.a.wanPrefix=prefix;const result=generate(vpn);assert(!result.errors.length,result.errors.join(';'));
 });
 test('SSH hardening accepts four-character text and numeric secrets',()=>{for(const value of ['abcd','1234','Lab1']){const r=generateTool('hardening',{...defaultsFor('hardening'),secret:value,enableSecret:value});assert(!r.errors.length,r.errors.join(';'));assert(r.scripts[0].code.includes('enable secret '+value));assert(r.scripts[0].code.includes('privilege 15 secret '+value));}});
 test('SSH short-secret support preserves validation and injection protection',()=>{for(const value of ['', 'abc', '1234\nend', '1234;reload'])assert(generateTool('hardening',{...defaultsFor('hardening'),secret:value,enableSecret:'1234'}).errors.length);});

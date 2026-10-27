@@ -1,3 +1,4 @@
+import { WAN_PREFIXES } from './interfaces.js';
 import { mountSelectionMenu } from './selection-menu.js';
 import { vpnAvailable } from './lab-policy.js';
 import { maskSecrets } from './secret-mask.js';
@@ -26,9 +27,9 @@ function site(side) {
     <div data-overlay class="mt-4" hidden>${field(side, 'tunnel', 'Tunnel IPv4 (host in a shared /30)')}</div>
     <details class="mt-4" id="vpn-${side}-interfaces"><summary class="cursor-pointer text-xs font-mono text-slate-400">Interface &amp; routing context</summary>
       <div class="grid sm:grid-cols-2 gap-4 mt-3">${field(side, 'wan', 'WAN interface / ASA nameif')}${field(side, 'lan', 'LAN interface / ASA nameif')}
-      <label>WAN prefix<input name="${side}.wanPrefix" value="30" readonly aria-label="${side.toUpperCase()} WAN prefix /30"></label>${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
+      <label>WAN prefix<select name="${side}.wanPrefix" aria-label="${side.toUpperCase()} WAN prefix">${options(Object.fromEntries(WAN_PREFIXES.map(p=>[p,`/${p}`])))}</select></label>${field(side, 'lanIp', 'LAN interface IPv4', 'text', 'A usable host inside this side’s local subnet.')}
       <div data-asa>${field(side, 'wanPort', 'ASA physical WAN port')}${field(side, 'lanPort', 'ASA physical LAN port')}</div>
-      <div data-gateway>${field(side, 'gateway', 'ISP gateway (other usable /30 host)')}</div>
+      <div data-gateway>${field(side, 'gateway', 'ISP gateway (same WAN subnet)')}</div>
       <div data-security-zone>${field(side, 'zone', 'Existing LAN security zone')}${field(side, 'vpnZone', 'VPN security zone')}${field(side, 'vpnUnit', 'VPN logical interface unit', 'number')}</div><div data-junos>${field(side, 'wanZone', 'Existing WAN security zone (Junos)')}</div><div data-pan>${field(side, 'vr', 'Virtual router (PAN-OS)')}</div></div>
     </details>
   </fieldset>`;
@@ -173,3 +174,4 @@ if (typeof document !== 'undefined') {
   const autoRoot = document.getElementById('vpn-app');
   if (autoRoot) mountVpn(autoRoot);
 }
+

@@ -52,7 +52,7 @@ export function validateInternet(d,backup=false){
   const errors=validateWan(d);if(errors.length)throw Error(errors.join(' '));
   const lan=cidr(d.local);if(!lan||lan.canonical!==d.local)throw Error('Use a canonical LAN network CIDR.');
   const host=ipv4(d.lanIp);if(host===null||host<=lan.network||host>=lan.end)throw Error('LAN gateway must be a usable host in the LAN network.');
-  if(overlap(lan,cidr(`${d.ip}/30`)))throw Error('WAN1 and LAN must not overlap.');
+  if(overlap(lan,cidr(`${d.ip}/${d.wanPrefix}`)))throw Error('WAN1 and LAN must not overlap.');
   if(d.vendor==='paloalto')name(d.virtualRouter,'Virtual router');
   if(d.vendor==='juniper'&&[d.wan,...(d.officeVlans?[]:[d.lan]),d.wan2].filter(Boolean).some(x=>/\.\d+$/.test(x)))throw Error('Junos requires physical interface names; unit 0 is generated.');
   if(d.vendor==='fortinet')integer(d.routeId,1,4294967294,'Primary route ID');
@@ -62,7 +62,7 @@ export function validateInternet(d,backup=false){
     if([d.wan,d.lan,d.physicalLan].includes(d.wan2))throw Error('WAN2 must use a dedicated interface, distinct from WAN1 and LAN.');
     const errors2=validateWan({ip:d.ip2,gateway:d.gateway2,wanPrefix:'30'});if(errors2.length)throw Error('WAN2: '+errors2.join(' '));
     const net=cidr(`${d.ip2}/30`);
-    if([cidr(`${d.ip}/30`),lan,d.vlan2Enabled==='on'?cidr(d.vlan2Subnet):null].some(n=>overlap(n,net)))throw Error('WAN2 /30 must not overlap WAN1 or either LAN VLAN.');
+    if([cidr(`${d.ip}/${d.wanPrefix}`),lan,d.vlan2Enabled==='on'?cidr(d.vlan2Subnet):null].some(n=>overlap(n,net)))throw Error('WAN2 /30 must not overlap WAN1 or either LAN VLAN.');
     integer(d.backupDistance||'5',2,d.vendor==='paloalto'?65535:254,'Backup route preference');
     if(d.vendor==='fortinet'&&integer(d.backupRouteId,1,4294967294,'Backup route ID')===+d.routeId)throw Error('Primary and backup route IDs must differ.');
   }
