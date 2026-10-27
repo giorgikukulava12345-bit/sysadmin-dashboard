@@ -1,8 +1,10 @@
+import {SWITCH_PORTS,switchPortOptions} from './switch-models.js';
 import {modelPortOptions,ROUTER_PORTS} from './router-models.js';
 // Interface suggestions are examples, not hardware discovery or OS conversion.
 const range=(prefix,start=0,count=8)=>Array.from({length:count},(_,i)=>prefix+(start+i));
 const cisco=[['GigabitEthernet','1 Gbps','Gi'],['FastEthernet','10/100 Mbps','Fa'],['TenGigabitEthernet','10 Gbps','Te'],['TwentyFiveGigE','25 Gbps','Twe'],['FortyGigabitEthernet','40 Gbps','Fo'],['HundredGigE','100 Gbps','Hu'],['Ethernet','Lab Ethernet','e']];
 export function portOptions(vendor,model='',role='wan',exclude=''){
+  if(vendor==='ios'&&SWITCH_PORTS[model])return switchPortOptions(model,exclude);
   if(vendor==='ios'&&ROUTER_PORTS[model])return modelPortOptions(model,role,exclude);
   if(vendor==='ios')return cisco.flatMap(([prefix,speed,alias])=>[...['0/','1/','2/','3/','0/0/','1/0/'].flatMap(slot=>range(prefix+slot)),prefix+'1',prefix+'2'].map(value=>({value,label:`${value} · ${speed} (${value.replace(prefix,alias)})`})));
   const rows=vendor==='juniper'?[['ge-0/0/','1 Gbps'],['fe-0/0/','100 Mbps'],['xe-0/0/','10 Gbps'],['et-0/0/','25/40/100G · model dependent']]:vendor==='mikrotik'?[['ether','Copper Ethernet',1],['sfp','SFP · model dependent',1],['sfp-sfpplus','SFP+',1],['sfpplus','SFP+ · renamed/legacy',1],['sfp28-','SFP28 · model dependent',1],['qsfp','QSFP · model dependent',1],['qsfp28-','QSFP28 · model dependent',1],['qsfpplus1-','QSFP+ channel',1],['qsfp28-1-','QSFP28 channel',1]]:vendor==='fortinet'?[['port','Physical port',1],['wan','WAN-labelled port',1],['sfp','SFP · model dependent',1],['slot1/port','Chassis · model dependent',1],['slot2/port','Chassis · model dependent',1]]:vendor==='paloalto'?[['ethernet1/','Physical port',1],['ethernet2/','Slot 2 · model dependent',1]]:[];
