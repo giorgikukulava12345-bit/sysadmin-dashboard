@@ -1,5 +1,4 @@
 import { ipv4 } from './address.js';
-import { capable } from './features.js';
 
 export function suggestGateway(value,prefix='30'){
   if(prefix!=='30')return '';
@@ -7,7 +6,7 @@ export function suggestGateway(value,prefix='30'){
   const offset=ip%4;if(offset!==1&&offset!==2)return '';
   const peer=ip+(offset===1?1:-1);return [24,16,8,0].map(n=>(peer>>>n)&255).join('.');
 }
-export const baselineFeatures=vendor=>Object.fromEntries(['hardening','ntp_syslog'].filter(id=>capable(id,vendor)).map(id=>[id,true]));
+export const baselineFeatures=()=>({});
 export function toggleFeature(selected,id,enabled,vendor){
   const next={...selected,[id]:enabled};
   if(enabled&&id==='glbp')next.fhrp=false;
