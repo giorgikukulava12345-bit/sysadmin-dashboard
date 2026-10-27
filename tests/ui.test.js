@@ -78,23 +78,18 @@ for(const [prefix,mask]of [['24','255.255.255.0'],['25','255.255.255.128'],['26'
 }
 input('[data-side="a"][name="wanPrefix"]','24');input('[data-side="a"][name="ip"]','203.0.113.200');check('larger WAN preserves the assigned ISP gateway',q('[data-side="a"][name="gateway"]').value==='203.0.113.9');submit();check('WAN24 accepts usable addresses outside the old /30',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('203.0.113.200 255.255.255.0'));
 input('[data-side="a"][name="ip"]','203.0.113.10');input('[data-side="a"][name="wanPrefix"]','30');submit();
-q('[data-edit-vlans]').click();input('[data-side="a"][name="vlan2Enabled"]','on');
-check('second VLAN prefilled',q('[data-side="a"][name="vlan2"]').value==='20');
-q('[data-role="switch"]').click();submit();check('second VLAN switch trunk generated',q('[data-code]').textContent.includes('switchport trunk allowed vlan 10,20'));
-check('second VLAN SVI generated',q('[data-code]').textContent.includes('ip address 192.168.20.254'));
-q('[data-role="router"]').click();submit();check('second VLAN router gateway generated',q('[data-code]').textContent.includes('encapsulation dot1Q 20')&&q('[data-code]').textContent.includes('ip address 192.168.20.1'));
-input('[data-side="a"][name="vlan2"]','10');submit();check('duplicate VLAN blocks CLI',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('differ'));
-input('[data-side="a"][name="vlan2"]','20');input('[data-side="a"][name="vlan2Enabled"]','off');
-check('duplicate hidden device terminals removed',!q('[data-bindings] .lab-output pre'));
+check('secondary VLAN editor and shortcut are absent',!q('[name=vlan2Enabled]')&&!q('[name=vlan2Subnet]')&&!q('[data-edit-vlans]'));
+check('primary LAN VLAN remains editable',q('[data-side="a"][name=vlan]').value==='10');
+
 check('fixed-address repair examples removed',!q('[data-repair]'));
 toggle('dhcp',true);input('[data-feature-panel="dhcp"] [name="leaseMinutes"]','1950');submit();check('DHCP lease UI reaches CLI',q('[data-code]').textContent.includes('lease 1 8 30'));toggle('dhcp',false);
 input('[data-vendor]','paloalto','change');toggle('static',true);input('[data-feature-panel="static"] [name="virtualRouter"]','CORP-VR');input('[data-feature-panel="static"] [name="routeName"]','BRANCH-ROUTE');submit();check('PAN route context UI reaches CLI',q('[data-code]').textContent.includes('virtual-router CORP-VR')&&q('[data-code]').textContent.includes('static-route BRANCH-ROUTE'));
 
-input('[data-vendor]','ios','change');toggle('wan_failover',true);officePreset();check('Cisco ACL-only dual-WAN PAT is rejected clearly',q('[data-errors]').textContent.includes('egress paths')&&q('[data-copy-config]').disabled);toggle('wan_failover',false);submit();check('Cisco office preset recovers without WAN2',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('ip dhcp pool IT'));
-check('Cisco Office defaults to selectable SVI mode',q('[data-feature-panel=internet_access] [name=iosLanMode]').value==='svi'&&q('[data-code]').textContent.includes('interface Vlan10')&&q('[data-code]').textContent.includes('interface Vlan20'));
+input('[data-vendor]','ios','change');toggle('wan_failover',true);officePreset();check('Cisco ACL-only dual-WAN PAT is rejected clearly',q('[data-errors]').textContent.includes('egress paths')&&q('[data-copy-config]').disabled);toggle('wan_failover',false);submit();check('Cisco office preset recovers without WAN2',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('ip dhcp pool USERS')&&!q('[data-code]').textContent.includes('ip dhcp pool IT'));
+check('Cisco Office defaults to selectable SVI mode',q('[data-feature-panel=internet_access] [name=iosLanMode]').value==='svi'&&q('[data-code]').textContent.includes('interface Vlan10')&&!q('[data-code]').textContent.includes('interface Vlan20'));
 check('Cisco Office includes SSH ACL on all VTY lines',q('[data-code]').textContent.includes('line vty 5 15')&&q('[data-code]').textContent.includes('access-class SSH_NEW in'));
 input('[data-feature-panel=internet_access] [name=iosLanMode]','subinterfaces');submit();
-check('Cisco Office mode selector binds router-on-a-stick and firewall',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('encapsulation dot1Q 10')&&!q('[data-code]').textContent.includes('interface Vlan10')&&q('[data-code]').textContent.includes('ip access-list extended NAT112'));
+check('Cisco Office routed mode uses a single untagged LAN',!q('[data-copy-config]').disabled&&!q('[data-code]').textContent.includes('encapsulation dot1Q')&&!q('[data-code]').textContent.includes('interface Vlan10')&&q('[data-code]').textContent.includes('ip access-list extended NAT')&&!q('[data-code]').textContent.includes('NAT112'));
 input('[data-feature-panel=internet_access] [name=iosLanMode]','svi');input('[data-feature-panel=internet_access] [name=managementSources]','10.50.0.0/24');input('[data-feature-panel=internet_access] [name=timezoneName]','GET');input('[data-feature-panel=internet_access] [name=timezoneHours]','4');submit();
 check('Cisco Office SSH sources and timezone are editable',q('[data-code]').textContent.includes('permit tcp 10.50.0.0 0.0.0.255 any eq 22')&&q('[data-code]').textContent.includes('clock timezone GET 4 0'));
 for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){
@@ -107,7 +102,7 @@ for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){
  check(vendor+' preset banner summarizes active components',!q('[data-preset-banner]').hidden&&q('[data-preset-components]').textContent.includes('Interface NAT / PAT')&&q('[data-preset-heading]').textContent.includes('Configuration ready'));
  check(vendor+' included cards do not duplicate routes',!q('[data-feature-panel="static"]')&&!q('[data-feature-panel="nat"]')); 
  check(vendor+' preset includes DHCP and DNS badges',q('[data-preset-components]').textContent.includes('DHCP')&&q('[data-preset-components]').textContent.includes('DNS'));
- check(vendor+' preset two-VLAN trunk and pools',q('[data-code]').textContent.includes('172.16.19.1')&&q('[data-code]').textContent.includes('1.1.1.1')&&q('[data-companion-code]').textContent.includes('allowed vlan 10,20'));
+ check(vendor+' preset uses only the primary LAN VLAN',q('[data-code]').textContent.includes('192.168.1.1')&&!q('[data-code]').textContent.includes('172.16.19.')&&q('[data-code]').textContent.includes('1.1.1.1')&&q('[data-companion-code]').textContent.includes('switchport access vlan 10')&&!q('[data-companion-code]').textContent.includes('allowed vlan 10,20'));
  check(vendor+' preset preserves Dual ISP',q('[data-feature="wan_failover"]').checked);
  check(vendor+' preset immediately generates router CLI',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('198.18.60.6'));
  check(vendor+' interface bindings automatic',q('[data-include-bindings]').checked&&q('[data-include-bindings]').disabled);
@@ -123,15 +118,15 @@ check('switch included cards clear after router vendor reset',!q('[data-feature=
 q('[data-role="router"]').click();input('[data-side]','b','change');input('[data-side="b"][name="ip"]','invalid');input('[data-side]','a','change');toggle('nat',true);submit();
 check('invalid hidden peer does not block single-site output',!q('[data-copy-config]').disabled&&!q('[data-errors]').textContent.includes('Side B'));
 input('[data-side]','b','change');input('[data-side="b"][name="ip"]','198.51.100.22');input('[data-side]','a','change');input('[data-vendor]','juniper','change');officePreset();toggle('nat',false);toggle('ospf',true);
-check('Junos OSPF form uses tagged logical interface',q('[data-feature-panel="ospf"] [name="ospfInterfaces"]').value.endsWith('.10'));submit();
-check('Junos tagged OSPF generates current interface',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('interface ge-0/0/1.10'));
-input('[data-side="a"][name="lan"]','ge-0/0/3');check('topology port edit updates contextual OSPF form',q('[data-feature-panel="ospf"] [name="ospfInterfaces"]').value==='ge-0/0/3.10');submit();check('topology port edit reaches generated OSPF CLI',q('[data-code]').textContent.includes('interface ge-0/0/3.10')&&!q('[data-code]').textContent.includes('interface ge-0/0/1.10'));
+check('Junos OSPF form uses primary logical interface',q('[data-feature-panel="ospf"] [name="ospfInterfaces"]').value.endsWith('.0'));submit();
+check('Junos OSPF generates current interface',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('interface ge-0/0/1.0'));
+input('[data-side="a"][name="lan"]','ge-0/0/3');check('topology port edit updates contextual OSPF form',q('[data-feature-panel="ospf"] [name="ospfInterfaces"]').value==='ge-0/0/3.0');submit();check('topology port edit reaches generated OSPF CLI',q('[data-code]').textContent.includes('interface ge-0/0/3.0')&&!q('[data-code]').textContent.includes('interface ge-0/0/1.0'));
 cleanup();root.replaceChildren();cleanup=mountVpn(root);officePreset();q('[data-role="switch"]').click();toggle('snmp3',true);input('[data-feature-panel="snmp3"] [name="authSecret"]','AuditAuth_0123456789');input('[data-feature-panel="snmp3"] [name="privSecret"]','AuditPriv_0123456789');q('[data-role="router"]').click();submit();
 check('companion switch credentials are masked by default',!q('[data-office-companion]').hidden&&!q('[data-companion-code]').textContent.includes('AuditAuth_0123456789')&&q('[data-companion-code]').textContent.includes('auth sha ***'));
 check('companion-only secrets expose the shared reveal control',!q('[data-reveal-label]').hidden);input('[data-reveal]',true,'change');check('shared reveal control reveals companion credentials',q('[data-companion-code]').textContent.includes('AuditAuth_0123456789'));input('[data-reveal]',false,'change');q('[data-clear-secrets]').click();check('clearing companion secrets invalidates both outputs',q('[data-copy-config]').disabled&&q('[data-office-companion]').hidden);
 
 cleanup();root.replaceChildren();cleanup=mountVpn(root);
-for(const key of ['nat','route','hardening','ntp_syslog','dhcp','dns','interfaces','switch','vlans']){
+for(const key of ['nat','route','hardening','ntp_syslog','dhcp','dns','interfaces','switch']){
  officePreset();const chip=q(`[data-remove-preset="${key}"]`);check(key+' preset chip is an accessible button',chip?.tagName==='BUTTON'&&chip.getAttribute('aria-label').startsWith('Remove '));chip.click();
  check(key+' chip exits preset mode',q('[data-preset-heading]').textContent.startsWith('Custom configuration'));
  check(key+' chip removal invalidates Copy and Download',q('[data-copy-config]').disabled&&q('[data-download-config]').disabled);
