@@ -113,3 +113,11 @@ See [AUDIT.md](AUDIT.md) for the verified findings, fixes, test coverage, firmwa
 ## Single LAN VLAN in the workbench
 
 The shared topology no longer exposes Second VLAN mode or secondary subnet fields. Quick Setup uses the primary LAN VLAN only and does not automatically enable a second VLAN, IT DHCP pool, secondary NAT ACL or tagged two-VLAN trunk. The primary LAN VLAN ID remains editable.
+
+## Cisco IOS terminal paste
+
+The output preview, Copy Config, Download Config and companion switch export share a transport formatter. IOS exports use a leading printable `!` comment, CRLF line endings and a final Enter; the preview uses ordinary line breaks. Commands, their indentation and configuration-mode boundaries retain their generated order. Masked previews remain masked, while Copy/Download contain the actual validated secrets. Other vendor and host exports are not wrapped in IOS commands.
+
+Start at a clean privileged EXEC prompt (`Router#`): press Ctrl+U to clear stray text before pasting. If the prompt is `Router>`, run `enable` and complete any password prompt first. `configure terminal` must produce `Router(config)#`; a typo such as `pconfigure terminal` leaves subsequent configuration commands at the wrong prompt. The web page cannot control console paste speed, device prompts or image-specific command support. It never injects an enable password, hidden terminal control characters or a save command.
+
+Reference: [Cisco IOS command modes](https://developer.cisco.com/docs/iox/phase-2-understanding-the-cisco-ios-command-line-interface-cli/). No hardware execution is implied by clipboard/export tests.
