@@ -97,9 +97,9 @@ Submit Router and Switch separately; base bindings are automatic in this mode. P
 
 Tests: node tests/engine.test.js; node tests/second-vlan.test.js; browser tests/index.html.
 
-## Obsidian UI and strict /30 WAN
+## Obsidian UI and selectable WAN prefix
 
-WAN prefixes are fixed to30. SideA uses203.0.113.10 with gateway203.0.113.9 (network203.0.113.8/30); SideB uses198.51.100.22 with gateway198.51.100.21 (network198.51.100.20/30). Either host orientation is valid. Router and ISP must be distinct usable hosts; network/broadcast, mismatched prefixes and off-link gateways block all CLI. Static WAN deployment presets follow the same rule. DHCP-client presets receive addressing from the ISP at runtime.
+WAN prefix menus offer /24, /25, /26, /27, /28, /29 and /30, with /30 retained as the default. Validation and interface bindings use the selected prefix. Only /30 has a uniquely determined peer hint; for larger subnets enter the actual ISP gateway. SideA uses203.0.113.10 with gateway203.0.113.9 (network203.0.113.8/30); SideB uses198.51.100.22 with gateway198.51.100.21 (network198.51.100.20/30). Either host orientation is valid. Router and ISP must be distinct usable hosts; network/broadcast, unsupported prefixes and off-link gateways block all CLI. Static WAN deployment presets follow the same rule. DHCP-client presets receive addressing from the ISP at runtime.
 
 The obsidian theme includes frosted gradient cards, cyan active states, violet ambient lighting, Inter UI typography, JetBrains Mono technical fields, responsive grids, hover lifts, terminal-entry fade and emerald animated clipboard success. All animations honor prefers-reduced-motion. CSS is included in the workbench style for React adapters and loaded globally by the Flask dashboard template.
 
