@@ -7,8 +7,10 @@ let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,ev
 function disableBaseline(){for(const id of ['hardening','ntp_syslog'])if(q(`[data-feature="${id}"]`)?.checked)toggle(id,false);}
 function completeBaseline(){for(const id of ['hardening','ntp_syslog']){const box=q(`[data-feature="${id}"]`);if(box&&!box.disabled&&!box.checked)toggle(id,true);}for(const [key,value]of Object.entries({secret:'FixtureSecret_2026',enableSecret:'FixtureEnable_2026',ntp:'198.18.0.123'})){const field=q(`[data-settings] [name="${key}"]`);if(field)input(`[data-settings] [name="${key}"]`,value);}}
 function officePreset(){completeBaseline();q('[data-office-preset]').click();}
-check('supported baseline defaults preselected',q('[data-feature=hardening]').checked&&q('[data-feature=ntp_syslog]').checked);
+check('all feature selections start empty',![...fixture.querySelectorAll('[data-feature]')].some(el=>el.checked));
+toggle('ntp_syslog',true);
 check('NTP has no Syslog collector field',!q('[data-feature-panel=ntp_syslog] [name=syslog]')&&q('[data-feature-panel=ntp_syslog] summary').textContent==='NTP');
+toggle('ntp_syslog',false);
 check('advanced routing collapsed by default',!q('.noc-advanced-routing').open);
 disableBaseline();
 input('[data-side="a"][name="ip"]','203.0.113.14');check('/30 peer autofill follows previously suggested gateway',q('[data-side="a"][name="gateway"]').value==='203.0.113.13');input('[data-side="a"][name="gateway"]','203.0.113.9');input('[data-side="a"][name="ip"]','203.0.113.10');check('explicit gateway is preserved',q('[data-side="a"][name="gateway"]').value==='203.0.113.9');
@@ -86,11 +88,14 @@ toggle('dhcp',true);input('[data-feature-panel="dhcp"] [name="leaseMinutes"]','1
 input('[data-vendor]','paloalto','change');toggle('static',true);input('[data-feature-panel="static"] [name="virtualRouter"]','CORP-VR');input('[data-feature-panel="static"] [name="routeName"]','BRANCH-ROUTE');submit();check('PAN route context UI reaches CLI',q('[data-code]').textContent.includes('virtual-router CORP-VR')&&q('[data-code]').textContent.includes('static-route BRANCH-ROUTE'));
 
 input('[data-vendor]','ios','change');toggle('wan_failover',true);officePreset();check('Cisco ACL-only dual-WAN PAT is rejected clearly',q('[data-errors]').textContent.includes('egress paths')&&q('[data-copy-config]').disabled);toggle('wan_failover',false);submit();check('Cisco office preset recovers without WAN2',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes('ip dhcp pool USERS')&&!q('[data-code]').textContent.includes('ip dhcp pool IT'));
-check('Cisco Office defaults to selectable SVI mode',q('[data-feature-panel=internet_access] [name=iosLanMode]').value==='svi'&&q('[data-code]').textContent.includes('interface Vlan10')&&!q('[data-code]').textContent.includes('interface Vlan20'));
+check('router output excludes switch VLAN and port commands',q('[data-feature-panel=internet_access] [name=iosLanMode]').closest('label').hidden&&!/switchport |^vlan |interface Vlan/m.test(q('[data-code]').textContent));
+check('office timezone defaults to Georgia',q('[data-feature-panel=internet_access] [name=timezoneName]').value==='GET'&&q('[data-feature-panel=internet_access] [name=timezoneHours]').value==='4'&&q('[data-feature-panel=internet_access] [name=timezoneMinutes]').value==='0'&&q('[data-code]').textContent.includes('clock timezone GET 4 0'));
+check('separate router and switch output headings',q('[data-output-heading]').textContent==='ROUTER CONFIGURATION'&&q('[data-office-companion] h3').textContent==='SWITCH CONFIGURATION');
+check('switch output contains commands without generated section headings',q('[data-companion-code]').textContent.includes('switchport access vlan 10')&&!q('[data-companion-code]').textContent.includes('===')&&q('[data-companion-code]').textContent.split('\n').find(line=>line.trim()&&!line.trim().startsWith('!'))==='configure terminal');
 check('Cisco Office includes SSH ACL on all VTY lines',q('[data-code]').textContent.includes('line vty 5 15')&&q('[data-code]').textContent.includes('access-class SSH_NEW in'));
-input('[data-feature-panel=internet_access] [name=iosLanMode]','subinterfaces');submit();
+submit();
 check('Cisco Office routed mode uses a single untagged LAN',!q('[data-copy-config]').disabled&&!q('[data-code]').textContent.includes('encapsulation dot1Q')&&!q('[data-code]').textContent.includes('interface Vlan10')&&q('[data-code]').textContent.includes('ip access-list extended NAT')&&!q('[data-code]').textContent.includes('NAT112'));
-input('[data-feature-panel=internet_access] [name=iosLanMode]','svi');input('[data-feature-panel=internet_access] [name=managementSources]','10.50.0.0/24');input('[data-feature-panel=internet_access] [name=timezoneName]','GET');input('[data-feature-panel=internet_access] [name=timezoneHours]','4');submit();
+input('[data-feature-panel=internet_access] [name=managementSources]','10.50.0.0/24');input('[data-feature-panel=internet_access] [name=timezoneName]','GET');input('[data-feature-panel=internet_access] [name=timezoneHours]','4');submit();
 check('Cisco Office SSH sources and timezone are editable',q('[data-code]').textContent.includes('permit tcp 10.50.0.0 0.0.0.255 any eq 22')&&q('[data-code]').textContent.includes('clock timezone GET 4 0'));
 for(const vendor of ['mikrotik','fortinet','juniper','paloalto']){
  input('[data-vendor]',vendor,'change');toggle('wan_failover',true);

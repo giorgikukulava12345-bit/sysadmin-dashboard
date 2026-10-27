@@ -8,7 +8,7 @@ assert.equal(suggestGateway('203.0.113.9'),'203.0.113.10');
 assert.equal(suggestGateway('203.0.113.10'),'203.0.113.9');
 for(const value of ['203.0.113.8','203.0.113.11','','invalid'])assert.equal(suggestGateway(value),'');
 for(const prefix of ['24','25','26','27','28','29'])assert.equal(suggestGateway('203.0.113.10',prefix),'','Larger WANs do not have a uniquely inferred ISP gateway');
-assert.equal(baselineFeatures('ios').hardening,true);assert.equal(baselineFeatures('paloalto').hardening,undefined);
+for(const vendor of ['ios','mikrotik','fortinet','juniper','paloalto'])assert.deepEqual(baselineFeatures(vendor),{});
 assert.equal(toggleFeature({fhrp:true},'glbp',true,'ios').fhrp,false);
 assert.equal(toggleFeature({glbp:true},'fhrp',true,'ios').glbp,false);
 assert.equal(toggleFeature({dhcp:true},'relay',true,'ios').dhcp,false);assert.equal(toggleFeature({internet_access:true},'relay',true,'ios').internet_access,false);
