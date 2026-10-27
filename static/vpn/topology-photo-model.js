@@ -23,17 +23,48 @@ const center=b=>({x:(b.x0+b.x1)/2,y:(b.y0+b.y1)/2});
 const nearest=(point,items,position=center)=>items.map(item=>({item,d:Math.hypot(point.x-position(item).x,point.y-position(item).y)})).sort((a,b)=>a.d-b.d)[0];
 const safeLabel=text=>text.replace(/^[^A-Za-z0-9]+/,'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,40);
 const kindOf=text=>/^(isp|internet|cloud)(?:[-_\d]|$)/i.test(text)?'isp':/^(sw|switch)(?:[-_\d]|$)/i.test(text)?'switch':/^(r|router)(?:[-_\d]|$)/i.test(text)?'router':/^(win|windows|pc|host|linux|ubuntu)(?:[-_\d]|$)/i.test(text)?'host':null;
+const captionOf=text=>text.match(/(?:router[-_\w]*|r[-_][\w-]+|sw[-_][\w-]+|switch[-_\w]*|isp[-_\w]*|\b(?:win|windows|pc|host|linux|ubuntu)[-_\w]*)/i)?.[0]||text;
+
+/** Accept observed CIDR or a contiguous dotted mask; never repair ambiguous digits. */
+export function parsePhotoAddress(text){
+  const compact=String(text||'').replace(/\s*\.\s*/g,'.');
+  const match=compact.match(/\b((?:\d{1,3}\.){3}\d{1,3})\s*(?:\/\s*(\d{1,2})(?![\d.])|(?:\/|\s+(?:mask\s+)?)\s*((?:\d{1,3}\.){3}\d{1,3}))\b/i);
+  if(!match||ipv4(match[1])===null)return null;
+  let prefix=match[2];
+  if(match[3]){const mask=ipv4(match[3]);if(mask===null)return null;prefix=Array.from({length:30},(_,i)=>i+1).find(n=>cidr(`1.0.0.1/${n}`).mask===match[3]);}
+  return +prefix>=1&&+prefix<=30?{ip:match[1],prefix:String(+prefix)}:null;
+}
+
+/** Merge repeated OCR passes by position, preserving conflicting readings for review. */
+export function mergePhotoOcrLines(...passes){
+  const merged=[];
+  const type=l=>parsePhotoAddress(l.text)?'ip':normalizePhotoPort(l.text)?'port':kindOf(safeLabel(captionOf(l.text)))?'device':'text';
+  for(const line of passes.flat()){
+    const item={...line,words:line.words?.map(w=>({...w})),alternatives:[...(line.alternatives||[])]};
+    const index=merged.findIndex(old=>{
+      if(type(old)!==type(item))return false;
+      const overlap=Math.max(0,Math.min(old.x1,item.x1)-Math.max(old.x0,item.x0))*Math.max(0,Math.min(old.y1,item.y1)-Math.max(old.y0,item.y0));
+      const area=Math.min((old.x1-old.x0)*(old.y1-old.y0),(item.x1-item.x0)*(item.y1-item.y0));
+      return area>0&&overlap/area>.55;
+    });
+    if(index<0){merged.push(item);continue;}
+    const old=merged[index],winner=item.confidence>old.confidence?item:old,other=winner===item?old:item;
+    winner.alternatives=[...new Set([...old.alternatives,...item.alternatives,...(winner.text!==other.text?[other.text]:[])])].filter(t=>t!==winner.text);
+    merged[index]=winner;
+  }
+  return merged;
+}
 
 /** Spatial OCR + detected wires produce suggestions, never trusted configuration. */
 export function inferPhotoOffice(lines,wires,width,height){
   const nodes=[],ports=[],addresses=[];
   for(const line of lines){
-    const ip=line.text.match(/\b((?:\d{1,3}\.){3}\d{1,3})\s*\/\s*(\d{1,2})\b/);
-    if(ip&&ipv4(ip[1])!==null&&+ip[2]>=1&&+ip[2]<=30){addresses.push({...line,ip:ip[1],prefix:ip[2],...center(line)});continue;}
+    const ip=parsePhotoAddress(line.text);
+    if(ip){addresses.push({...line,...ip,...center(line)});continue;}
     const portWords=line.words?.length?line.words:[line];
     for(const word of portWords){const name=normalizePhotoPort(word.text);if(name)ports.push({...word,name,...center(word)});}
     if(portWords.some(w=>normalizePhotoPort(w.text)))continue;
-    const caption=line.text.match(/(?:router[-_\w]*|r[-_][\w-]+|sw[-_][\w-]+|switch[-_\w]*|isp[-_\w]*|\b(?:win|windows|pc|host|linux|ubuntu)[-_\w]*)/i)?.[0]||line.text;
+    const caption=captionOf(line.text);
     const name=safeLabel(caption),kind=kindOf(name);
     if(kind){const c=center(line);nodes.push({...line,name,kind,x:c.x,y:Math.max(0,line.y0-Math.max(12,(line.y1-line.y0)*1.8))});}
   }
@@ -67,6 +98,7 @@ export function inferPhotoOffice(lines,wires,width,height){
   if(wanAddress&&lanAddress&&wanAddress===lanAddress)notes.push('The same IP label is near both router ports. Verify both assignments.');
   notes.push('ISP gateway, management addresses and host IPs are never guessed. Complete missing fields before generating.');
   if(ports.some(p=>p.confidence<65)||nodes.some(n=>n.confidence<65))notes.push('Some text has low OCR confidence. Verify every caption and port against the image.');
+  if(lines.some(l=>l.alternatives?.length))notes.push('OCR passes disagreed on some text. Alternative readings are listed under Recognized text; compare them with the full-size image.');
   const model={routerName:router?.name||'',wanPort:wan?.name||'',wanIp:wanAddress?.ip||'',wanPrefix:wanAddress?.prefix||'',gateway:'',lanPort:lan?.name||'',lanIp:lanAddress?.ip||'',lanPrefix:lanAddress?.prefix||'',switchName:sw?.name||'',uplink:up?.name||'',access:access?.name||'',vlan:'1',hostName:host?.name||'',hostPort:host&&ports.find(p=>p.node===host)?.name||'',hostIp:'',hostAdapter:host&&/win/i.test(host.name)?'Ethernet':'eth0',hostOs:host&&/win/i.test(host.name)?'windows':'linux',dns:'8.8.8.8',ntp:'129.250.35.251',dhcp:true,nat:true,route:true};
   return {model,notes,nodes,ports,links,addresses};
 }
