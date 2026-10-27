@@ -17,4 +17,19 @@ for(const vendor of ['mikrotik','juniper','fortinet','paloalto','asa'])assert.eq
 assert.equal(terminalText('sudo ip link set eth0 up',{vendor:'ios',role:'host'}),'sudo ip link set eth0 up\n');
 assert.equal(terminalText('',{vendor:'ios'}),'');
 assert.doesNotMatch(result,/\x1b|\x15|\x1a|write memory|copy running-config/,'No hidden terminal keys or unsolicited save commands');
-console.log('CLI export: CRLF, final Enter, printable guard, unchanged commands/secrets/mode boundaries and vendor isolation passed.');
+const screenshotCommands='configure terminal\nservice timestamps log datetime msec localtime show-timezone\nntp server 129.250.35.251 prefer\nip name-server 8.8.8.8 1.1.1.1\nip dhcp pool USERS\n dns-server 8.8.8.8 1.1.1.1\n lease 7\n exit\ninterface GigabitEthernet0/0\n description WAN_TO_ISP\nend';
+const ptContext={vendor:'ios',model:'Cisco 1941 (Packet Tracer)'};
+const pt=terminalText(screenshotCommands,ptContext);
+assert(pt.includes('service timestamps log datetime msec\r\n'));
+assert(pt.includes('ntp server 129.250.35.251\r\n'));
+assert(pt.includes('ip name-server 8.8.8.8\r\nip name-server 1.1.1.1\r\n'));
+assert(pt.includes(' dns-server 8.8.8.8\r\n'));assert(!pt.includes('dns-server 8.8.8.8 1.1.1.1'));
+assert(!/^\s*lease 7/m.test(pt));assert(pt.includes('simulator default applies'));
+assert(pt.includes('interface GigabitEthernet0/0\r\n description WAN_TO_ISP\r\nend\r\n'));
+assert.equal(terminalText(pt,ptContext),pt);
+assert.equal(displayTerminalText(screenshotCommands,ptContext),pt.replaceAll('\r\n','\n'));
+const hardware=terminalText(screenshotCommands,{vendor:'ios',model:'Cisco ISR 4331'});
+assert(hardware.includes('show-timezone'));assert(hardware.includes('lease 7'));
+assert(terminalText(screenshotCommands,{vendor:'juniper',model:ptContext.model}).includes(' prefer'));
+console.log('CLI export: transport, mode boundaries, vendor isolation and screenshot Packet Tracer syntax regressions passed.');
+

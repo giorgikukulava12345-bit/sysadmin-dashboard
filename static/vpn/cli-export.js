@@ -1,6 +1,8 @@
-/** Preserve command order and mode boundaries; normalize only transport line endings. */
-export function terminalText(code,{vendor,role='router'}={}){
-  const text=String(code||'').replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').replace(/^\n+|\n+$/g,'');
+import {packetTracerCLI} from './packet-tracer-cli.js';
+/** Preserve mode boundaries and apply the selected simulator's syntax before export. */
+export function terminalText(code,{vendor,role='router',model=''}={}){
+  const compatible=vendor==='ios'&&role!=='host'&&model.endsWith('(Packet Tracer)')?packetTracerCLI(code||''):String(code||'');
+  const text=compatible.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').replace(/^\n+|\n+$/g,'');
   if(!text)return '';
   if(vendor!=='ios'||role==='host')return text+'\n';
   // An IOS comment is a printable guard before the first real command. No hidden control keys,
@@ -12,3 +14,4 @@ export function terminalText(code,{vendor,role='router'}={}){
 export function displayTerminalText(code,context){
   return terminalText(code,context).replace(/\r\n/g,'\n');
 }
+
