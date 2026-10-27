@@ -21,9 +21,8 @@ export function internetFields(id,vendor){
     const office=d=>Boolean(d.standardOffice);
     fields[0].when=d=>!d.standardOffice;
     fields.push(
-      {...field('iosLanMode','Cisco LAN interface mode','svi','select'),options:{svi:'SVIs / integrated Layer 2 switch ports',subinterfaces:'Router-on-a-stick / routed Ethernet port'},when:office},
+      {...field('iosLanMode','Cisco LAN interface mode','svi','select'),options:{svi:'SVIs / integrated Layer 2 switch ports',subinterfaces:'Routed Ethernet / switch access port'},when:office},
       {...field('usersPool','Primary DHCP pool name','USERS'),when:office},
-      {...field('itPool','Secondary DHCP pool name','IT'),when:office},
       {...field('staticReserve','Reserved addresses from start of each LAN (0–254)','49','number'),when:office},
       {...field('managementSources','Additional SSH source CIDRs or hosts (one per line)','','textarea'),when:office},
       {...field('timezoneName','Timezone abbreviation','UTC'),when:office},

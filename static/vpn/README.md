@@ -109,3 +109,7 @@ Validation:383 engine checks,142 browser UI checks and focused second-VLAN regre
 
 See [AUDIT.md](AUDIT.md) for the verified findings, fixes, test coverage, firmware scope and deployment limitations.
 
+
+## Single LAN VLAN in the workbench
+
+The shared topology no longer exposes Second VLAN mode or secondary subnet fields. Quick Setup uses the primary LAN VLAN only and does not automatically enable a second VLAN, IT DHCP pool, secondary NAT ACL or tagged two-VLAN trunk. The primary LAN VLAN ID remains editable.
