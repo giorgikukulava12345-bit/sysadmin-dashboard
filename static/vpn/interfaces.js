@@ -1,3 +1,4 @@
+import {validateModelPorts} from './router-models.js';
 import { cidr, ipv4, unicastNetwork } from './address.js';
 
 export function panAddress(port,address){
@@ -21,6 +22,7 @@ export function validateInterfaces(config, sides=['a','b']) {
   const errors = [];
   for (const side of sides) {
     const s = config[side], label = `Side ${side.toUpperCase()}`;
+    errors.push(...validateModelPorts(s).map(e=>`${label}: ${e}`));
     for (const field of ['wan', 'lan', ...(s.vendor === 'asa' ? ['wanPort', 'lanPort'] : [])]) {
       if (!validName(s[field])) errors.push(`${label}: enter a valid ${field} interface name.`);
     }
@@ -95,4 +97,5 @@ exit
     default: throw new Error('Unsupported interface platform');
   }
 }
+
 

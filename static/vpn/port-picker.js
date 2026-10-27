@@ -9,18 +9,19 @@ export function mountPortPicker(input,signal){
   hint.id=`port-hint-${++nextId}`;hint.textContent='Choose a suggested port or type the exact device port in the field above. Names depend on model.';
   select.setAttribute('aria-describedby',hint.id);input.setAttribute('aria-describedby',hint.id);
   label.insertBefore(select,input);
-  let vendor='',custom=false;const refreshMenu=mountSelectionMenu(select,signal);label.append(hint);
+  let vendor='',custom=false,profile='';const refreshMenu=mountSelectionMenu(select,signal);label.append(hint);
   select.addEventListener('change',()=>{
     custom=select.value==='__custom__';input.hidden=false;
     if(custom){input.focus();return;}
     input.value=select.value;input.dispatchEvent(new Event('input',{bubbles:true}));
   },{signal});
-  return nextVendor=>{
-    if(vendor!==nextVendor){vendor=nextVendor;custom=false;}
-    const rows=portOptions(vendor);select.replaceChildren();
+  return (nextVendor,model='',role='wan',exclude='')=>{
+    const nextProfile=[nextVendor,model,role,exclude].join('|');if(profile!==nextProfile){vendor=nextVendor;profile=nextProfile;custom=false;}
+    const rows=portOptions(vendor,model,role,exclude);hint.textContent=model?'Onboard ports for '+model+'. For installed expansion modules, select Custom / other model.':'Choose a suggested port or type the exact device port in the field above. Names depend on model.';select.replaceChildren();
     for(const row of rows){const option=document.createElement('option');option.value=row.value;option.textContent=row.label;select.append(option);}
     const option=document.createElement('option');option.value='__custom__';option.textContent='Custom / exact device port';select.append(option);
     if(!rows.some(row=>row.value===input.value))custom=true;
     select.value=custom?'__custom__':input.value;input.hidden=false;refreshMenu();
   };
 }
+

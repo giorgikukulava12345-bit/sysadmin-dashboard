@@ -1,3 +1,4 @@
+import {modelLanConfig,switchedLan} from './router-models.js';
 import { hasSecondVlan, routedSite } from './dual-vlan.js';
 import { FEATURES, forRole, boundValues, capable, generateFeature, generateRemoteVpn, lanBinding } from './features.js';
 import { labScripts } from './lab.js';
@@ -9,7 +10,7 @@ import {generateStandardOffice} from './standard-office.js';
 
 /** No DOM dependencies. Each output belongs to one physical device. */
 export function composeDevice(input){
-  try{return composeChecked(input);}catch{return {errors:['Generation failed: invalid or incomplete device configuration. Review the topology and feature inputs.'],code:'',empty:false};}
+  try{const result=composeChecked(input);if(input.role==='router'&&!result.errors.length&&result.code)result.code=modelLanConfig(input.lab[input.side],result.code);return result;}catch{return {errors:['Generation failed: invalid or incomplete device configuration. Review the topology and feature inputs.'],code:'',empty:false};}
 }
 function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnConfig,vpnType='ikev2',remote={},linkedEnterprise=null}){
   if(!lab?.a||!lab?.b||!['a','b'].includes(side)||!['router','switch','host'].includes(role))throw Error('Invalid topology context.');
@@ -84,7 +85,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(dual&&role==='router'&&ids.some(id=>['vpn','zbfw','dmvpn'].includes(id)))errors.push('Generate VPN/firewall overlays separately from the two-VLAN routed-trunk template; both subnets require an explicit policy design.');
   if(role==='router'&&vendor==='ios'&&office&&values.internet_access?.standardOffice){
     if(errors.length)return {errors:[...new Set(errors)],code:'',empty:false};
-    return generateStandardOffice({site,selected,values});
+    return generateStandardOffice({site,selected,values:switchedLan(site)?{...values,internet_access:{...values.internet_access,iosLanMode:'subinterfaces'}}:values});
   }
   if(bindings){const script=address.scripts[baseIndex+(role==='switch'?1:0)];if(script.unsupported)errors.push('No base switch template for this platform.');else blocks.push({title:'BASE INTERFACE / IP BINDINGS',code:script.code});}
   const vtiOwnNat=ids.includes('vpn')&&vpnType==='vti';
@@ -134,4 +135,5 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   const comment=vendor==='ios'?'!':'#';
   return{errors:[],code:blocks.map(b=>role==='switch'?b.code.trim():`${comment} === ${b.title} ===\n${b.code.trim()}`).join('\n\n')+'\n',empty:false};
 }
+
 
