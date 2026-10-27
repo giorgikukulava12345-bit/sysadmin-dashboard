@@ -157,6 +157,22 @@ input('[data-existing]','ip route 192.168.20.0 255.255.255.0 203.0.113.1');submi
 q('[data-clear-secrets]').click();check('clear secrets also clears pasted configuration',q('[data-existing]').value==='');
 cleanup();root.replaceChildren();cleanup=mountVpn(root);
 check('topology photo import is removed from the workbench',!q('[data-photo-import]')&&!q('[data-photo-panel]')&&!q('[data-photo-file]'));
+officePreset();
+check('IOS output explains the clean privileged prompt',!q('[data-paste-guide]').hidden&&q('[data-paste-guide]').textContent.includes('Ctrl+U')&&q('[data-paste-guide]').textContent.includes('Router#'));
+check('IOS preview begins with the printable guard and configuration command',q('[data-code]').textContent.startsWith('!\nconfigure terminal\n'));
+const exportClipboardDescriptor=Object.getOwnPropertyDescriptor(navigator,'clipboard'),originalBlobUrl=URL.createObjectURL,originalAnchorClick=HTMLAnchorElement.prototype.click;
+let exportedText='',downloadBlob=null;
+try{
+ Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{exportedText=text;}}});
+ q('[data-copy-config]').click();await Promise.resolve();await Promise.resolve();
+ check('Copy exports IOS commands with CRLF and a final Enter',exportedText.startsWith('!\r\nconfigure terminal\r\n')&&exportedText.endsWith('end\r\n')&&!exportedText.replaceAll('\r\n','').includes('\n'));
+ check('Copy contains actual secrets while the preview stays masked',exportedText.includes('FixtureSecret_2026')&&!q('[data-code]').textContent.includes('FixtureSecret_2026'));
+ const routerClipboard=exportedText;
+ URL.createObjectURL=blob=>{downloadBlob=blob;return 'blob:export-fixture';};HTMLAnchorElement.prototype.click=function(){};
+ q('[data-download-config]').click();check('Download and Copy produce the identical IOS payload',downloadBlob&&await downloadBlob.text()===routerClipboard);
+ q('[data-copy-companion]').click();await Promise.resolve();await Promise.resolve();check('companion switch copy uses the same terminal format',exportedText.startsWith('!\r\n')&&exportedText.split('\r\n').find(line=>line.trim()&&!line.trim().startsWith('!'))==='configure terminal'&&exportedText.includes('switchport access vlan 10')&&!exportedText.includes('ip nat inside source'));
+}finally{if(exportClipboardDescriptor)Object.defineProperty(navigator,'clipboard',exportClipboardDescriptor);else delete navigator.clipboard;URL.createObjectURL=originalBlobUrl;HTMLAnchorElement.prototype.click=originalAnchorClick;}
+input('[data-vendor]','mikrotik','change');toggle('ntp_syslog',true);submit();check('IOS paste instructions and preamble do not leak into other vendors',q('[data-paste-guide]').hidden&&!q('[data-code]').textContent.startsWith('!\n'));
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 

@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {terminalText,displayTerminalText} from '../static/vpn/cli-export.js';
+
+const source='\uFEFFconfigure terminal\r\nhostname R1\rip dhcp pool USERS\n network 192.168.1.0 255.255.255.0\n exit\nusername operator secret ExampleOnly_2026\nend';
+const result=terminalText(source,{vendor:'ios'});
+assert.ok(result.startsWith('!\r\nconfigure terminal\r\n'));
+assert.ok(result.endsWith('end\r\n'));
+assert.equal(result.replaceAll('\r\n','').includes('\n'),false,'No bare LF remains in the IOS payload');
+assert.equal(result.replaceAll('\r\n','').includes('\r'),false,'No bare CR remains in the IOS payload');
+assert.equal(result.replaceAll('\r\n','\n').slice(2),source.slice(1).replace(/\r\n?/g,'\n')+'\n','Commands, indentation and real secrets retain their order');
+assert.equal(terminalText(result,{vendor:'ios'}),result,'Formatting a prepared payload is idempotent');
+assert.equal(displayTerminalText(source,{vendor:'ios'}),result.replaceAll('\r\n','\n'));
+const blocks='! BASE\nconfigure terminal\ninterface Gi0/0\n no shutdown\n exit\nend\n! NEXT\nconfigure terminal\nip route 0.0.0.0 0.0.0.0 203.0.113.9\nend\n';
+assert.equal(terminalText(blocks,{vendor:'ios'}).split('configure terminal').length,3,'Configuration mode boundaries are never collapsed');
+assert.equal(terminalText(blocks,{vendor:'ios'}).split('\n').filter(x=>x.trim()==='end').length,2);
+for(const vendor of ['mikrotik','juniper','fortinet','paloalto','asa'])assert.equal(terminalText('native command\n',{vendor}),'native command\n','No IOS preamble for '+vendor);
+assert.equal(terminalText('sudo ip link set eth0 up',{vendor:'ios',role:'host'}),'sudo ip link set eth0 up\n');
+assert.equal(terminalText('',{vendor:'ios'}),'');
+assert.doesNotMatch(result,/\x1b|\x15|\x1a|write memory|copy running-config/,'No hidden terminal keys or unsolicited save commands');
+console.log('CLI export: CRLF, final Enter, printable guard, unchanged commands/secrets/mode boundaries and vendor isolation passed.');
