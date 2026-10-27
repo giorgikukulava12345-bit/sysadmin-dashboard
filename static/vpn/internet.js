@@ -1,7 +1,7 @@
 import { gatewayParts } from './gateway-parts.js';
 import { officeNetworks, officeServices } from './office-services.js';
 import { cidr, ipv4 } from './address.js';
-import { validateWan } from './interfaces.js';
+import { validateWan,panAddress } from './interfaces.js';
 
 const vendors=['ios','mikrotik','fortinet','juniper','paloalto'];
 export const INTERNET_FEATURES={
@@ -85,7 +85,7 @@ export function failoverConfig(d){
   if(d.vendor==='ios')binding=`interface ${d.wan2}\n ip address ${d.ip2} 255.255.255.252\n no shutdown\n exit`;
   if(d.vendor==='mikrotik')binding=`/ip address add address=${d.ip2}/30 interface=${d.wan2} comment="NOC WAN2 binding"`;
   if(d.vendor==='juniper')binding=`set interfaces ${d.wan2} unit 0 family inet address ${d.ip2}/30`;
-  if(d.vendor==='paloalto')binding=`set network interface ethernet ${d.wan2} layer3 ip ${d.ip2}/30`;
+  if(d.vendor==='paloalto')binding=panAddress(d.wan2,`${d.ip2}/30`);
   if(d.vendor==='fortinet')binding=`config system interface\n edit "${d.wan2}"\n  set mode static\n  set ip ${d.ip2} 255.255.255.252\n  set status up\n next\nend`;
   return wrap(d.vendor,binding+'\n'+internetRoutes(d,true));
 }

@@ -129,3 +129,9 @@ The workbench starts with no features selected on either site or device. Quick S
 
 ### Minimal Office Quick Setup
 Quick Setup replaces previous selections with only router interfaces, IPv4 default route, DNS, interface PAT, DHCP and NTP. It does not automatically select SSH hardening, stateful firewall, switch bindings, Dual ISP or linked IP SLA. Standalone features remain available for explicit selection. FortiOS requires an outbound security policy for interface NAT; the existing validator blocks this combination until the user explicitly enables that component.
+
+
+### Vendor-aware port choices
+WAN/LAN and switch uplink/access fields offer vendor-specific dropdowns plus Custom for exact model names. Changing a vendor restores the existing common Gigabit/copper defaults; choosing a port updates the shared topology and invalidates old CLI. Cisco short names normalize to full IOS names; 25/40/100G Ethernet is accepted by Office and routed VLAN generators. PAN-OS dotted selections emit parent Ethernet layer3 units with a VLAN tag matching the suffix. These are naming examples, not hardware discovery, port-speed configuration or support for other Cisco operating systems.
+
+References: [Juniper interface naming](https://www.juniper.net/documentation/us/en/software/junos/interfaces-fundamentals/interfaces-ethernet-switches/topics/topic-map/switches-interface-understanding.html), [MikroTik Ethernet](https://manual.mikrotik.com/docs/wired-connections/ethernet/), [PAN-OS subinterfaces](https://docs.paloaltonetworks.com/ngfw/networking/configure-interfaces/layer-2-interfaces/configure-a-layer-2-interface-subinterface-and-vlan).

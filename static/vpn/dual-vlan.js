@@ -1,8 +1,9 @@
+import {isCiscoPhysical} from './port-options.js';
 import {officeRouterVlans} from './office-vlans.js';
 import { cidr, ipv4, unicastNetwork } from './address.js';
 
 export const hasSecondVlan=site=>site.vlan2Enabled==='on';
-const physical=value=>/^(?:FastEthernet|GigabitEthernet|TenGigabitEthernet|Ethernet)\d+(?:\/\d+)*$/.test(value||'');
+const physical=isCiscoPhysical;
 const validVlan=value=>/^\d+$/.test(String(value))&&+value>=1&&+value<=4094&&!(+value>=1002&&+value<=1005);
 const overlap=(a,b)=>a&&b&&a.network<=b.end&&b.network<=a.end;
 export function validateSecondVlan(site,peer){
@@ -32,3 +33,4 @@ export function dualVlanSwitchConfig(s){
   return `configure terminal\n! Layer 2 switch: SVIs are management IPs; router subinterfaces own the gateways.\nvlan ${s.vlan}\n name NOC-PRIMARY\n exit\nvlan ${s.vlan2}\n name NOC-SECOND\n exit\ninterface ${s.uplink}\n switchport mode trunk\n switchport trunk native vlan ${s.officeVlans?'1':s.vlan}\n switchport trunk allowed vlan ${s.vlan},${s.vlan2}\n no shutdown\n exit\ninterface ${s.access}\n switchport mode access\n switchport access vlan ${s.vlan}\n spanning-tree portfast\n spanning-tree bpduguard enable\n no shutdown\n exit\ninterface ${s.vlan2Access}\n switchport mode access\n switchport access vlan ${s.vlan2}\n spanning-tree portfast\n spanning-tree bpduguard enable\n no shutdown\n exit\ninterface Vlan${s.vlan}\n ip address ${s.switchIp} ${one.mask}\n no shutdown\n exit\ninterface Vlan${s.vlan2}\n ip address ${s.vlan2SwitchIp} ${two.mask}\n no shutdown\n exit\nip default-gateway ${s.lanIp}\n! Existing ip routing must be disabled for L2 management default-gateway behavior.\nend\n`;
 }
 export const routedSite=s=>hasSecondVlan(s)?{...s,lan:`${s.lan}.${s.vlan}`}:{...s};
+
