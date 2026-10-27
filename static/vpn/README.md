@@ -21,7 +21,7 @@ Existing VLAN/trunking, STP/RSTP/MST, EtherChannel LACP/PAgP remain under Switch
 
 ## UI
 
-Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feature-card grid (mobile / md / lg), slate borders, cyan selection, native checkbox checkmarks, focus-visible rings and tooltip/helper notes. Terminal retains safe syntax coloring, Copy success feedback and a new Clear action. The unified four-column command bar and troubleshooting playbooks are retained.
+Seven categories across router/switch contexts; responsive 1 / 2 / 3-column feature-card grid (mobile / md / lg), slate borders, cyan selection, native checkbox checkmarks, focus-visible rings and tooltip/helper notes. Terminal retains safe syntax coloring, Copy success feedback and a new Clear action. The unified four-column command bar is retained. Troubleshooting Playbooks, detailed debug/log collection and the Running Configuration Analyzer are removed from the workbench.
 
 ## Capability matrix
 
