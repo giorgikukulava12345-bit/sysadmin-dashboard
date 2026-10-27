@@ -1,6 +1,10 @@
 # Cisco official-source router catalog
 
-The catalog now contains 278 reviewed model records across enterprise, secure G2, industrial, service-provider, Meraki, virtual and cellular products. It is a checked snapshot, not a claim of every historical, regional or future Cisco ordering code. Source directory: https://www.cisco.com/c/en/us/products/routers/product-listing.html. Checked: 2026-10-27.
+The catalog contains 278 reviewed hardware/product records plus 15 Packet Tracer profiles (293 choices). It is a checked snapshot, not a claim of every historical, regional or future Cisco ordering code. Source directory: https://www.cisco.com/c/en/us/products/routers/product-listing.html. Checked: 2026-10-27.
+
+Packet Tracer choices have the explicit suffix (Packet Tracer), in their own series: 4331, 4321, 1941, 2901, 2911, 819IOX, 819HGW, 829, 1240, PT-Router, PT-Empty, 1841, 2620XM, 2621XM and 2811. Their definitions live in data/packet-tracer-routers.js and use Cisco's simulator help at https://tutorials.ptnetacad.net/help/default/devicesAndModules_routers.htm. The locally installed Packet Tracer 8.2.1 help also supplied chassis diagrams. Ethernet mappings for 819/829/CGR1240 follow those chassis labels and Cisco interface documentation; internal AP/IOx interfaces are excluded.
+
+PT-Router/PT-Empty module inventories are intentionally empty. Enter installed module interfaces explicitly. The 2620XM has only one fixed FastEthernet interface, so WAN/LAN routing requires an additional installed interface. No serial module is assumed. Simulator profiles support the existing addressing generator; Packet Tracer implements a subset of IOS, so feature-command availability depends on simulator version. Profile counts include three manually supplied module-interface profiles.
 
 Every record has the original eight required fields. Provenance, operating system, hardware inventory and CLI support are separate in data/cisco-router-catalog-source.json, keeping the public JSON schema stable. Generate public JSON and the browser module with node scripts/build-router-catalog.mjs. The build rejects duplicate models, missing profiles and non-Cisco/Meraki source URLs.
 

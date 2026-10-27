@@ -29,7 +29,7 @@ export function populateRouterModels(select,query=''){
 }
 export function renderRouterModelInfo(container,name){
  container.replaceChildren();const row=routerModel(name),profile=modelProfile(name);container.hidden=!row;if(!row)return;
- const intro=document.createElement('p');intro.textContent=row.series+' · '+row.form_factor+' · '+(profile.cli_supported?'CLI Ethernet mapping available':'Hardware catalog · '+profile.os)+' · Checked '+CATALOG_CHECKED_AT;container.append(intro);
+ const intro=document.createElement('p');intro.textContent=row.series+' · '+row.form_factor+' · '+(profile.manual_ports?'Enter installed module interfaces':profile.cli_supported?'CLI Ethernet mapping available':'Hardware catalog · '+profile.os)+' · Checked '+CATALOG_CHECKED_AT;container.append(intro);
  const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Ports, modules & official Cisco specifications';details.append(summary);
  for(const[key,label]of [['wan_ports','WAN / routed ports'],['lan_ports','LAN ports'],['expansion_slots','Expansion slots'],['console_usb','Console / USB'],['features','Features']]){
   const p=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label+': ';p.append(strong,document.createTextNode(row[key].join('; ')));details.append(p);
@@ -53,6 +53,10 @@ export function validateModelPorts(site){
   if(site.vendor!=='ios'||!site.routerModel)return [];
   const ports=ROUTER_PORTS[site.routerModel];
   if(!ports)return ['Choose a supported Cisco router model.'];
+  if(modelProfile(site.routerModel)?.manual_ports){
+    const valid=value=>/^(?:FastEthernet|GigabitEthernet|Ethernet|Serial)\d+(?:\/\d+)*$/.test(value||'');
+    return ['wan','lan'].filter(role=>!valid(site[role])).map(role=>'Packet Tracer '+role.toUpperCase()+': enter the exact interface name of an installed module (for example FastEthernet0/0 or Serial0/0/0).');
+  }
   return ['wan','lan'].filter(role=>!ports[role].some(p=>p.value===site[role])).map(role=>'The '+role.toUpperCase()+' port does not belong to '+site.routerModel+'. Choose an onboard port or select Custom / other model for installed modules.');
 }
 // Integrated LAN ports are Layer 2. Move routed commands to VLAN interfaces,

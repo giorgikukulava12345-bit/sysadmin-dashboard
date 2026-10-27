@@ -6842,5 +6842,393 @@
       "IPv4/IPv6 routing",
       "Platform features require supported software and licensing"
     ]
+  },
+  {
+    "model": "Cisco 4331 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0/0/0 · 1 Gbps routed",
+      "GigabitEthernet0/0/1 · 1 Gbps routed",
+      "GigabitEthernet0/0/2 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "GigabitEthernet0/0/0 · 1 Gbps routed",
+      "GigabitEthernet0/0/1 · 1 Gbps routed",
+      "GigabitEthernet0/0/2 · 1 Gbps routed"
+    ],
+    "expansion_slots": [
+      "2 x NIM; additional modules depend on simulator version"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 4321 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0/0/0 · 1 Gbps routed",
+      "GigabitEthernet0/0/1 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "GigabitEthernet0/0/0 · 1 Gbps routed",
+      "GigabitEthernet0/0/1 · 1 Gbps routed"
+    ],
+    "expansion_slots": [
+      "2 x NIM; additional modules depend on simulator version"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 1941 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0/0 · 1 Gbps routed",
+      "GigabitEthernet0/1 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "GigabitEthernet0/0 · 1 Gbps routed",
+      "GigabitEthernet0/1 · 1 Gbps routed"
+    ],
+    "expansion_slots": [
+      "2 x WIC / HWIC",
+      "Internal services module"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 2901 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0/0 · 1 Gbps routed",
+      "GigabitEthernet0/1 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "GigabitEthernet0/0 · 1 Gbps routed",
+      "GigabitEthernet0/1 · 1 Gbps routed"
+    ],
+    "expansion_slots": [
+      "4 x EHWIC",
+      "Internal services module"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 2911 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0/0 · 1 Gbps routed",
+      "GigabitEthernet0/1 · 1 Gbps routed",
+      "GigabitEthernet0/2 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "GigabitEthernet0/0 · 1 Gbps routed",
+      "GigabitEthernet0/1 · 1 Gbps routed",
+      "GigabitEthernet0/2 · 1 Gbps routed"
+    ],
+    "expansion_slots": [
+      "4 x EHWIC",
+      "Internal services module"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 819IOX (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet0 · 100 Mbps switched",
+      "FastEthernet1 · 100 Mbps switched",
+      "FastEthernet2 · 100 Mbps switched",
+      "FastEthernet3 · 100 Mbps switched"
+    ],
+    "expansion_slots": [
+      "Fixed Ethernet ports; cellular / IOx support depends on simulator"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 819HGW (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet0 · 100 Mbps switched",
+      "FastEthernet1 · 100 Mbps switched",
+      "FastEthernet2 · 100 Mbps switched",
+      "FastEthernet3 · 100 Mbps switched"
+    ],
+    "expansion_slots": [
+      "Fixed Ethernet ports; cellular / wireless support depends on simulator"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 829 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet0 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "GigabitEthernet1 · 1 Gbps switched",
+      "GigabitEthernet2 · 1 Gbps switched",
+      "GigabitEthernet3 · 1 Gbps switched",
+      "GigabitEthernet4 · 1 Gbps switched"
+    ],
+    "expansion_slots": [
+      "SFP option on WAN; wireless / cellular interfaces depend on simulator"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 1240 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "GigabitEthernet2/1 · 1 Gbps routed",
+      "GigabitEthernet2/2 · 1 Gbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet2/3 · 100 Mbps switched",
+      "FastEthernet2/4 · 100 Mbps switched",
+      "FastEthernet2/5 · 100 Mbps switched",
+      "FastEthernet2/6 · 100 Mbps switched"
+    ],
+    "expansion_slots": [
+      "CGR1240 expansion slots; installed modules vary"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "PT-Router (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "Module-dependent; inspect installed Packet Tracer modules"
+    ],
+    "lan_ports": [
+      "Module-dependent; no Ethernet interface assumed installed"
+    ],
+    "expansion_slots": [
+      "10 x Packet Tracer router module slots"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "PT-Empty (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "Module-dependent; inspect installed Packet Tracer modules"
+    ],
+    "lan_ports": [
+      "Module-dependent; no Ethernet interface assumed installed"
+    ],
+    "expansion_slots": [
+      "10 x initially empty Packet Tracer router module slots"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 1841 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed",
+      "FastEthernet0/1 · 100 Mbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed",
+      "FastEthernet0/1 · 100 Mbps routed"
+    ],
+    "expansion_slots": [
+      "2 x HWIC",
+      "1 x AIM"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 2620XM (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed"
+    ],
+    "expansion_slots": [
+      "1 x network module",
+      "2 x WIC",
+      "1 x AIM"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 2621XM (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed",
+      "FastEthernet0/1 · 100 Mbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed",
+      "FastEthernet0/1 · 100 Mbps routed"
+    ],
+    "expansion_slots": [
+      "1 x network module",
+      "2 x WIC",
+      "1 x AIM"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
+  },
+  {
+    "model": "Cisco 2811 (Packet Tracer)",
+    "series": "Packet Tracer",
+    "form_factor": "Packet Tracer simulated router",
+    "wan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed",
+      "FastEthernet0/1 · 100 Mbps routed"
+    ],
+    "lan_ports": [
+      "FastEthernet0/0 · 100 Mbps routed",
+      "FastEthernet0/1 · 100 Mbps routed"
+    ],
+    "expansion_slots": [
+      "1 x enhanced network module",
+      "4 x HWIC",
+      "2 x AIM"
+    ],
+    "console_usb": [
+      "Simulated console / CLI tab",
+      "Physical USB management is not assumed"
+    ],
+    "features": [
+      "Packet Tracer simulation",
+      "IPv4 addressing",
+      "Selected IOS routing features; simulator support varies"
+    ]
   }
 ]

@@ -15,7 +15,16 @@ for(const row of json){
   assert.deepEqual(lab.b,previous);
   assert.equal(lab.a.routerModel,row.model);
   const profile=modelProfile(row.model),ports=ROUTER_PORTS[row.model];
-  assert(/^https:\/\/(?:www\.)?(?:cisco\.com|documentation\.meraki\.com)\//.test(profile.source_url),row.model);
+  assert(/^https:\/\/(?:www\.)?(?:cisco\.com|documentation\.meraki\.com|tutorials\.ptnetacad\.net)\//.test(profile.source_url),row.model);
+  if(profile.requires_modules){
+    assert(composeDevice({lab,side:'a',role:'router',bindings:true}).errors.length);
+    lab.a.wan=row.model.includes('2620XM')?'Serial0/0':'FastEthernet0/0';
+    lab.a.lan=row.model.includes('2620XM')?'FastEthernet0/0':'FastEthernet1/0';
+    assert.deepEqual(validateModelPorts(lab.a),[]);
+    const configured=composeDevice({lab,side:'a',role:'router',bindings:true});
+    assert.deepEqual(configured.errors,[]);assert(configured.code.includes('interface '+lab.a.wan));
+    continue;
+  }
   if(ports.wan.length&&ports.lan.length){assert.notEqual(lab.a.wan,lab.a.lan);assert.deepEqual(validateModelPorts(lab.a),[]);}
   const available=portOptions('ios',row.model,'wan',lab.a.lan);
   assert(available.every(p=>p.value!==lab.a.lan));
@@ -54,4 +63,12 @@ assert.equal(modelPortOptions('Cisco ISR 4331','wan').length,3);
 assert.equal(modelPortOptions('Cisco C8300-2N2S-4T2X','wan').filter(p=>p.speed==='10 Gbps').length,2);
 const site=createLab().a;selectRouterModel(site,'Cisco C1101-4P');
 assert(modelLanConfig(site,'interface GigabitEthernet9/0.100\n encapsulation dot1Q 100\n exit\n').includes('encapsulation dot1Q 100'));
+const pt=CISCO_ROUTERS.filter(row=>row.model.endsWith('(Packet Tracer)'));
+assert.equal(pt.length,15);
+for(const name of ['4331','4321','1941','2901','2911','819IOX','819HGW','829','1240','PT-Router','PT-Empty','1841','2620XM','2621XM','2811']){
+  assert(pt.some(row=>row.model===(name.startsWith('PT-')?'':'Cisco ')+name+' (Packet Tracer)'));
+}
+assert.equal(modelPortOptions('Cisco 1941 (Packet Tracer)','wan')[0].value,'GigabitEthernet0/0');
+assert.equal(modelPortOptions('Cisco 2811 (Packet Tracer)','wan')[0].value,'FastEthernet0/0');
+assert.equal(modelPortOptions('PT-Empty (Packet Tracer)','wan').length,0);
 console.log('Router models: catalog schema, port roles/counts, exclusions, side isolation, invalid bindings, routed CLI, integrated LAN SVI, dual VLAN and Office configuration passed.');

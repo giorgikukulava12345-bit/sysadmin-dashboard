@@ -1,14 +1,18 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {VERIFIED_ROUTER_PORTS} from '../data/cisco-router-interface-seed.js';
+import {PACKET_TRACER_MODELS,PACKET_TRACER_PROFILES,PACKET_TRACER_PORTS} from '../data/packet-tracer-routers.js';
 const root=new URL('../',import.meta.url);
 const data=JSON.parse(readFileSync(new URL('data/cisco-router-catalog-source.json',root),'utf8'));
+data.models.push(...PACKET_TRACER_MODELS);
+Object.assign(data.profiles,PACKET_TRACER_PROFILES);
+Object.assign(VERIFIED_ROUTER_PORTS,PACKET_TRACER_PORTS);
 const keys=['model','series','form_factor','wan_ports','lan_ports','expansion_slots','console_usb','features'].sort();
 const models=new Set();
 for(const row of data.models){
   if(models.has(row.model))throw Error('Duplicate model: '+row.model);models.add(row.model);
   if(JSON.stringify(Object.keys(row).sort())!==JSON.stringify(keys))throw Error('Invalid schema: '+row.model);
   const profile=data.profiles[row.model];
-  if(!profile||!/^https:\/\/(?:www\.)?(?:cisco\.com|documentation\.meraki\.com)\//.test(profile.source_url||''))throw Error('Missing official source: '+row.model);
+  if(!profile||!/^https:\/\/(?:www\.)?(?:cisco\.com|documentation\.meraki\.com|tutorials\.ptnetacad\.net)\//.test(profile.source_url||''))throw Error('Missing official source: '+row.model);
 }
 const ge=(count,prefix='GigabitEthernet0/0/',type='RJ-45',start=0)=>Array.from({length:count},(_,i)=>({value:prefix+(start+i),type,speed:'1 Gbps',switched:false}));
 for(const row of data.models){
