@@ -46,3 +46,7 @@ const defaultStatic=generateFeature('static',{...featureDefaults('static','ios')
 check(!defaultStatic.errors.length,defaultStatic.errors.join(';'));check(defaultStatic.scripts[0].code.includes('ip route 0.0.0.0 0.0.0.0 198.18.50.9 7'),'Standalone default omits interface');
 const missingHop=generateFeature('static',{...featureDefaults('static','ios'),destination:'0.0.0.0',mask:'0.0.0.0',nextHop:'',interface:'GigabitEthernet1'});check(missingHop.errors.length&&!missingHop.scripts.length,'Default requires a next hop');
 console.log(`${checks} internet / dual ISP checks passed.`);
+
+
+const wide=setup('mikrotik');wide.a.wanPrefix='24';Object.assign(wide.a,{local:'198.18.40.128/25',lanIp:'198.18.40.129',switchIp:'198.18.40.254',hostIp:'198.18.40.130'});check(build(wide,{internet_access:true},{internet_access:featureDefaults('internet_access','mikrotik')}).errors.length,'Larger primary WAN overlap with LAN must be rejected');
+const overlappingBackup=setup('mikrotik');overlappingBackup.a.wanPrefix='24';check(build(overlappingBackup,{wan_failover:true},{wan_failover:{...featureDefaults('wan_failover','mikrotik'),ip2:'198.18.40.134',gateway2:'198.18.40.133'}}).errors.length,'Backup /30 must not sit inside primary /24');

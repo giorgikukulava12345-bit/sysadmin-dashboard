@@ -7,6 +7,7 @@ import {PORTS} from '../static/vpn/platforms.js';
 assert.equal(suggestGateway('203.0.113.9'),'203.0.113.10');
 assert.equal(suggestGateway('203.0.113.10'),'203.0.113.9');
 for(const value of ['203.0.113.8','203.0.113.11','','invalid'])assert.equal(suggestGateway(value),'');
+for(const prefix of ['24','25','26','27','28','29'])assert.equal(suggestGateway('203.0.113.10',prefix),'','Larger WANs do not have a uniquely inferred ISP gateway');
 assert.equal(baselineFeatures('ios').hardening,true);assert.equal(baselineFeatures('paloalto').hardening,undefined);
 assert.equal(toggleFeature({fhrp:true},'glbp',true,'ios').fhrp,false);
 assert.equal(toggleFeature({glbp:true},'fhrp',true,'ios').glbp,false);
@@ -27,3 +28,4 @@ const failover=()=>composeDevice({lab,side:'a',role:'router',selected:{wan_failo
 let r=failover();assert.deepEqual(r.errors,[]);assert.ok(r.code.includes(`ip route 0.0.0.0 0.0.0.0 ${lab.a.gateway} 1 track ${sla.track}`));assert.ok(r.code.includes(`track ${sla.track} ip sla ${sla.operation} reachability`));
 sla.track='900';r=failover();assert.ok(r.errors.length&&r.code==='');
 console.log('Lab polish: /30 peer, baseline, exclusivity, vendor gates, five-vendor multi-VLAN/relay and linked SLA checks passed.');
+
