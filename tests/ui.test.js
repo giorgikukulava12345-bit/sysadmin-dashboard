@@ -6,11 +6,24 @@ const fixture=document.createElement('section'),root=document.createElement('div
 let cleanup=mountVpn(root);const q=s=>fixture.querySelector(s),input=(s,value,event='input')=>{const el=q(s);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));if(s==='[data-vendor]')disableBaseline();},toggle=(id,value)=>{input(`[data-feature="${id}"]`,value,'change');if(id==='ntp_syslog'&&value){input('[data-feature-panel=ntp_syslog] [name=ntp]','192.0.2.123');}},submit=()=>q('[data-generate]').click();
 function disableBaseline(){for(const id of ['hardening','ntp_syslog'])if(q(`[data-feature="${id}"]`)?.checked)toggle(id,false);}
 function completeBaseline(){for(const id of ['hardening','ntp_syslog']){const box=q(`[data-feature="${id}"]`);if(box&&!box.disabled&&!box.checked)toggle(id,true);}for(const [key,value]of Object.entries({secret:'FixtureSecret_2026',enableSecret:'FixtureEnable_2026',ntp:'198.18.0.123'})){const field=q(`[data-settings] [name="${key}"]`);if(field)input(`[data-settings] [name="${key}"]`,value);}}
-function officePreset(){completeBaseline();q('[data-office-preset]').click();}
+// Existing composition regressions explicitly add optional features after the minimal preset.
+function officePreset(){
+ const wan=q('[data-feature=wan_failover]')?.checked, saved=wan?Object.fromEntries([...fixture.querySelectorAll('[data-feature-panel=wan_failover] [name]')].map(el=>[el.name,el.value])):{};
+ q('[data-office-preset]').click();completeBaseline();toggle('zbfw',true);
+ if(wan){toggle('wan_failover',true);for(const [key,value]of Object.entries(saved))if(q('[data-feature-panel=wan_failover] [name="'+key+'"]'))input('[data-feature-panel=wan_failover] [name="'+key+'"]',value);}
+ q('[data-role=switch]').click();input('[data-include-bindings]',true,'change');q('[data-role=router]').click();submit();
+}
 check('all feature selections start empty',![...fixture.querySelectorAll('[data-feature]')].some(el=>el.checked));
 toggle('ntp_syslog',true);
 check('NTP has no Syslog collector field',!q('[data-feature-panel=ntp_syslog] [name=syslog]')&&q('[data-feature-panel=ntp_syslog] summary').textContent==='NTP');
-toggle('ntp_syslog',false);
+input('[data-feature-panel=ntp_syslog] [name=ntp]','129.250.35.251');toggle('ntp_syslog',false);
+q('[data-office-preset]').click();
+check('minimal preset has exactly the requested six chips',[...fixture.querySelectorAll('[data-remove-preset]')].map(el=>el.dataset.removePreset).sort().join(',')==='dhcp,dns,interfaces,nat,ntp_syslog,route');
+check('minimal preset generates immediately without SSH credentials',!q('[data-copy-config]').disabled&&!q('[data-feature=hardening]').checked&&!q('[data-feature=zbfw]').checked&&!q('[data-feature-panel=hardening]'));
+check('minimal preset excludes optional security and switch output',!q('[data-code]').textContent.includes('SSH_NEW')&&!q('[data-code]').textContent.includes('zone security')&&q('[data-office-companion]').hidden&&!q('[data-feature-panel=internet_access] [name=managementSources]').getClientRects().length);
+check('minimal preset keeps NTP and Georgia timezone',q('[data-code]').textContent.includes('ntp server 129.250.35.251')&&q('[data-code]').textContent.includes('clock timezone GET 4 0'));
+toggle('wan_failover',true);q('[data-office-preset]').click();check('minimal preset clears prior Dual ISP and IP SLA',!q('[data-feature=wan_failover]').checked&&!q('[data-feature=ipsla]').checked);
+cleanup();root.replaceChildren();cleanup=mountVpn(root);
 check('advanced routing collapsed by default',!q('.noc-advanced-routing').open);
 disableBaseline();
 input('[data-side="a"][name="ip"]','203.0.113.14');check('/30 peer autofill follows previously suggested gateway',q('[data-side="a"][name="gateway"]').value==='203.0.113.13');input('[data-side="a"][name="gateway"]','203.0.113.9');input('[data-side="a"][name="ip"]','203.0.113.10');check('explicit gateway is preserved',q('[data-side="a"][name="gateway"]').value==='203.0.113.9');
