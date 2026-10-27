@@ -203,6 +203,12 @@ input('[data-vendor]','juniper','change');check('vendor reset restores common ph
 input('[data-port-side=a][data-port-picker=lan]','__custom__','change');check('Custom reveals the exact-port input',!q('[data-side=a][name=lan]').hidden);input('[data-side=a][name=lan]','et-2/3/47');input('[data-include-bindings]',true,'change');submit();check('custom port survives generation',q('[data-code]').textContent.includes('et-2/3/47'));
 input('[data-side=a][name=switchVendor]','mikrotik');check('switch vendor refreshes both port choices',q('[data-side=a][name=uplink]').value==='ether1'&&q('[data-side=a][name=access]').value==='ether2'&&[...q('[data-port-side=a][data-port-picker=uplink]').options].some(o=>o.value==='sfp1'));
 input('[data-side]','b','change');check('port choices are isolated per site',q('[data-side=b][name=wan]').value==='port1');input('[data-side]','a','change');check('custom port preserved on site return',q('[data-side=a][name=lan]').value==='et-2/3/47');
+input('[data-vendor]','ios','change');
+check('manual WAN and LAN fields are always visible',!q('[data-side=a][name=wan]').hidden&&!q('[data-side=a][name=lan]').hidden);
+check('slot-one lab Ethernet ports are offered',['Ethernet1/0','Ethernet1/2'].every(port=>[...q('[data-port-side=a][data-port-picker=wan]').options].some(o=>o.value===port)));
+input('[data-side=a][name=wan]','e1/0');input('[data-side=a][name=lan]','e1/2');q('[data-office-preset]').click();
+check('typed short Ethernet names normalize and generate',q('[data-side=a][name=wan]').value==='Ethernet1/0'&&q('[data-side=a][name=lan]').value==='Ethernet1/2'&&q('[data-code]').textContent.includes('interface Ethernet1/2')&&!q('[data-copy-config]').disabled);
+check('manual fields stay visible after preset and generation',!q('[data-side=a][name=wan]').hidden&&!q('[data-side=a][name=lan]').hidden);
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 
