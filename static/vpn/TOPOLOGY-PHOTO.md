@@ -1,5 +1,7 @@
 # Free local topology photo import
 
+Status: removed from the production workbench. The import panel, clipboard controls, image viewer and OCR entry point are no longer mounted or loaded by the application. The notes below describe the earlier standalone prototype.
+
 Open **Import topology image · Free local OCR** under LAB TOPOLOGY. Choose, drop or paste a PNG/JPEG/WebP image (up to 10 MiB and 12 million pixels), then select **Analyze image locally**. The pinned Tesseract.js 7.0.0 library, WASM core and English recognition data download from jsDelivr on first use. The photo is decoded in the browser and processed by a local worker; it is not posted to the application server or an AI service. No API key or paid account is used.
 
 Use the **Paste topology image** field with Ctrl+V (Command+V on Mac), or select **Paste image from clipboard**. Clipboard access is requested only after the button is clicked; only PNG/JPEG/WebP image data is used. If browser permission is denied or clipboard reading is unavailable, the field and ordinary upload remain available. Late clipboard reads cannot restore an image after Clear. Text pasted into the image field is not interpreted as configuration or HTML.
