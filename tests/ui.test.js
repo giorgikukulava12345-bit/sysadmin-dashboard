@@ -156,35 +156,7 @@ input('[data-side]','b','change');check('existing context is isolated per site',
 input('[data-existing]','ip route 192.168.20.0 255.255.255.0 203.0.113.1');submit();check('conflicting route blocks merged output',q('[data-copy-config]').disabled&&q('[data-errors]').textContent.includes('Conflicting'));
 q('[data-clear-secrets]').click();check('clear secrets also clears pasted configuration',q('[data-existing]').value==='');
 cleanup();root.replaceChildren();cleanup=mountVpn(root);
-check('photo import is collapsed and does not load OCR automatically',!q('[data-photo-panel]').open&&q('[data-photo-analyze]').disabled);
-q('[data-photo-panel]').open=true;q('[data-photo-manual]').click();
-check('photo review leaves missing addresses blank',q('[name="photo.gateway"]').value===''&&q('[name="photo.wanIp"]').value==='');
-for(const [key,value]of Object.entries({routerName:'R-Tbilisi',switchName:'SW-1',wanPort:'e1/0',wanIp:'192.168.73.2',wanPrefix:'24',gateway:'192.168.73.1',lanPort:'e1/2',lanIp:'192.168.1.1',lanPrefix:'24',uplink:'e0/0',access:'e0/1'}))input(`[name="photo.${key}"]`,value);
-check('photo generation requires reviewed connections',q('[data-photo-generate]').disabled);
-input('[data-photo-reviewed]',true,'change');q('[data-photo-generate]').click();
-check('reviewed photo creates separate router and switch configurations',q('[data-photo-device]').options.length===2&&!q('[data-photo-result]').hidden);
-check('photo output uses the reviewed /24 WAN and router ports',q('[data-photo-code]').textContent.includes('ip address 192.168.73.2 255.255.255.0')&&q('[data-photo-code]').textContent.includes('interface Ethernet1/2'));
-input('[data-photo-device]','1','change');check('photo device selector shows switch-only ports',q('[data-photo-code]').textContent.includes('interface Ethernet0/0')&&!q('[data-photo-code]').textContent.includes('ip nat'));
-input('[name="photo.gateway"]','192.168.73.3');check('photo edits invalidate the generated snapshot',q('[data-photo-result]').hidden&&q('[data-photo-generate]').disabled&&!q('[data-photo-reviewed]').checked);
-q('[data-photo-clear]').click();check('photo clear releases the workspace',q('[data-photo-layout]').hidden&&q('[data-photo-result]').hidden&&q('[data-photo-analyze]').disabled);
-check('photo offers an explicit clipboard field, button and enhanced mode',q('[data-photo-paste-area]').readOnly&&q('[data-photo-paste]')&&q('[data-photo-quality]').value==='enhanced');
-const pasteText=new Event('paste',{bubbles:true,cancelable:true});Object.defineProperty(pasteText,'clipboardData',{value:{items:[]}});q('[data-photo-paste-area]').dispatchEvent(pasteText);
-check('text-only paste explains how to insert an image',pasteText.defaultPrevented&&q('[data-photo-status]').textContent.includes('no image'));
-const photoCanvas=document.createElement('canvas');photoCanvas.width=120;photoCanvas.height=90;photoCanvas.getContext('2d').fillRect(0,0,120,90);
-const photoBlob=await new Promise(resolve=>photoCanvas.toBlob(resolve,'image/png')),photoFile=new File([photoBlob],'clipboard-fixture.png',{type:'image/png'});
-const pasteImage=new Event('paste',{bubbles:true,cancelable:true});Object.defineProperty(pasteImage,'clipboardData',{value:{items:[{type:'image/png',getAsFile:()=>photoFile}]}});q('[data-photo-paste-area]').dispatchEvent(pasteImage);
-for(let i=0;i<50&&q('[data-photo-analyze]').disabled;i++)await new Promise(requestAnimationFrame);
-check('clipboard image uses the same decoded preview pipeline',pasteImage.defaultPrevented&&!q('[data-photo-analyze]').disabled&&q('[data-photo-paste-area]').value.includes('120×90'));
-q('[data-photo-inspect]').click();input('[data-photo-zoom]','200');
-check('full-size viewer supports readable zoom',q('[data-photo-inspector]').open&&q('[data-photo-large]').style.width==='240px'&&q('[data-photo-zoom-value]').textContent==='200%');q('[data-photo-close-inspector]').click();
-check('image viewer closes without clearing the photo',!q('[data-photo-inspector]').open&&!q('[data-photo-analyze]').disabled);
-const clipboardDescriptor=Object.getOwnPropertyDescriptor(navigator,'clipboard');
-try{
-  Object.defineProperty(navigator,'clipboard',{configurable:true,value:{read:()=>Promise.reject(new Error('denied'))}});q('[data-photo-paste]').click();await Promise.resolve();await Promise.resolve();
-  check('clipboard denial falls back to Ctrl+V without losing the photo',q('[data-photo-status]').textContent.includes('Ctrl+V')&&!q('[data-photo-analyze]').disabled);
-  let releaseClipboard;Object.defineProperty(navigator,'clipboard',{configurable:true,value:{read:()=>new Promise(resolve=>{releaseClipboard=resolve;})}});q('[data-photo-paste]').click();q('[data-photo-clear]').click();releaseClipboard([{types:['image/png'],getType:()=>Promise.resolve(photoBlob)}]);await Promise.resolve();await Promise.resolve();
-  check('clearing ignores a late clipboard result',q('[data-photo-layout]').hidden&&q('[data-photo-analyze]').disabled&&q('[data-photo-paste-area]').value==='');
-}finally{if(clipboardDescriptor)Object.defineProperty(navigator,'clipboard',clipboardDescriptor);else delete navigator.clipboard;}
+check('topology photo import is removed from the workbench',!q('[data-photo-import]')&&!q('[data-photo-panel]')&&!q('[data-photo-file]'));
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 
