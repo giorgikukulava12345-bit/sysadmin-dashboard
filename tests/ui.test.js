@@ -191,6 +191,18 @@ try{
  q('[data-copy-companion]').click();await Promise.resolve();await Promise.resolve();check('companion switch copy uses the same terminal format',exportedText.startsWith('!\r\n')&&exportedText.split('\r\n').find(line=>line.trim()&&!line.trim().startsWith('!'))==='configure terminal'&&exportedText.includes('switchport access vlan 10')&&!exportedText.includes('ip nat inside source'));
 }finally{if(exportClipboardDescriptor)Object.defineProperty(navigator,'clipboard',exportClipboardDescriptor);else delete navigator.clipboard;URL.createObjectURL=originalBlobUrl;HTMLAnchorElement.prototype.click=originalAnchorClick;}
 input('[data-vendor]','mikrotik','change');toggle('ntp_syslog',true);submit();check('IOS paste instructions and preamble do not leak into other vendors',q('[data-paste-guide]').hidden&&!q('[data-code]').textContent.startsWith('!\n'));
+cleanup();root.replaceChildren();cleanup=mountVpn(root);
+for(const [vendor,port]of [['ios','TwentyFiveGigE0/1'],['juniper','xe-0/0/1'],['mikrotik','sfp-sfpplus1'],['fortinet','slot1/port1'],['paloalto','ethernet1/2.10']]){
+ input('[data-vendor]',vendor,'change');const picker=q('[data-port-side=a][data-port-picker=lan]');
+ check(vendor+' has a vendor-specific LAN dropdown',[...picker.options].some(o=>o.value===port));
+ input('[data-port-side=a][data-port-picker=lan]',port,'change');
+ check(vendor+' dropdown updates topology interface',q('[data-side=a][name=lan]').value===port);
+ input('[data-include-bindings]',true,'change');submit();check(vendor+' selected port reaches generated CLI',!q('[data-copy-config]').disabled&&q('[data-code]').textContent.includes(port));
+}
+input('[data-vendor]','juniper','change');check('vendor reset restores common physical port defaults',q('[data-side=a][name=wan]').value==='ge-0/0/0'&&q('[data-side=a][name=lan]').value==='ge-0/0/1');
+input('[data-port-side=a][data-port-picker=lan]','__custom__','change');check('Custom reveals the exact-port input',!q('[data-side=a][name=lan]').hidden);input('[data-side=a][name=lan]','et-2/3/47');input('[data-include-bindings]',true,'change');submit();check('custom port survives generation',q('[data-code]').textContent.includes('et-2/3/47'));
+input('[data-side=a][name=switchVendor]','mikrotik');check('switch vendor refreshes both port choices',q('[data-side=a][name=uplink]').value==='ether1'&&q('[data-side=a][name=access]').value==='ether2'&&[...q('[data-port-side=a][data-port-picker=uplink]').options].some(o=>o.value==='sfp1'));
+input('[data-side]','b','change');check('port choices are isolated per site',q('[data-side=b][name=wan]').value==='port1');input('[data-side]','a','change');check('custom port preserved on site return',q('[data-side=a][name=lan]').value==='et-2/3/47');
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 
