@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {normalizePhotoPort,parseOcrTsv,inferPhotoOffice,generatePhotoOffice} from '../static/vpn/topology-photo-model.js';
+import {normalizePhotoPort,parseOcrTsv,inferPhotoOffice,generatePhotoOffice,parsePhotoAddress,mergePhotoOcrLines} from '../static/vpn/topology-photo-model.js';
+import {photoWorkerOptions,preparePhotoPixels,normalizePhotoWirePixels} from '../static/vpn/topology-photo-ocr.js';
 import {findDiagramWires} from '../static/vpn/topology-photo-lines.js';
 const line=(text,x,y,w=50,h=14)=>({text,x0:x,y0:y,x1:x+w,y1:y+h,confidence:95});
 const lines=[line('R-Tbilisi',77,100),line('SW-1',80,280),line('Win',85,460),line('ISP-01',595,95),line('e1/0',145,63,30),line('e1/2',85,133,30),line('e0/0',85,213,30),line('e0/1',85,323,30),line('e0',85,393,30),line('192.168.73.2 /24',220,25,130),line('192.168.1.1 /24',0,135,80)];
@@ -18,3 +19,17 @@ const noRoute=generatePhotoOffice({...valid,route:false,gateway:'',nat:false,dhc
 const linux=generatePhotoOffice({...valid,hostOs:'linux',hostAdapter:'eth0'});assert.match(linux.scripts[2].code,/sudo ip address replace 192\.168\.1\.10\/24 dev eth0/);
 const unknown=inferPhotoOffice([],[],100,100);assert.equal(unknown.model.wanPort,'');assert.equal(unknown.model.gateway,'');assert.ok(unknown.notes.length);
 console.log('Topology photo: OCR geometry, wire pairing, port normalization, /24 masks, unknown fields, device separation, host OS, optional services and atomic injection validation passed.');
+
+assert.deepEqual(parsePhotoAddress('WAN 192.168.73.2 / 24'),{ip:'192.168.73.2',prefix:'24'});
+assert.deepEqual(parsePhotoAddress('192 . 168 . 1 . 1 255.255.255.0'),{ip:'192.168.1.1',prefix:'24'});
+assert.deepEqual(parsePhotoAddress('192.168.73.2/255.255.255.0'),{ip:'192.168.73.2',prefix:'24'});
+for(const value of ['192.168.1.1 255.0.255.0','192.168.O.1/24','999.1.1.1/24','192.168.1.1/32','192.168.1.1/245'])assert.equal(parsePhotoAddress(value),null,value);
+const merged=mergePhotoOcrLines([{...line('R-Thilisi',50,70),confidence:40}],[{...line('R-Tbilisi',50,70),confidence:95}], [line('R-Tbilisi',250,70)]);
+assert.equal(merged.length,2,'Repeated OCR passes deduplicate the same location, not distinct devices');assert.equal(merged[0].text,'R-Tbilisi');assert.deepEqual(merged[0].alternatives,['R-Thilisi']);
+const dark={data:new Uint8ClampedArray([0,0,0,255,255,255,255,255])};preparePhotoPixels(dark);assert.equal(dark.data[0],255);assert.equal(dark.data[4],0,'Dark background becomes white');
+const gray={data:new Uint8ClampedArray([170,170,170,255,245,245,245,255])};preparePhotoPixels(gray,'gray');assert.ok(gray.data[0]>0&&gray.data[0]<255);assert.equal(gray.data[4],255);
+const faint={data:new Uint8ClampedArray([140,140,140,255,230,230,230,255])};preparePhotoPixels(faint,'stretch');assert.equal(faint.data[0],0);assert.equal(faint.data[4],255,'Local contrast stretching separates faint glyphs from the background');
+assert.match(photoWorkerOptions().langPath,/best_int$/,'Use the browser-compatible best integer model');assert.equal(photoWorkerOptions().gzip,true);
+console.log('Photo enhancements: dotted masks, ambiguous text rejection, spatial pass deduplication, dark/gray preprocessing and pinned browser model passed.');
+
+const faintWire={data:new Uint8ClampedArray([130,170,220,255,245,245,245,255])};normalizePhotoWirePixels(faintWire);assert.equal(faintWire.data[0],0);assert.equal(faintWire.data[4],255);assert.ok(faintWire.data[2]-faintWire.data[0]>55);
