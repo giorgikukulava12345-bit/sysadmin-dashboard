@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {CISCO_ROUTERS,ROUTER_PORTS,selectRouterModel,modelPortOptions,validateModelPorts,switchedLan,modelLanConfig} from '../static/vpn/router-models.js';
+import {CISCO_ROUTERS,ROUTER_PORTS,selectRouterModel,modelPortOptions,validateModelPorts,switchedLan,modelLanConfig,modelProfile,modelGenerationError} from '../static/vpn/router-models.js';
 import {portOptions} from '../static/vpn/port-options.js';
 import {createLab} from '../static/vpn/lab.js';
 import {composeDevice} from '../static/vpn/compose.js';
@@ -14,12 +14,17 @@ for(const row of json){
   selectRouterModel(lab.a,row.model);
   assert.deepEqual(lab.b,previous);
   assert.equal(lab.a.routerModel,row.model);
-  assert.notEqual(lab.a.wan,lab.a.lan);
-  assert.deepEqual(validateModelPorts(lab.a),[]);
+  const profile=modelProfile(row.model),ports=ROUTER_PORTS[row.model];
+  assert(/^https:\/\/(?:www\.)?(?:cisco\.com|documentation\.meraki\.com)\//.test(profile.source_url),row.model);
+  if(ports.wan.length&&ports.lan.length){assert.notEqual(lab.a.wan,lab.a.lan);assert.deepEqual(validateModelPorts(lab.a),[]);}
   const available=portOptions('ios',row.model,'wan',lab.a.lan);
-  assert(available.length>0&&available.every(p=>p.value!==lab.a.lan));
+  assert(available.every(p=>p.value!==lab.a.lan));
   assert(available.every(p=>ROUTER_PORTS[row.model].wan.some(port=>port.value===p.value)));
   const result=composeDevice({lab,side:'a',role:'router',bindings:true});
+  if(!profile.cli_supported){
+    assert(modelGenerationError(lab.a));assert(result.errors.length>0);assert.equal(result.code,'');
+    continue;
+  }
   assert.deepEqual(result.errors,[],row.model);
   assert(result.code.includes('interface '+lab.a.wan));
   if(switchedLan(lab.a)){

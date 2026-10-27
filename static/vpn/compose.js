@@ -1,4 +1,4 @@
-import {modelLanConfig,switchedLan} from './router-models.js';
+import {modelLanConfig,switchedLan,modelGenerationError} from './router-models.js';
 import { hasSecondVlan, routedSite } from './dual-vlan.js';
 import { FEATURES, forRole, boundValues, capable, generateFeature, generateRemoteVpn, lanBinding } from './features.js';
 import { labScripts } from './lab.js';
@@ -10,7 +10,7 @@ import {generateStandardOffice} from './standard-office.js';
 
 /** No DOM dependencies. Each output belongs to one physical device. */
 export function composeDevice(input){
-  try{const result=composeChecked(input);if(input.role==='router'&&!result.errors.length&&result.code)result.code=modelLanConfig(input.lab[input.side],result.code);return result;}catch{return {errors:['Generation failed: invalid or incomplete device configuration. Review the topology and feature inputs.'],code:'',empty:false};}
+  try{const blocked=input.role==='router'&&modelGenerationError(input.lab?.[input.side]||{});if(blocked)return {errors:[blocked],code:'',empty:false};const result=composeChecked(input);if(input.role==='router'&&!result.errors.length&&result.code)result.code=modelLanConfig(input.lab[input.side],result.code);return result;}catch{return {errors:['Generation failed: invalid or incomplete device configuration. Review the topology and feature inputs.'],code:'',empty:false};}
 }
 function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnConfig,vpnType='ikev2',remote={},linkedEnterprise=null}){
   if(!lab?.a||!lab?.b||!['a','b'].includes(side)||!['router','switch','host'].includes(role))throw Error('Invalid topology context.');

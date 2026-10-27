@@ -1,4 +1,4 @@
-import {CISCO_ROUTERS,selectRouterModel} from './router-models.js';
+import {CISCO_ROUTERS,selectRouterModel,populateRouterModels,modelGenerationError} from './router-models.js';
 import {mountPortPicker} from './port-picker.js';
 import {normalizePort} from './port-options.js';
 import { suggestGateway } from './lab-policy.js';
@@ -19,6 +19,7 @@ export function labScripts(lab,{sides=['a','b']}={}) {
   const errors=validateInterfaces({bindInterfaces:true,...lab},sides),scripts=[];
   for(const side of sides) {
     const s=lab[side],label=`Side ${side.toUpperCase()}`,n=cidr(s.local);
+    const modelError=modelGenerationError(s);if(modelError)errors.push(label+': '+modelError);
     const peer=side==='a'?'b':'a';errors.push(...validateSecondVlan(s,sides.includes(peer)?lab[peer]:undefined).map(e=>`${label}: ${e}`));
     if(!Object.hasOwn(PLATFORMS,s.vendor))errors.push(`${label}: choose a router vendor.`);
     if(ipv4(s.ip)===null)errors.push(`${label}: invalid WAN IP.`);
@@ -52,7 +53,7 @@ export function mountLab(root,{onChange=()=>{},showDeviceOutputs=true,getSides=(
   const controller=new AbortController(),portPickers=[];
   root.classList.add('lab-canvas');
   root.innerHTML=`<style>${CSS}</style><h3>UNIVERSAL NETWORK TOPOLOGY · EVE-NG STYLE</h3><p class="lab-note">Router → Switch → Computer on each site. Edit physical ports and IPs below; the six device outputs update immediately. This is a configuration model, not live connectivity. Feature commands appear separately below. In VPN mode router edits also update the VPN form.</p><div class="lab-path"><span data-path-a></span><div class="lab-cloud">☁ PUBLIC INTERNET / ISP<br><small>WAN transit · routed public path</small></div><span data-path-b></span></div><div class="lab-sites"></div><p role="status" class="lab-errors" data-lab-errors></p><div class="lab-output"></div><p role="status" class="lab-note" data-lab-feedback></p>`;
-  const field=(side,key,label,select=false)=>{const l=document.createElement('label');l.textContent=label;const el=document.createElement(select?'select':'input');el.dataset.side=side;el.name=key;el.setAttribute('aria-label',`Side ${side.toUpperCase()} ${label}`);el.autocomplete='off';el.spellcheck=false;if(select)for(const [value,title]of Object.entries(select==='model'?Object.fromEntries([['','Custom / other model'],...CISCO_ROUTERS.map(r=>[r.model,r.model])]):select==='prefix'?Object.fromEntries(WAN_PREFIXES.map(p=>[p,`/${p}${p==='30'?' · point-to-point':''}`])):PLATFORMS)){const o=document.createElement('option');o.value=value;o.textContent=title;el.append(o);}el.value=state[side][key];l.append(el);if(select)menus.push(mountSelectionMenu(el,controller.signal));else if(['wan','lan','uplink','access'].includes(key))portPickers.push({side,key,refresh:mountPortPicker(el,controller.signal)});return l;};
+  const field=(side,key,label,select=false)=>{const l=document.createElement('label');l.textContent=label;const el=document.createElement(select?'select':'input');el.dataset.side=side;el.name=key;el.setAttribute('aria-label',`Side ${side.toUpperCase()} ${label}`);el.autocomplete='off';el.spellcheck=false;if(select)for(const [value,title]of Object.entries(select==='model'?Object.fromEntries([['','Custom / other model'],...CISCO_ROUTERS.map(r=>[r.model,r.model])]):select==='prefix'?Object.fromEntries(WAN_PREFIXES.map(p=>[p,`/${p}${p==='30'?' · point-to-point':''}`])):PLATFORMS)){const o=document.createElement('option');o.value=value;o.textContent=title;el.append(o);}if(select==='model')populateRouterModels(el);el.value=state[side][key];l.append(el);if(select)menus.push(mountSelectionMenu(el,controller.signal));else if(['wan','lan','uplink','access'].includes(key))portPickers.push({side,key,refresh:mountPortPicker(el,controller.signal)});return l;};
   for(const side of ['a','b']){const site=document.createElement('section');site.setAttribute('aria-label',`Side ${side.toUpperCase()} topology`);for(const [title,fields]of[
     ['Router',[['vendor','Router vendor',true],['routerModel','Router model','model'],['wan','Router WAN interface'],['ip','WAN IPv4 (usable host)'],['wanPrefix','WAN prefix', 'prefix'],['gateway','ISP gateway'],['lan','Router LAN interface'],['local','LAN network CIDR'],['lanIp','Router LAN IPv4']]],
     ['Switch',[['switchVendor','Switch vendor',true],['uplink','Switch router-facing interface'],['access','Switch host-facing interface'],['switchIp','Switch management IPv4'],['vlan','LAN VLAN ID']]],
