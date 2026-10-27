@@ -1,5 +1,11 @@
 import { cidr, ipv4, unicastNetwork } from './address.js';
 
+export function panAddress(port,address){
+  const m=/^(ethernet\d+\/\d+)\.(\d+)$/.exec(port);
+  if(!m)return `set network interface ethernet ${port} layer3 ip ${address}`;
+  const tag=Number(m[2]);if(tag<1||tag>4094)throw Error('PAN-OS subinterface selection uses a VLAN tag from 1 to 4094.');
+  return `set network interface ethernet ${m[1]} layer3 units ${port} tag ${tag}\nset network interface ethernet ${m[1]} layer3 units ${port} ip ${address}`;
+}
 export const WAN_PREFIXES=Object.freeze(['24','25','26','27','28','29','30']);
 export function validateWan(s) {
   const errors=[],ip=ipv4(s.ip),gateway=ipv4(s.gateway),validPrefix=WAN_PREFIXES.includes(s.wanPrefix),n=validPrefix?cidr(`${s.ip}/${s.wanPrefix}`):null;
@@ -77,8 +83,8 @@ end
 end
 `;
     case 'paloalto': return `configure
-set network interface ethernet ${s.wan} layer3 ip ${s.ip}/${s.wanPrefix}
-set network interface ethernet ${s.lan} layer3 ip ${s.lanIp}/${s.local.split('/')[1]}
+${panAddress(s.wan,`${s.ip}/${s.wanPrefix}`)}
+${panAddress(s.lan,`${s.lanIp}/${s.local.split('/')[1]}`)}
 exit
 `;
     case 'juniper': return `configure

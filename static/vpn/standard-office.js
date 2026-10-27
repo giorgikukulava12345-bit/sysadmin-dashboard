@@ -1,3 +1,4 @@
+import {isCiscoPhysical} from './port-options.js';
 import {cidr, ipv4, unicastNetwork} from './address.js';
 import {generateTool} from './catalog.js';
 import {gatewayParts} from './gateway-parts.js';
@@ -31,7 +32,7 @@ function build(s,selected,values){
   validateInternet(d);
   const mode=d.iosLanMode??'subinterfaces';
   if(!['svi','subinterfaces'].includes(mode))throw Error('Choose SVI or router-on-a-stick LAN mode.');
-  if(!/^(?:FastEthernet|GigabitEthernet|TenGigabitEthernet|Ethernet)\d+(?:\/\d+)*$/.test(s.lan))throw Error('LAN binding must be a physical Cisco Ethernet interface.');
+  if(!isCiscoPhysical(s.lan))throw Error('LAN binding must be a physical Cisco Ethernet interface.');
   const dual=s.vlan2Enabled==='on';
   const rows=[{id:s.vlan,network:s.local,gateway:s.lanIp,reserved:[s.lanIp,s.switchIp,s.hostIp],name:d.usersPool??'USERS',description:'USERS'},...(dual?[{id:s.vlan2,network:s.vlan2Subnet,gateway:s.vlan2Gateway,reserved:[s.vlan2Gateway,s.vlan2SwitchIp],name:d.itPool??'IT',description:'IT_INTERNAL'}]:[])].map(r=>({...r,n:cidr(r.network),port:mode==='svi'?`Vlan${r.id}`:dual?`${s.lan}.${r.id}`:s.lan}));
   for(const r of rows){
