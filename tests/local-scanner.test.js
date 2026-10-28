@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {scanTarget,scanSnapshot,scanCSV} from '../static/vpn/local-scanner.js';
+for(const [target,total]of [['192.168.1.1-254',254],['10.0.0.1-10.0.0.3',3],['172.16.0.0/22',1022],['10.0.0.1',1],['10.0.0.0/31',2]])assert.equal(scanTarget(target).total,total);
+assert.equal(scanTarget('192.168.1.3/24').target,'192.168.1.0/24');
+for(const target of ['', '8.8.8.8','127.0.0.1','0.0.0.0/0','10.0.0.0/8','172.32.0.1','192.168.1.3-1','192.168.1.1-999','192.168.01.1','10.0.0.1;whoami','::1','10.0.0.1-11.0.0.1'])assert.throws(()=>scanTarget(target),target);
+const row={ip:'192.168.1.1',status:'up',name:'<img src=x onerror=alert(1)>',mac:'00:11:22:33:44:55',manufacturer:'=SUM(1,1)',latencyMs:1,comment:'@example'};
+const source={apiVersion:1,total:1,completed:1,status:'completed',results:[row]};
+assert.equal(scanSnapshot(source).results[0].name,row.name);
+for(const change of [{apiVersion:2},{total:99999},{completed:2},{status:'unknown'},{results:[{...row,ip:'8.8.8.8'}]},{results:[{...row,mac:'<script>'}]}])assert.throws(()=>scanSnapshot({...source,...change}));
+assert.throws(()=>scanSnapshot({...source,total:2,completed:2,results:[row,row]}));
+const csv=scanCSV([row]);assert(csv.includes('"\'=SUM(1,1)"'));assert(csv.includes('"\'@example"'));assert(csv.endsWith('\r\n'));
+assert.equal(scanSnapshot({...source,results:[{...row,latencyMs:Infinity}]}).results[0].latencyMs,null);
+console.log('Local scanner: bounded private targets, schema validation, safe result strings and spreadsheet-safe CSV passed.');

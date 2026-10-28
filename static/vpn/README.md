@@ -146,3 +146,7 @@ Cisco router/switch and MikroTik router/switch catalogs are restored in the top 
 
 ### EVE-NG image profiles
 The shared model dropdown includes user-supplied Dynamips 1710/3725/7206VXR, IOL L2/L3 image labels, mikrotik-7.23.7, FortiGate 6.4.6 and 7.2.0-build1157, and Paloalto-10.2.5. Each label ends in (EVE-NG). IOL L2 profiles appear under Switch Configuration; IOL L3 and virtual appliances under Router Configuration. Adapter examples are editable and do not represent discovered or installed adapters. The truncated ipbasek9/high_iron screenshot is represented as an image-family profile rather than an invented filename. These entries do not download or host images. See the official [EVE-NG cookbook](https://eve-ng.net/wp-content/uploads/2024/04/EVE-CE-BOOK-6.0-2024.pdf) for node/image setup.
+
+
+### Local Network Scanner
+A downloadable Python 3.10+ standard-library agent performs bounded private-IPv4 ICMP discovery on the user computer. The web component connects explicitly to 127.0.0.1 using an in-memory session token and displays progress, stop controls, names, neighbor-cache MACs, optional offline-OUI manufacturers and browser-local comments. CSV/JSON export and JSON import are supported. No scan starts automatically and no result is posted to the website backend. Browser local-network permission and policy may affect direct connection; --once JSON export/import is the fallback. See static/agent/README.md.
