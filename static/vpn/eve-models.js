@@ -35,7 +35,7 @@ export function validateEvePorts(site,role='router'){
 }
 export function renderEveInfo(container,name){
  const row=eveModel(name);container.replaceChildren();container.hidden=!row;if(!row)return;
- const intro=document.createElement('p');intro.textContent=row.label+' · '+(row.vendor==='ios'?'Cisco IOS':row.vendor==='mikrotik'?'RouterOS':row.vendor==='fortinet'?'FortiOS':'PAN-OS')+' lab profile';container.append(intro);
+ const intro=document.createElement('p');intro.textContent=row.label+' · '+(!row.cli_supported?'Firepower NGIPS':row.vendor==='ios'?'Cisco IOS':row.vendor==='mikrotik'?'RouterOS':row.vendor==='fortinet'?'FortiOS':'PAN-OS')+' lab profile';container.append(intro);
  const note=document.createElement('p');note.textContent=row.port_note;container.append(note);
- const ports=document.createElement('p');ports.textContent='Adapter examples: '+row.ports.join(', ');container.append(ports);
+ const ports=document.createElement('p');ports.textContent=row.ports.length?'Adapter examples: '+row.ports.join(', '):'This appliance requires its own platform configuration workflow.';container.append(ports);
 }
