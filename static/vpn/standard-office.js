@@ -34,7 +34,7 @@ function build(s,selected,values){
   if(!['svi','subinterfaces'].includes(mode))throw Error('Choose SVI or router-on-a-stick LAN mode.');
   if(!isCiscoPhysical(s.lan))throw Error('LAN binding must be a physical Cisco Ethernet interface.');
   const dual=s.vlan2Enabled==='on';
-  const rows=[{id:s.vlan,network:s.local,gateway:s.lanIp,reserved:[s.lanIp,s.switchIp,s.hostIp],name:d.usersPool??'USERS',description:'USERS'},...(dual?[{id:s.vlan2,network:s.vlan2Subnet,gateway:s.vlan2Gateway,reserved:[s.vlan2Gateway,s.vlan2SwitchIp],name:d.itPool??'IT',description:'IT_INTERNAL'}]:[])].map(r=>({...r,n:cidr(r.network),port:mode==='svi'?`Vlan${r.id}`:dual?`${s.lan}.${r.id}`:s.lan}));
+  const rows=[{id:s.vlan,network:s.local,gateway:s.lanIp,reserved:s.routerOnly?[s.lanIp]:[s.lanIp,s.switchIp,s.hostIp],name:d.usersPool??'USERS',description:'USERS'},...(dual?[{id:s.vlan2,network:s.vlan2Subnet,gateway:s.vlan2Gateway,reserved:[s.vlan2Gateway,s.vlan2SwitchIp],name:d.itPool??'IT',description:'IT_INTERNAL'}]:[])].map(r=>({...r,n:cidr(r.network),port:mode==='svi'?`Vlan${r.id}`:dual?`${s.lan}.${r.id}`:s.lan}));
   for(const r of rows){
     if(!r.n||r.n.canonical!==r.network||!unicastNetwork(r.n))throw Error('Office LANs require canonical unicast IPv4 networks.');
     identifier(r.name,'DHCP pool name');

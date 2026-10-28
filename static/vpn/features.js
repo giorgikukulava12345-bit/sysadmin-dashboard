@@ -57,8 +57,8 @@ export function boundValues(id,d,s){
   const result={...d,vendor:s.vendor};
   if(INTERNET_FEATURES[id])return {...s,...d,vendor:s.vendor,wan:s.wan,lan:s.lan,ip:s.ip,gateway:s.gateway,wanPrefix:s.wanPrefix,local:s.local,lanIp:s.lanIp};
   if(id==='portforward')Object.assign(result,{publicIp:s.ip,inside:s.lan,outside:s.wan,localNetwork:s.local,lanIp:s.lanIp});
-  if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan,lanIp:s.lanIp,reserved:[s.switchIp]});
-  if(id==='dhcp'){Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan,reserved:[s.switchIp,s.hostIp].filter(Boolean)});if(s.vendor==='ios')result.exclusions=[d.exclusions||'',...result.reserved].filter(Boolean).join('\n');}
+  if(id==='nat')Object.assign(result,{network:s.local,inside:s.lan,outside:s.wan,lanIp:s.lanIp,reserved:s.routerOnly?[]:[s.switchIp]});
+  if(id==='dhcp'){Object.assign(result,{network:s.local,gateway:s.lanIp,interface:s.lan,reserved:s.routerOnly?[]:[s.switchIp,s.hostIp].filter(Boolean)});if(s.vendor==='ios')result.exclusions=[d.exclusions||'',...result.reserved].filter(Boolean).join('\n');}
   if(id==='bootstrap')Object.assign(result,{wan:s.wan,wanAddress:`${s.ip}/${s.wanPrefix}`,gateway:s.gateway,lan:`${s.lanIp}/${s.local.split('/')[1]}`});
   if(['relay','fhrp'].includes(id)){const binding=lanBinding(s,d.interface);Object.assign(result,{localIp:binding.ip,localNetwork:binding.network});}
   if(id==='remotevpn')Object.assign(result,{wan:s.wan,lan:s.lan,local:s.local,ip:s.ip,wanPrefix:s.wanPrefix});

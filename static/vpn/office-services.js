@@ -2,7 +2,7 @@ import { gatewayParts } from './gateway-parts.js';
 import {cidr,ipv4} from './address.js';
 const text=n=>[24,16,8,0].map(b=>(n>>>b)&255).join('.');
 export function officeNetworks(d){
-  return [{id:d.vlan,network:d.local,gateway:d.lanIp,reserved:[d.lanIp,d.switchIp,d.hostIp],port:d.lan},...(d.vlan2Enabled==='on'?[{id:d.vlan2,network:d.vlan2Subnet,gateway:d.vlan2Gateway,reserved:[d.vlan2Gateway,d.vlan2SwitchIp],port:`${d.physicalLan}.${d.vlan2}`}]:[])];
+  return [{id:d.vlan,network:d.local,gateway:d.lanIp,reserved:d.routerOnly?[d.lanIp]:[d.lanIp,d.switchIp,d.hostIp],port:d.lan},...(d.vlan2Enabled==='on'?[{id:d.vlan2,network:d.vlan2Subnet,gateway:d.vlan2Gateway,reserved:[d.vlan2Gateway,d.vlan2SwitchIp],port:`${d.physicalLan}.${d.vlan2}`}]:[])];
 }
 /** Split ranges around actual static assignments, without enumerating host addresses. */
 export function leaseRanges(network,reserved){
