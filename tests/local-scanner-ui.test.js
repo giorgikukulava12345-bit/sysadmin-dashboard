@@ -5,7 +5,7 @@ const calls=[],id='a'.repeat(24);let stopped=false,hold=false;
 const result=status=>({apiVersion:1,agentVersion:'1.0.0',jobId:id,target:'192.168.1.1-2',total:2,completed:2,status,results:[{ip:'192.168.1.1',status:'up',name:'<img src=x onerror=alert(1)>',mac:'00:11:22:33:44:55',manufacturer:'=Example',latencyMs:1},{ip:'192.168.1.2',status:'no-response',name:'',mac:'',manufacturer:'',latencyMs:null}]});
 async function fakeFetch(url,options){calls.push({url,options});if(url.endsWith('/v1/health'))return {ok:true,json:async()=>({apiVersion:1,maxHosts:1024})};if(url.endsWith('/stop')){stopped=true;return {ok:true,json:async()=>({status:'stopping'})};}if(options.method==='POST')return {ok:true,json:async()=>({jobId:id})};return {ok:true,json:async()=>result(stopped?'stopped':hold?'running':'completed')};}
 async function waitFor(test){for(let i=0;i<100;i++){if(test())return;await new Promise(resolve=>setTimeout(resolve,10));}throw Error('Timed out waiting for local scanner UI');}
-const cleanup=mountLocalScanner(root,{fetcher:fakeFetch,pollMs:10});
+const cleanup=mountLocalScanner(root,{fetcher:fakeFetch,pollMs:10,vendorLoader:async()=>({schemaVersion:1,updatedAt:'2026-10-28',entries:{'001122':'Fixture manufacturer'}})});
 try{
  check('no agent request on mount',calls.length===0);check('agent script is downloadable',q('[download="noc_local_agent.py"]').getAttribute('href')==='/static/agent/noc_local_agent.py');
  check('scan requires an explicit agent connection',q('[data-scan-start]').disabled);
@@ -25,6 +25,10 @@ try{
  q('[data-agent-disconnect]').click();check('disconnect disables scanning',q('[data-scan-start]').disabled);
  const before=calls.length,file=new File([JSON.stringify(result('completed'))],'scan-results.json',{type:'application/json'});Object.defineProperty(q('[data-scan-import]'),'files',{configurable:true,value:[file]});q('[data-scan-import]').dispatchEvent(new Event('change'));await waitFor(()=>q('[data-scan-status]').textContent.startsWith('Imported'));
  check('JSON import starts no network requests',calls.length===before&&q('[data-scan-rows]').children.length===2);
+ const imported=result('completed');imported.results[0].manufacturer='';const vendorFile=new File([JSON.stringify(imported)],'old-agent-results.json',{type:'application/json'});Object.defineProperty(q('[data-scan-import]'),'files',{configurable:true,value:[vendorFile]});q('[data-scan-import]').dispatchEvent(new Event('change'));await waitFor(()=>q('[data-scan-rows]').textContent.includes('Fixture manufacturer'));
+ check('manufacturer fills automatically for old-agent JSON',q('[data-scan-rows]').textContent.includes('Fixture manufacturer'));
+ check('manufacturer lookup does not send MACs in agent requests',calls.every(c=>!c.url.includes('00:11')&&!String(c.options.body||'').includes('00:11')));
+ const vendorCreate=URL.createObjectURL,vendorClick=HTMLAnchorElement.prototype.click;let vendorExport;try{URL.createObjectURL=blob=>{vendorExport=blob;return 'blob:manufacturer-test';};HTMLAnchorElement.prototype.click=function(){};q('[data-scan-json]').click();check('automatic manufacturer is included in JSON export',JSON.parse(await vendorExport.text()).results[0].manufacturer==='Fixture manufacturer');}finally{URL.createObjectURL=vendorCreate;HTMLAnchorElement.prototype.click=vendorClick;}
  check('all calls stayed on fixed loopback host',calls.every(c=>c.url.startsWith('http://127.0.0.1:8765/')));
 }catch(error){check(error.message,false);}finally{cleanup();root.remove();}
 document.getElementById('scanner-results').textContent=`${passed}/${total} local scanner UI checks passed${failed.length?'\nFAIL '+failed.join('\nFAIL '):''}`;

@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {validateManufacturerRegistry,lookupManufacturer} from '../static/vpn/manufacturer.js';
+const registry=validateManufacturerRegistry({schemaVersion:1,updatedAt:'2026-10-28',entries:{'001122':'Parent vendor','0011223':'Medium vendor','0011223AB':'Small vendor'}});
+assert.equal(lookupManufacturer('00:11:22:3A:B5:C6',registry),'Small vendor');
+assert.equal(lookupManufacturer('00-11-22-3F-FF-FF',registry),'Medium vendor');
+assert.equal(lookupManufacturer('00:11:22:FF:FF:FF',registry),'Parent vendor');
+for(const mac of ['02:11:22:33:44:55','01:11:22:33:44:55','FF:FF:FF:FF:FF:FF','00:00:00:00:00:00','bad','<script>',null,'C0:FF:EE:00:00:01'])assert.equal(lookupManufacturer(mac,registry),'');
+for(const value of [{},{schemaVersion:1,updatedAt:'bad',entries:{}},{schemaVersion:1,updatedAt:'2026-10-28',entries:{'0011223ABCD':'Invalid'}},{schemaVersion:1,updatedAt:'2026-10-28',entries:{'001122':{name:'Not text'}}}])assert.throws(()=>validateManufacturerRegistry(value));
+const real=validateManufacturerRegistry(JSON.parse(readFileSync(new URL('../static/vpn/vendor-oui.json',import.meta.url),'utf8')));
+assert(Object.keys(real.entries).length>50000);
+assert.equal(lookupManufacturer('00:87:64:00:00:01',real),'Cisco Systems, Inc');
+assert.equal(lookupManufacturer('2C:58:B9:00:00:02',real),'HP Inc.');
+assert.equal(lookupManufacturer('24:FB:E3:00:00:03',real),'HP Inc.');
+console.log('Manufacturers: bundled IEEE assignments, longest-prefix matching, screenshot OUI prefixes and randomized/multicast exclusion passed.');
