@@ -154,3 +154,7 @@ This legacy module is no longer imported or mounted by the production workbench.
 
 ### Scanner manufacturer field removed
 The scanner omits Manufacturer from its table, filtering and CSV/JSON exports. Legacy agent/import fields are ignored. Manufacturer lookup is no longer imported and the registry is not requested. Existing agents continue to work without a download or restart.
+
+### Router-only production workbench
+
+The website provides router configuration only. Switch and Computer / Host tabs, topology nodes, address editors and companion output are removed. Single-site diagrams show Router ↔ Internet; VPN diagrams show both routers with Internet between them. Removed devices do not reserve DHCP addresses or block router validation when the LAN changes. Shared standalone lab APIs retain their default behavior.

@@ -20,8 +20,8 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   const logical=routedSite(site);
   const ids=Object.keys(selected).filter(id=>selected[id]).sort((a,b)=>(a==='aaa'?1:0)-(b==='aaa'?1:0));
   const paired=ids.includes('vpn')||ids.includes('gre_tunnel');
-  const address=labScripts(lab,{sides:paired?['a','b']:[side]});
-  const baseIndex=paired&&side==='b'?3:0;
+  const address=labScripts(lab,{sides:paired?['a','b']:[side],routerOnly:role==='router'});
+  const baseIndex=paired&&side==='b'?(role==='router'?1:3):0;
   if(role==='router'&&!customNoInterfaces&&ids.some(id=>['wan_failover','internet_access'].includes(id)))bindings=true;
   if(role==='switch'&&linkedEnterprise){
     if(vendor!=='ios'||ids.length||bindings)return{errors:['The linked router-on-a-stick switch preset requires Cisco and no additional switch features/bindings.'],code:'',empty:false};
@@ -42,9 +42,9 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(failover&&office&&vendor==='paloalto'&&values.wan_failover?.virtualRouter!==values.internet_access?.virtualRouter)errors.push('Internet Gateway and WAN Failover must use the same virtual router.');
   if(ids.includes('nat')&&values.nat?.natMode==='static'&&[site.ip,site.gateway].includes(values.nat.publicHost))errors.push('Static NAT public mapping must not reuse the WAN router or ISP gateway address. Use a separately assigned public address.');
   if(ids.includes('nat')&&values.nat?.natMode==='dynamic'){const start=values.nat.poolStart?.split('.').reduce((a,v)=>a*256+Number(v),0),end=values.nat.poolEnd?.split('.').reduce((a,v)=>a*256+Number(v),0);for(const ip of [site.ip,site.gateway]){const n=ip.split('.').reduce((a,v)=>a*256+Number(v),0);if(n>=start&&n<=end)errors.push('Dynamic NAT pool must exclude WAN router and ISP gateway addresses.');}}
-  if(ids.includes('static')&&[site.ip,site.lanIp,site.switchIp,site.hostIp,...(dual?[site.vlan2Gateway,site.vlan2SwitchIp]:[])].includes(values.static?.nextHop))errors.push('Static-route next hop must not be an address assigned to this site.');
+  if(ids.includes('static')&&[site.ip,site.lanIp,...(site.routerOnly?[]:[site.switchIp,site.hostIp]),...(dual?[site.vlan2Gateway,site.vlan2SwitchIp]:[])].includes(values.static?.nextHop))errors.push('Static-route next hop must not be an address assigned to this site.');
   if(ids.includes('portforward')){
-    const d=values.portforward||{};if(d.internalIp===site.switchIp)errors.push('Port-forward target must not be the switch management address.');
+    const d=values.portforward||{};if(!site.routerOnly&&d.internalIp===site.switchIp)errors.push('Port-forward target must not be the switch management address.');
     if(d.attachAcl&&ids.length>1)errors.push('A dedicated inbound port-forward ACL is a standalone restricted policy. Leave attachment unchecked and merge its permit with the existing WAN ACL when combining features.');
     if(ids.includes('nat')&&d.acl===values.nat?.acl)errors.push('Port-forward and source NAT ACL names must differ.');
     if(ids.includes('acl')&&d.acl===values.acl?.name)errors.push('Port-forward and traffic-filter ACL names must differ.');
@@ -53,7 +53,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(ids.includes('vxlan')){
     const access=values.vxlan?.accessInterface;
     if([site.wan,site.lan].includes(access))errors.push('VXLAN EFP access must use a dedicated physical port, separate from the routed WAN/LAN topology ports.');
-    if([site.ip,site.lanIp,site.hostIp,site.switchIp].includes(values.vxlan?.localVtep))errors.push('VTEP Loopback must use an unused /32, not an address already assigned in the topology.');
+    if([site.ip,site.lanIp,...(site.routerOnly?[]:[site.hostIp,site.switchIp])].includes(values.vxlan?.localVtep))errors.push('VTEP Loopback must use an unused /32, not an address already assigned in the topology.');
   }
   if(ids.includes('gre_tunnel')){
     const d=values.gre_tunnel||{},local=cidr(site.local),remote=cidr(d.remoteNetwork),tunnel=cidr(d.address);
