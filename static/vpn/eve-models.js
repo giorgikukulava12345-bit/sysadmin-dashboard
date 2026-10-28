@@ -9,7 +9,7 @@ export const EVE_MODELS=[
  ...['i86bi_linux-adventerprisek9-ms.156-3.M3a.bin','L3-ADVENTERPRISEK9-M-15.2-S7.bin','L3-ADVENTERPRISEK9-M-15.4-2T.bin','L3-ADVENTERPRISEK9-M-15.4.M5.3.bin','i86bi_LinuxL3-AdvEnterpriseK9-M2_157_3_May_2018.bin'].map(name=>make(name,'ios','router',eth)),
  ...['i86bi_linux_l2-adventerprisek9-ms.SSA.high_iron_20180510.bin','i86bi_linux_l2-adviservicesk9-ms.high_iron_20170202.bin','i86bi_LinuxL2-AdvEnterpriseK9-M_152_May_2018.bin','L2-ADVENTERPRISEK9-M-15.2-20150703.bin','L2-ADVENTERPRISEK9-M-15.2-IRON-20151103.bin'].map(name=>make(name,'ios','switch',eth)),
  make('i86bi_linux_l2-ipbasek9-ms.high_iron (image family)','ios','switch',eth,'The screenshot cuts off the image suffix. This is the visible image family, not an exact filename. IOL Ethernet adapters have four ports per group; use the names from your node.'),
- make('mikrotik-7.23.7','mikrotik','router',Array.from({length:8},(_,i)=>'ether'+(i+1))),
+ ...['mikrotik-6.49.19','mikrotik-7.23.7'].map(name=>make(name,'mikrotik','router',Array.from({length:4},(_,i)=>'ether'+(i+1)),'Four Ethernet adapters as shown in the supplied EVE-NG node. Interface names remain editable. Match generated features to the installed RouterOS version; some features require RouterOS 7.')),
  make('fortinet-FGT-v6.4.6','fortinet','router',Array.from({length:8},(_,i)=>'port'+(i+1))),
  make('fortinet-FGT-v7.2.0-build1157','fortinet','router',Array.from({length:8},(_,i)=>'port'+(i+1))),
  make('Paloalto-10.2.5','paloalto','router',Array.from({length:8},(_,i)=>'ethernet1/'+(i+1)))
