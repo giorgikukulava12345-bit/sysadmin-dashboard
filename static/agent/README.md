@@ -29,12 +29,8 @@ install your operating system's standard ping utility before scanning.
   per responding host. Names may be unavailable or refer to old DNS records.
 - MAC addresses come from the existing local neighbor cache after probing.
   They usually require the same Layer 2 subnet and can be absent or stale.
-- The website automatically resolves manufacturers locally using its bundled IEEE
-  MA-L, MA-M, MA-S and IAB registries. No MAC is sent to a lookup service. Existing
-  agent 1.0.0 results and imported JSON are supported without an agent update.
-  Locally administered/randomized MAC addresses are not assigned a guessed vendor.
-  The registrant may identify an adapter/chip vendor rather than the product brand.
-  CLI-only output can still use the optional offline OUI CSV described below.
+- The website no longer displays or exports manufacturer information. Legacy
+  manufacturer fields from agents or JSON files are ignored.
 - Comments remain in the browser and CSV/JSON exports. They are not sent to the agent.
 
 Use **Export CSV** or **Export JSON** to save results. All results, including those

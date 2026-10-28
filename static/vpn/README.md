@@ -149,8 +149,8 @@ The shared model dropdown includes user-supplied Dynamips 1710/3725/7206VXR, IOL
 
 
 ### Local Network Scanner
-A downloadable Python 3.10+ standard-library agent performs bounded private-IPv4 ICMP discovery on the user computer. The web component connects explicitly to 127.0.0.1 using an in-memory session token and displays progress, stop controls, names, neighbor-cache MACs, automatic local manufacturer lookup and browser-local comments. CSV/JSON export and JSON import are supported. No scan starts automatically and no result is posted to the website backend. Browser local-network permission and policy may affect direct connection; --once JSON export/import is the fallback. See static/agent/README.md.
+A downloadable Python 3.10+ standard-library agent performs bounded private-IPv4 ICMP discovery on the user computer. The web component connects explicitly to 127.0.0.1 using an in-memory session token and displays progress, stop controls, names, neighbor-cache MACs, browser-local comments. CSV/JSON export and JSON import are supported. No scan starts automatically and no result is posted to the website backend. Browser local-network permission and policy may affect direct connection; --once JSON export/import is the fallback. See static/agent/README.md.
 
 
-### Automatic manufacturer lookup
-The scanner lazily loads a bundled IEEE registry snapshot (MA-L, MA-M, MA-S and IAB), then performs longest-prefix MAC lookups entirely in the browser. No MAC/IP is sent in lookup requests. Existing agent 1.0.0 snapshots and imported JSON are enriched without changing the agent. Agent-provided manufacturer values take precedence; browser-enriched values are included in CSV/JSON exports. Randomized/local, multicast and unknown addresses are left unknown. vendor-oui.json records the source URLs and snapshot date.
+### Scanner manufacturer field removed
+The scanner omits Manufacturer from its table, filtering and CSV/JSON exports. Legacy agent/import fields are ignored. Manufacturer lookup is no longer imported and the registry is not requested. Existing agents continue to work without a download or restart.
