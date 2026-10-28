@@ -142,3 +142,7 @@ Port suggestions also include Cisco slot 1/2/3 and stacked 1/0 numbering, includ
 
 ### Shared model selector restoration
 Cisco router/switch and MikroTik router/switch catalogs are restored in the top Device vendor / Model / Site selector, including search, specification details and their existing automatic port mapping. FortiGate FG-30G, FG-50G, FG-70G, FG-90G and FG-120G use the same shared Router model selector and summary. FortiGate preserves entered interface names; its model summary links to official hardware guides. All vendors retain exact-port input. The separate FortiGate-only selector is replaced by this unified control.
+
+
+### EVE-NG image profiles
+The shared model dropdown includes user-supplied Dynamips 1710/3725/7206VXR, IOL L2/L3 image labels, mikrotik-7.23.7, FortiGate 6.4.6 and 7.2.0-build1157, and Paloalto-10.2.5. Each label ends in (EVE-NG). IOL L2 profiles appear under Switch Configuration; IOL L3 and virtual appliances under Router Configuration. Adapter examples are editable and do not represent discovered or installed adapters. The truncated ipbasek9/high_iron screenshot is represented as an image-family profile rather than an invented filename. These entries do not download or host images. See the official [EVE-NG cookbook](https://eve-ng.net/wp-content/uploads/2024/04/EVE-CE-BOOK-6.0-2024.pdf) for node/image setup.

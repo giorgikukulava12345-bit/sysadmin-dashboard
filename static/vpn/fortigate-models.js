@@ -1,3 +1,4 @@
+import {appendEveModels} from './eve-models.js';
 // Shared router-model catalog. Existing interface names remain editable.
 export const FORTIGATE_CATALOG=[
  {model:'FG-30G',name:'FortiGate 30G',ports:'4 GE RJ45 data ports (WAN, 1, 2, A/FortiLink)',source:'https://fortinetweb.s3.amazonaws.com/docs.fortinet.com/v2/attachments/b0f32597-a216-11ef-a705-1222899fa4e9/FG-30G-31G-QSG.pdf'},
@@ -11,7 +12,7 @@ export function populateFortigateModels(select,query=''){
  const previous=select.value,search=query.trim().toLowerCase();select.replaceChildren();
  const custom=document.createElement('option');custom.value='';custom.textContent='Custom / other model';select.append(custom);let count=0;
  for(const row of FORTIGATE_CATALOG){if(search&&!(row.model+' '+row.name).toLowerCase().includes(search)&&row.model!==previous)continue;const option=document.createElement('option');option.value=row.model;option.textContent=row.name+' ('+row.model+')';select.append(option);count++;}
- select.value=previous;return count;
+ select.value=previous;return count+appendEveModels(select,query,'fortinet','router',previous);
 }
 export function selectFortigateModel(site,name){site.routerModel=fortigateModel(name)?name:'';}
 export function renderFortigateInfo(container,name){
