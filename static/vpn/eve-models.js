@@ -6,9 +6,8 @@ export const EVE_MODELS=[
  make('Cisco IOS 1710 (Dynamips)','ios','router',['FastEthernet0','Ethernet0']),
  make('Cisco IOS 3725 (Dynamips)','ios','router',['FastEthernet0/0','FastEthernet0/1','FastEthernet1/0','FastEthernet2/0']),
  make('Cisco IOS 7206VXR (Dynamips)','ios','router',['FastEthernet0/0','FastEthernet1/0','Ethernet1/0','Ethernet1/1','Ethernet1/2','Ethernet1/3']),
- ...['i86bi_linux-adventerprisek9-ms.156-3.M3a.bin','L3-ADVENTERPRISEK9-M-15.2-S7.bin','L3-ADVENTERPRISEK9-M-15.4-2T.bin','L3-ADVENTERPRISEK9-M-15.4.M5.3.bin','i86bi_LinuxL3-AdvEnterpriseK9-M2_157_3_May_2018.bin'].map(name=>make(name,'ios','router',eth)),
- ...['i86bi_linux_l2-adventerprisek9-ms.SSA.high_iron_20180510.bin','i86bi_linux_l2-adviservicesk9-ms.high_iron_20170202.bin','i86bi_LinuxL2-AdvEnterpriseK9-M_152_May_2018.bin','L2-ADVENTERPRISEK9-M-15.2-20150703.bin','L2-ADVENTERPRISEK9-M-15.2-IRON-20151103.bin'].map(name=>make(name,'ios','switch',eth)),
- make('i86bi_linux_l2-ipbasek9-ms.high_iron (image family)','ios','switch',eth,'The screenshot cuts off the image suffix. This is the visible image family, not an exact filename. IOL Ethernet adapters have four ports per group; use the names from your node.'),
+ make('Cisco IOL','ios','router',eth,'Cisco IOL image family from the supplied screenshot. This router profile uses example IOL Ethernet adapters; enter the exact names and verify that the running image is Layer 3 IOS.'),
+ {...make('Cisco Firepower NGIPS 7','ios','router',[],'Firepower NGIPS is not Cisco IOS / IOS XE. This entry identifies the EVE-NG appliance only; the router CLI generator cannot configure NGIPS.'),cli_supported:false},
  ...['mikrotik-6.49.19','mikrotik-7.23.7'].map(name=>make(name,'mikrotik','router',Array.from({length:4},(_,i)=>'ether'+(i+1)),'Four Ethernet adapters as shown in the supplied EVE-NG node. Interface names remain editable. Match generated features to the installed RouterOS version; some features require RouterOS 7.')),
  make('fortinet-FGT-v6.4.6','fortinet','router',Array.from({length:8},(_,i)=>'port'+(i+1))),
  make('fortinet-FGT-v7.2.0-build1157','fortinet','router',Array.from({length:8},(_,i)=>'port'+(i+1))),
@@ -29,7 +28,7 @@ export function selectEveModel(site,name,role='router'){
 }
 export function evePortOptions(name,exclude=''){return (eveModel(name)?.ports||[]).filter(port=>!String(exclude).split(',').includes(port)).map(value=>({value,label:value+' · EVE-NG adapter example'}));}
 export function validateEvePorts(site,role='router'){
- const row=eveModel(site[role==='router'?'routerModel':'switchModel']);if(!row)return [];
+ const row=eveModel(site[role==='router'?'routerModel':'switchModel']);if(!row)return [];if(!row.cli_supported)return [row.port_note];
  if(row.role!==role||row.vendor!==site[role==='router'?'vendor':'switchVendor'])return ['EVE-NG profile does not match this device/vendor.'];
  const valid=row.vendor==='ios'?/^(?:Ethernet|FastEthernet|GigabitEthernet|TenGigabitEthernet)\d+(?:\/\d+)*$/:row.vendor==='mikrotik'?/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/:row.vendor==='paloalto'?/^ethernet\d+\/\d+(?:\.\d+)?$/:/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/;
  return (role==='router'?['wan','lan']:['uplink','access',...(site.vlan2Enabled==='on'?['vlan2Access']:[])]).filter(key=>!valid.test(site[key]||'')).map(key=>'EVE-NG '+key+': enter the exact Ethernet interface from the node.');
