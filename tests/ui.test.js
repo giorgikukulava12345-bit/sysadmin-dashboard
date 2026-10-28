@@ -214,10 +214,20 @@ check('top Cisco router model selector restored',!q('[data-model-field]').hidden
 q('[data-role=switch]').click();check('top Cisco switch model selector restored',!q('[data-model-field]').hidden&&q('[data-router-model]').options.length>2);q('[data-role=router]').click();
 input('[data-vendor]','mikrotik','change');check('top MikroTik router catalog restored',!q('[data-model-field]').hidden&&q('[data-router-model]').options.length>10);q('[data-role=switch]').click();input('[data-vendor]','mikrotik','change');check('top MikroTik switch catalog restored',q('[data-router-model]').options.length>2);q('[data-role=router]').click();
 input('[data-vendor]','fortinet','change');
-check('FortiGate uses the same top model selector',!q('[data-model-field]').hidden&&!q('[name=fortigateModel]')&&q('[data-router-model]').options.length===6);
+check('FortiGate uses the same top model selector',!q('[data-model-field]').hidden&&!q('[name=fortigateModel]')&&[...q('[data-router-model]').options].filter(o=>!o.value.endsWith('(EVE-NG)')).length===6);
 for(const model of ['FG-30G','FG-50G','FG-70G','FG-90G','FG-120G']){input('[data-router-model]',model,'change');check(model+' shared selection synchronizes topology and summary',q('[data-side=a][name=routerModel]').value===model&&q('[data-model-summary]').textContent.includes(model));}
 input('[data-model-search]','90g');check('FortiGate model search works',[...q('[data-router-model]').options].some(o=>o.value==='FG-90G')&&q('[data-router-model]').options.length<=3);
 check('manual ports remain visible for FortiGate',!q('[data-side=a][name=wan]').hidden&&!q('[data-side=a][name=lan]').hidden);
+input('[data-vendor]','ios','change');input('[data-model-search]','EVE-NG');
+check('EVE-NG Dynamips router models are searchable',[...q('[data-router-model]').options].some(o=>o.value==='Cisco IOS 3725 (Dynamips) (EVE-NG)'));
+input('[data-router-model]','Cisco IOS 3725 (Dynamips) (EVE-NG)','change');input('[data-include-bindings]',true,'change');submit();check('Dynamips selection generates FastEthernet bindings',q('[data-code]').textContent.includes('interface FastEthernet0/0')&&!q('[data-copy-config]').disabled);
+input('[data-model-search]','nonmatching-filter');check('selected EVE-NG profile survives model filtering',q('[data-router-model]').value==='Cisco IOS 3725 (Dynamips) (EVE-NG)');
+q('[data-role=switch]').click();input('[data-vendor]','ios','change');input('[data-model-search]','EVE-NG');
+const iol='L2-ADVENTERPRISEK9-M-15.2-20150703.bin (EVE-NG)';check('IOL L2 images appear in switch models',[...q('[data-router-model]').options].some(o=>o.value===iol));input('[data-router-model]',iol,'change');submit();check('IOL switch profile generates Ethernet0/0 and 0/1',q('[data-code]').textContent.includes('interface Ethernet0/0')&&q('[data-code]').textContent.includes('interface Ethernet0/1')&&!q('[data-copy-config]').disabled);
+q('[data-role=router]').click();
+for(const [vendor,model]of [['mikrotik','mikrotik-7.23.7 (EVE-NG)'],['fortinet','fortinet-FGT-v6.4.6 (EVE-NG)'],['fortinet','fortinet-FGT-v7.2.0-build1157 (EVE-NG)'],['paloalto','Paloalto-10.2.5 (EVE-NG)']]){
+ input('[data-vendor]',vendor,'change');input('[data-model-search]','EVE-NG');check(vendor+' EVE-NG profile appears in shared model selector',!q('[data-model-field]').hidden&&[...q('[data-router-model]').options].some(o=>o.value===model));input('[data-router-model]',model,'change');input('[data-include-bindings]',true,'change');submit();check(model+' generates bindings and keeps manual ports',!q('[data-copy-config]').disabled&&!q('[data-side=a][name=wan]').hidden&&q('[data-model-summary]').textContent.includes('(EVE-NG)'));
+}
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 

@@ -1,3 +1,4 @@
+import {eveModel,evePortOptions} from './eve-models.js';
 import {MIKROTIK_PORTS,mikrotikPortOptions} from './mikrotik-models.js';
 import {SWITCH_PORTS,switchPortOptions} from './switch-models.js';
 import {modelPortOptions,ROUTER_PORTS} from './router-models.js';
@@ -5,6 +6,7 @@ import {modelPortOptions,ROUTER_PORTS} from './router-models.js';
 const range=(prefix,start=0,count=8)=>Array.from({length:count},(_,i)=>prefix+(start+i));
 const cisco=[['GigabitEthernet','1 Gbps','Gi'],['FastEthernet','10/100 Mbps','Fa'],['TenGigabitEthernet','10 Gbps','Te'],['TwentyFiveGigE','25 Gbps','Twe'],['FortyGigabitEthernet','40 Gbps','Fo'],['HundredGigE','100 Gbps','Hu'],['Ethernet','Lab Ethernet','e']];
 export function portOptions(vendor,model='',role='wan',exclude=''){
+  if(eveModel(model)?.vendor===vendor)return evePortOptions(model,exclude);
   if(vendor==='mikrotik'&&MIKROTIK_PORTS[model])return mikrotikPortOptions(model,exclude);
   if(vendor==='ios'&&SWITCH_PORTS[model])return switchPortOptions(model,exclude);
   if(vendor==='ios'&&ROUTER_PORTS[model])return modelPortOptions(model,role,exclude);
