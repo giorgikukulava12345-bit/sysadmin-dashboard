@@ -58,11 +58,14 @@ for(const row of json){
   selectRouterModel(lab.a,'');
   assert.deepEqual(validateModelPorts(lab.a),[]);
 }
-assert.equal(modelPortOptions('Cisco ISR 4321','wan').length,2);
-assert.equal(modelPortOptions('Cisco ISR 4331','wan').length,3);
-assert.equal(modelPortOptions('Cisco C8300-2N2S-4T2X','wan').filter(p=>p.speed==='10 Gbps').length,2);
-const site=createLab().a;selectRouterModel(site,'Cisco C1101-4P');
-assert(modelLanConfig(site,'interface GigabitEthernet9/0.100\n encapsulation dot1Q 100\n exit\n').includes('encapsulation dot1Q 100'));
+assert.equal(CISCO_ROUTERS.length,28);
+assert.equal(modelPortOptions('Cisco 1921-SEC/K9','wan').length,2);
+assert.equal(modelPortOptions('Cisco ISR4331-SEC/K9','wan').length,3);
+assert.equal(modelPortOptions('Cisco ISR4431-SEC/K9','wan').length,4);
+assert.equal(modelPortOptions('Cisco C881-K9','lan').length,4);
+assert(!CISCO_ROUTERS.some(r=>r.model==='Cisco C8300-2N2S-4T2X'));
+assert(!CISCO_ROUTERS.some(r=>r.model==='Cisco C1111-4P'));
+for(const name of ['Cisco RV042 (10/100 4-Port VPN Router)','Cisco RV110W Wireless-N VPN Firewall'])assert.equal(modelProfile(name).cli_supported,false);
 const pt=CISCO_ROUTERS.filter(row=>row.model.endsWith('(Packet Tracer)'));
 assert.equal(pt.length,15);
 for(const name of ['4331','4321','1941','2901','2911','819IOX','819HGW','829','1240','PT-Router','PT-Empty','1841','2620XM','2621XM','2811']){
