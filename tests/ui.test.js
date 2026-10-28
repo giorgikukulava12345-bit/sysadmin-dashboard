@@ -209,6 +209,16 @@ check('slot-one lab Ethernet ports are offered',['Ethernet1/0','Ethernet1/2'].ev
 input('[data-side=a][name=wan]','e1/0');input('[data-side=a][name=lan]','e1/2');q('[data-office-preset]').click();
 check('typed short Ethernet names normalize and generate',q('[data-side=a][name=wan]').value==='Ethernet1/0'&&q('[data-side=a][name=lan]').value==='Ethernet1/2'&&q('[data-code]').textContent.includes('interface Ethernet1/2')&&!q('[data-copy-config]').disabled);
 check('manual fields stay visible after preset and generation',!q('[data-side=a][name=wan]').hidden&&!q('[data-side=a][name=lan]').hidden);
+input('[data-vendor]','fortinet','change');
+const fortiModel=q('[data-side=a][name=fortigateModel]');
+check('FortiGate model selector offers all five requested models',['fg-30g','fg-50g','fg-70g','fg-90g','fg-120g'].every(value=>[...fortiModel.options].some(o=>o.value===value))&&!fortiModel.closest('label').hidden);
+for(const model of ['fg-30g','fg-50g','fg-70g','fg-90g','fg-120g']){
+ input('[data-side=a][name=fortigateModel]',model,'input');input('[data-include-bindings]',true,'change');submit();
+ check(model+' persists and identifies router output',q('[data-side=a][name=fortigateModel]').value===model&&q('[data-output-title]').textContent.includes(model.toUpperCase())&&!q('[data-copy-config]').disabled);
+}
+check('FortiGate models keep manual port fields available',!q('[data-side=a][name=wan]').hidden&&!q('[data-side=a][name=lan]').hidden);
+input('[data-side]','b','change');check('FortiGate model is isolated per site',q('[data-side=b][name=fortigateModel]').value==='generic');input('[data-side]','a','change');check('selected FortiGate model returns with site',q('[data-side=a][name=fortigateModel]').value==='fg-120g');
+input('[data-vendor]','ios','change');check('FortiGate model selector is hidden for other vendors',q('[data-side=a][name=fortigateModel]').closest('label').hidden);
 cleanup();fixture.remove();
 document.getElementById('ui-results').textContent=`${passed}/${total} UI checks passed${failures.length?'\nFAIL '+failures.join('\nFAIL '):''}`;
 
