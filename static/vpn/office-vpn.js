@@ -62,6 +62,7 @@ function packetTracerIpsec(site,peer,key){
   const local=cidr(site.local),remote=cidr(peer.local);
   return `! Packet Tracer lab only: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.
 ! This legacy suite is not the hardware production default.
+! Prerequisite: securityk9 must be active under Current in show version on both routers.
 configure terminal
 crypto isakmp policy 100
  encryption aes 256
@@ -72,7 +73,6 @@ crypto isakmp policy 100
  exit
 crypto isakmp key ${key} address ${peer.ip}
 crypto ipsec transform-set NOC-ESP esp-aes 256 esp-sha-hmac
- exit
 ip access-list extended NOC-CRYPTO
  permit ip ${local.ip} ${local.wildcard} ${remote.ip} ${remote.wildcard}
  exit
