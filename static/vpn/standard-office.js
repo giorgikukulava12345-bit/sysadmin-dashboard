@@ -53,7 +53,7 @@ function build(s,selected,values){
   const dns=[d.dns1??'8.8.8.8',d.dns2??'1.1.1.1'].map(value=>parts.dns?unicast(value,'DNS server'):value);
   if(parts.dns)sections[0]+=`\nip name-server ${[...new Set(dns)].join(' ')}`;
   if(parts.dhcp){
-    const reserve=integer(d.staticReserve??'49',0,254,'Reserved addresses at start of each subnet');
+    const reserve=integer(d.staticReserve??'100',0,254,'Reserved addresses at start of each subnet');
     const excluded=rows.map(r=>exclusions(r,reserve));
     sections.push('service dhcp\n'+excluded.flatMap(r=>r.commands).join('\n')+'\n'+rows.map(r=>`ip dhcp pool ${r.name}\n network ${r.n.ip} ${r.n.mask}\n default-router ${r.gateway}${parts.dns?`\n dns-server ${[...new Set(dns)].join(' ')}`:''}\n lease 7\n exit`).join('\n'));
   }
