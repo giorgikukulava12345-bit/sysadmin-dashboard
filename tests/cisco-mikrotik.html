@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Cisco MikroTik regression</title><body><pre id="results">Running</pre><div id="fixture"></div><script type="module">
+import {mountVpn} from '../static/vpn/ui.js';
+const dispose=mountVpn(document.querySelector('#fixture')),q=s=>document.querySelector(s);let checks=0;
+const check=(name,ok)=>{if(!ok)throw Error(name);checks++;};
+function edit(selector,value,event='input'){const el=q(selector);el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));}
+try{
+edit('[data-router-model]','Cisco IOS 3725 (Dynamips) (EVE-NG)','change');q('[data-office-vpn-preset]').click();
+edit('[name="b.vendor"]','mikrotik');edit('.noc-selection select[data-side]','b','change');edit('[data-router-model]','mikrotik-7.23.7 (EVE-NG)','change');
+check('MikroTik preserved after vendor change',q('[name="b.vendor"]').value==='mikrotik');q('[data-office-vpn-preset]').click();check('preset usable from MikroTik',q('[name="b.vendor"]').value==='mikrotik');
+check('IKEv1 follows classic peer',q('[name=protocol]').value==='ikev1');q('[data-action=key]').click();q('[data-generate]').click();
+check('paired outputs available',!q('[data-peer-output]').hidden&&!q('[data-copy-peer]').disabled&&!q('[data-copy-config]').disabled);
+const a=q('[data-code]').textContent,b=q('[data-peer-code]').textContent;
+check('Cisco profile retained',a.includes('crypto isakmp policy 100')&&a.includes('hash sha')&&!a.includes('crypto ikev2'));
+check('matched MikroTik suite',b.includes('hash-algorithm=sha1 dh-group=modp1536')&&b.includes('auth-algorithms=sha1 pfs-group=modp1536')&&b.includes('exchange-mode=main'));
+check('MikroTik office PAT and exemption',b.includes('NOC office PAT')&&b.includes('NOC NAT exemption')&&b.includes('NOC outbound'));
+check('correct vendor heading',q('[data-peer-output-title]').textContent.includes('MikroTik'));
+check('no Cisco CLI on MikroTik',!b.includes('configure terminal')&&!b.includes('crypto map'));
+check('R1 and R2 identities',a.includes('hostname R1')&&b.includes('/system identity set name=R2'));
+edit('[name="b.psk"]','Mismatch');q('[data-generate]').click();check('mismatch blocks both',q('[data-copy-config]').disabled&&q('[data-copy-peer]').disabled);
+dispose();q('#results').textContent=`${checks}/${checks} Cisco MikroTik checks passed`;
+}catch(error){q('#results').textContent='FAILED: '+error.message;throw error;}
+</script></body></html>
