@@ -14,7 +14,9 @@ const buttonClass = 'border border-cyan-glow/40 text-cyan-glow bg-cyan-glow/10 h
 const options = values => Object.entries(values).map(([value, name]) => `<option value="${value}">${name}</option>`).join('');
 function field(side, name, label, type = 'text', hint = '') {
   const id = `vpn-${side}-${name}`;
-  return `<label class="block space-y-1" for="${id}"><span class="text-xs text-slate-400">${label}</span><input id="${id}" name="${side}.${name}" type="${type}" class="${inputClass}" autocomplete="off" spellcheck="false" ${hint ? `aria-describedby="${id}-hint"` : ''}>${hint ? `<span id="${id}-hint" class="block text-[11px] text-slate-500">${hint}</span>` : ''}</label>`;
+  const input = `<input id="${id}" name="${side}.${name}" type="${type}" class="${inputClass}" style="min-width:0" autocomplete="off" spellcheck="false" ${hint ? `aria-describedby="${id}-hint"` : ''}>`;
+  const control = name === 'psk' ? `<div style="display:flex;gap:8px">${input}<button type="button" data-reveal-psk="${side}" aria-controls="${id}" aria-pressed="false" aria-label="Show Side ${side.toUpperCase()} pre-shared key" class="${buttonClass}" style="flex-shrink:0">Show</button></div>` : input;
+  return `<div class="block space-y-1"><label for="${id}" class="text-xs text-slate-400">${label}</label>${control}${hint ? `<span id="${id}-hint" class="block text-[11px] text-slate-500">${hint}</span>` : ''}</div>`;
 }
 function site(side) {
   return `<fieldset class="border border-base-border rounded-lg p-4 bg-base-950/40 min-w-0"><legend class="font-mono text-sm text-cyan-glow px-2">SIDE ${side.toUpperCase()} / ${side === 'a' ? 'LOCAL SITE' : 'REMOTE SITE'}</legend>
@@ -116,6 +118,13 @@ function render() {
     root.querySelector(`[data-copy="${side}"]`).disabled = result.errors.length > 0;
   }
 }
+function revealPsk(side, reveal) {
+  root.querySelector(`#vpn-${side}-psk`).type = reveal ? 'text' : 'password';
+  const button = root.querySelector(`[data-reveal-psk="${side}"]`);
+  button.textContent = reveal ? 'Hide' : 'Show';
+  button.setAttribute('aria-pressed', String(reveal));
+  button.setAttribute('aria-label', `${reveal ? 'Hide' : 'Show'} Side ${side.toUpperCase()} pre-shared key`);
+}
 const interfaceDefaults = PORTS;
 form.addEventListener('input', event => {
   const el = event.target;
@@ -132,6 +141,11 @@ form.addEventListener('submit', event => event.preventDefault());
 root.querySelector('#vpn-reveal').addEventListener('change', render);
 root.addEventListener('click', async event => {
   const button = event.target.closest('button'); if (!button) return;
+  if (button.dataset.revealPsk) {
+    const side = button.dataset.revealPsk;
+    revealPsk(side, root.querySelector(`#vpn-${side}-psk`).type === 'password');
+    return;
+  }
   if (button.dataset.editSide) {
     const side = button.dataset.editSide;
     root.querySelector(`#vpn-${side}-interfaces`).open = true;
@@ -153,6 +167,7 @@ root.addEventListener('click', async event => {
     state.a.psk = state.b.psk = key;
     status.textContent = 'A fresh shared PSK is set on both sides.';
   }
+  if (action === 'clear' || action === 'key') for (const side of ['a','b']) revealPsk(side, false);
   if (action) { syncInputs(); render(); }
   if (button.dataset.copy) {
     const side = button.dataset.copy;

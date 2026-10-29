@@ -10,10 +10,10 @@ import { cidr, ipv4 } from './address.js';
 import { interfaceConfig, validateInterfaces, WAN_PREFIXES } from './interfaces.js';
 
 export const createLab = () => Object.fromEntries(['a','b'].map((side,i)=>[side,{
-  routerModel:'',vendor:i?'fortinet':'ios',ip:i?'198.51.100.22':'203.0.113.10',wanPrefix:'30',wan:i?'port1':'GigabitEthernet0/0',lan:i?'port2':'GigabitEthernet0/1',
-  local:i?'10.20.0.0/24':'192.168.1.0/24',lanIp:i?'10.20.0.1':'192.168.1.1',gateway:i?'198.51.100.21':'203.0.113.9',
+  routerModel:'',vendor:i?'fortinet':'ios',ip:i?'10.0.0.2':'10.0.0.1',wanPrefix:'30',wan:i?'port1':'GigabitEthernet0/0',lan:i?'port2':'GigabitEthernet0/1',
+  local:i?'192.168.2.0/24':'192.168.1.0/24',lanIp:i?'192.168.2.1':'192.168.1.1',gateway:i?'10.0.0.1':'10.0.0.2',
   vlan2Enabled:'off',vlan2:'20',vlan2Subnet:i?'192.168.30.0/24':'192.168.20.0/24',vlan2Gateway:i?'192.168.30.1':'192.168.20.1',vlan2SwitchIp:i?'192.168.30.254':'192.168.20.254',vlan2Access:'GigabitEthernet0/3',
-  switchModel:'',switchVendor:'ios',uplink:'GigabitEthernet0/1',access:'GigabitEthernet0/2',switchIp:i?'10.20.0.2':'192.168.1.254',vlan:'10',hostIf:'eth0',hostIp:i?'10.20.0.10':'192.168.1.10',
+  switchModel:'',switchVendor:'ios',uplink:'GigabitEthernet0/1',access:'GigabitEthernet0/2',switchIp:i?'192.168.2.2':'192.168.1.254',vlan:'10',hostIf:'eth0',hostIp:i?'192.168.2.10':'192.168.1.10',
 }]));
 const nameOK = v => typeof v==='string'&&/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(v);
 export function labScripts(lab,{sides=['a','b'],routerOnly=false}={}) {

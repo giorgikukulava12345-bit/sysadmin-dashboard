@@ -6,7 +6,7 @@ import { createLab as createInitialLab, labScripts } from '../static/vpn/lab.js'
 import { DEFAULTS, VENDORS, PROTOCOLS, generate, cidr, ipv4, support } from '../static/vpn/engine.js';
 import { TOOLS, defaultsFor, generateTool } from '../static/vpn/catalog.js';
 import { planVlsm, vlsmTsv } from '../static/vpn/vlsm.js';
-function createLab(){const lab=createInitialLab();Object.assign(lab.a,{local:'10.10.0.0/24',lanIp:'10.10.0.1',switchIp:'10.10.0.2',hostIp:'10.10.0.10'});return lab;}
+function createLab(){const lab=createInitialLab();Object.assign(lab.a,{ip:'203.0.113.10',gateway:'203.0.113.9'});Object.assign(lab.b,{ip:'198.51.100.22',gateway:'198.51.100.21',local:'10.20.0.0/24',lanIp:'10.20.0.1',switchIp:'10.20.0.2',hostIp:'10.20.0.10'});Object.assign(lab.a,{local:'10.10.0.0/24',lanIp:'10.10.0.1',switchIp:'10.10.0.2',hostIp:'10.10.0.10'});return lab;}
 let passed = 0;
 const results = [];
 function test(name, fn) {
@@ -14,7 +14,7 @@ function test(name, fn) {
   catch (error) { results.push(`FAIL ${name}: ${error.message}`); }
 }
 function assert(condition, message = 'Assertion failed') { if (!condition) throw new Error(message); }
-function config() { const c = structuredClone(DEFAULTS);Object.assign(c.a,{local:'10.10.0.0/24',lanIp:'10.10.0.1'});c.b.remote='10.10.0.0/24'; c.a.psk = c.b.psk = 'ExampleKey_0123456789'; return c; }
+function config() { const c = structuredClone(DEFAULTS);Object.assign(c.a,{ip:'203.0.113.10',gateway:'203.0.113.9',remote:'10.20.0.0/24'});Object.assign(c.b,{ip:'198.51.100.22',gateway:'198.51.100.21',local:'10.20.0.0/24',lanIp:'10.20.0.1'});Object.assign(c.a,{local:'10.10.0.0/24',lanIp:'10.10.0.1'});c.b.remote='10.10.0.0/24'; c.a.psk = c.b.psk = 'ExampleKey_0123456789'; return c; }
 function blocked(c, text) {
   const r = generate(c); assert(r.errors.some(e => e.includes(text)), JSON.stringify(r.errors));
   assert(r.a === '' && r.b === '', 'Invalid configuration exposed output');
@@ -259,7 +259,7 @@ for(const patch of [{ip:'203.0.113.8'},{ip:'203.0.113.11'},{gateway:'203.0.113.8
  const c=config();Object.assign(c.a,patch);assert(generate(c).errors.length);assert(generate(c).a==='');
 });
 test('/30 CLI renders the actual WAN mask without changing LAN masks',()=>{
- const lab=createInitialLab(),r=labScripts(lab);assert(r.scripts[0].code.includes('203.0.113.10 255.255.255.252'));assert(r.scripts[0].code.includes('192.168.1.1 255.255.255.0'));
+ const lab=createInitialLab(),r=labScripts(lab);assert(r.scripts[0].code.includes('10.0.0.1 255.255.255.252'));assert(r.scripts[0].code.includes('192.168.1.1 255.255.255.0'));
 });
 for(const prefix of ['24','25','26','27','28','29','30'])test('WAN /'+prefix+' validates subnet boundaries and renders all router vendors',()=>{
  const ip='203.0.113.2',gateway='203.0.113.1',net=cidr(`${ip}/${prefix}`),text=n=>[24,16,8,0].map(b=>(n>>>b)&255).join('.');
