@@ -22,3 +22,24 @@ console.log('EVE-NG: 10 screenshot profiles, device/vendor isolation, defaults, 
 for(const version of ['6.49.19','7.23.7'])assert.deepEqual(EVE_MODELS.find(r=>r.model===`mikrotik-${version} (EVE-NG)`).ports,['ether1','ether2','ether3','ether4']);
 
 assert.deepEqual(EVE_MODELS.filter(r=>r.vendor==='ios').map(r=>r.model),['Cisco IOS 1710 (Dynamips) (EVE-NG)','Cisco IOS 3725 (Dynamips) (EVE-NG)','Cisco IOS 7206VXR (Dynamips) (EVE-NG)','Cisco IOL (EVE-NG)','Cisco Firepower NGIPS 7 (EVE-NG)']);
+
+// Image-specific syntax must follow the selected model, including direct exports.
+import {cliProfile,profileCLI} from '../static/vpn/cli-profile.js';
+import {DEFAULTS,generate} from '../static/vpn/engine.js';
+import {featureDefaults} from '../static/vpn/features.js';
+import {terminalText} from '../static/vpn/cli-export.js';
+for(const name of ['Cisco IOS 1710 (Dynamips) (EVE-NG)','Cisco IOS 3725 (Dynamips) (EVE-NG)','Cisco IOS 7206VXR (Dynamips) (EVE-NG)']){
+ const lab=createLab(),vpnConfig=structuredClone(DEFAULTS);
+ for(const side of ['a','b']){lab[side].vendor='ios';selectRouterModel(lab[side],name);Object.assign(vpnConfig[side],lab[side],{remote:lab[side==='a'?'b':'a'].local,psk:'ImageFixture2026'});}
+ const base={lab,role:'router',vpnConfig,vpnType:'ikev1',selected:{internet_access:true,vpn:true,ntp_syslog:true},values:{internet_access:{...featureDefaults('internet_access','ios'),standardOffice:true,officeVpn:true,parts:{firewall:false}},ntp_syslog:{ntp:'129.250.35.251'}}};
+ for(const side of ['a','b']){const result=composeDevice({...base,side});assert.deepEqual(result.errors,[],name);const code=terminalText(result.code,{vendor:'ios',model:name});
+ assert(code.includes('crypto isakmp policy 100'));assert(!code.includes('crypto ikev2'));assert(!code.includes('ip virtual-reassembly in'));assert(code.includes('ip virtual-reassembly'));assert(code.includes('hash sha\r\n'));assert(code.includes('esp-sha-hmac\r\n mode tunnel\r\n exit\r\n'));assert(code.includes('crypto map NOC-MAP'));assert(code.includes('hostname '+(side==='b'?'R2':'R1')));assert(!code.includes('algorithm-type scrypt'));assert(code.endsWith('\r\n'));
+ const blocked=composeDevice({...base,side,vpnType:'ikev2'});assert(blocked.errors.length);assert.equal(blocked.code,'');}
+ vpnConfig.protocol='ikev2';assert(generate(vpnConfig).errors.length);vpnConfig.protocol='ikev1';assert.equal(generate(vpnConfig).errors.length,0);
+}
+const ros=createLab();ros.a.vendor='mikrotik';selectRouterModel(ros.a,'mikrotik-6.49.19 (EVE-NG)');
+const clock=composeDevice({lab:ros,side:'a',role:'router',selected:{ntp_syslog:true},values:{ntp_syslog:{ntp:'129.250.35.251'}}});assert.deepEqual(clock.errors,[]);assert(clock.code.includes('primary-ntp=129.250.35.251'));assert(!clock.code.includes('ntp client servers'));
+const routing=composeDevice({lab:ros,side:'a',role:'router',selected:{ospf:true},values:{ospf:featureDefaults('ospf','mikrotik')}});assert(routing.errors.length);assert.equal(routing.code,'');
+assert.equal(cliProfile({vendor:'mikrotik',routerModel:'mikrotik-7.23.7 (EVE-NG)'}).id,'ros7');
+assert.equal(profileCLI('ip virtual-reassembly in',{vendor:'ios',routerModel:'Cisco ISR4331-SEC/K9'}),'ip virtual-reassembly in');
+console.log('Image compatibility: three Dynamips profiles, IKEv1 modes, VFR syntax, both hostnames, atomic protocol blocking and RouterOS 6 NTP/version gates passed.');

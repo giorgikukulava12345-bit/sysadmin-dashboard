@@ -1,7 +1,8 @@
+import {profileCLI} from './cli-profile.js';
 import {packetTracerCLI} from './packet-tracer-cli.js';
 /** Preserve mode boundaries and apply the selected simulator's syntax before export. */
 export function terminalText(code,{vendor,role='router',model=''}={}){
-  const compatible=vendor==='ios'&&role!=='host'&&model.endsWith('(Packet Tracer)')?packetTracerCLI(code||''):String(code||'');
+  const compatible=vendor==='ios'&&role!=='host'&&model.endsWith('(Packet Tracer)')?packetTracerCLI(code||''):profileCLI(code||'',{vendor,routerModel:model});
   const text=compatible.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').replace(/^\n+|\n+$/g,'');
   if(!text)return '';
   if(vendor!=='ios'||role==='host')return text+'\n';

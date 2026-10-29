@@ -1,3 +1,4 @@
+import {cliProfile} from './cli-profile.js';
 import { WAN_PREFIXES } from './interfaces.js';
 import { mountSelectionMenu } from './selection-menu.js';
 import { vpnAvailable } from './lab-policy.js';
@@ -20,6 +21,7 @@ function field(side, name, label, type = 'text', hint = '') {
 }
 function site(side) {
   return `<fieldset class="border border-base-border rounded-lg p-4 bg-base-950/40 min-w-0"><legend class="font-mono text-sm text-cyan-glow px-2">SIDE ${side.toUpperCase()} / ${side === 'a' ? 'LOCAL SITE' : 'REMOTE SITE'}</legend>
+    <p data-profile-note class="text-xs text-slate-400 mb-3"></p>
     <label class="block mb-4 text-xs text-slate-400" for="vpn-${side}-vendor">Platform<select id="vpn-${side}-vendor" name="${side}.vendor" class="${inputClass} mt-1">${options(VENDORS)}</select></label>
     <div class="grid sm:grid-cols-2 gap-4">
       ${field(side, 'ip', 'Public IPv4')}${field(side, 'local', 'Local subnet (CIDR)')}${field(side, 'remote', 'Remote subnet (CIDR)')}
@@ -84,15 +86,17 @@ function syncInputs() {
   }
 }
 function render() {
-  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor);mountSelectionMenu(el,controller.signal)();}}
+  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor)||(['a','b'].some(side=>cliProfile(state[side]).legacy)&&option.value!=='ikev1');mountSelectionMenu(el,controller.signal)();}}
   const wg = state.protocol === 'wireguard', overlay = wg || ['gre','vti'].includes(state.protocol);
   root.querySelector('[data-vti]').hidden = state.protocol !== 'vti';
   root.querySelectorAll('[data-wg]').forEach(el => { el.hidden = !wg; });
   root.querySelectorAll('[data-overlay]').forEach(el => { el.hidden = !overlay; });
-  root.querySelector('#vpn-advanced').hidden = wg;
+  root.querySelector('#vpn-advanced').hidden = wg || ['a','b'].some(side=>cliProfile(state[side]).legacy);
   root.querySelector('#vpn-wg-note').hidden = !wg;
   for (const side of ['a', 'b']) {
     const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
+    fs.querySelector('[data-profile-note]').textContent=cliProfile(state[side]).label;
+    const platform=fs.querySelector('select[name=\"'+side+'.vendor\"] option[value=ios]');if(platform)platform.textContent=state[side].vendor==='ios'?cliProfile(state[side]).label:VENDORS.ios;
     fs.querySelector('[data-security-zone]').hidden=!['juniper','paloalto'].includes(state[side].vendor)||wg;
     fs.querySelector('[data-junos]').hidden=state[side].vendor!=='juniper'||wg;
     fs.querySelector('[data-pan]').hidden = state[side].vendor !== 'paloalto' || wg;
@@ -177,7 +181,8 @@ root.addEventListener('click', async event => {
   }
 }, {signal:controller.signal});
 root.addEventListener('lab-edit',event=>{
-  for(const side of ['a','b']){const patch=event.detail[side];for(const key of ['vendor','ip','wanPrefix','wan','lan','local','lanIp','gateway'])state[side][key]=patch[key];}
+  for(const side of ['a','b']){const patch=event.detail[side];for(const key of ['routerModel','vendor','ip','wanPrefix','wan','lan','local','lanIp','gateway'])state[side][key]=patch[key];}
+  if(['a','b'].some(side=>cliProfile(state[side]).legacy)&&!['wireguard'].includes(state.protocol))state.protocol='ikev1';
   state.a.remote=state.b.local;state.b.remote=state.a.local;state.bindInterfaces=true;syncInputs();render();
 },{signal:controller.signal});
 syncInputs(); render();

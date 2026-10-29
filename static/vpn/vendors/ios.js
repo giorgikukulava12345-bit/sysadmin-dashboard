@@ -1,12 +1,14 @@
+import {cliProfile} from '../cli-profile.js';
 import { cidr } from '../address.js';
 
 export default function ios(c, s, r) {
+  const legacy=Boolean(c.legacyIos),encryption=legacy?'256':c.encryption,dh=legacy?'5':c.dh,pfs=legacy?'5':c.pfs;
   const l = cidr(s.local), remote = cidr(s.remote), gre = c.protocol === 'gre', v2 = c.protocol !== 'ikev1';
   const p1 = v2 ? `crypto ikev2 proposal NOC-IKE
- encryption aes-cbc-${c.encryption}
+ encryption aes-cbc-${encryption}
  integrity sha256
  prf sha256
- group ${c.dh}
+ group ${dh}
  exit
 crypto ikev2 policy NOC-IKE
  proposal NOC-IKE
@@ -27,25 +29,24 @@ crypto ikev2 profile NOC-IKE
  dpd 10 3 periodic
  no config-exchange request
  exit` : `crypto isakmp policy 100
- encryption aes ${c.encryption}
- hash sha256
+ encryption aes ${encryption}
+ hash ${legacy?'sha':'sha256'}
  authentication pre-share
- group ${c.dh}
+ group ${dh}
  lifetime ${c.lifetime1}
  exit
 crypto isakmp key ${s.psk} address ${r.ip}`;
-  return `configure terminal
+  return `${legacy?'! Classic IOS lab compatibility: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}configure terminal
 ${p1}
-crypto ipsec transform-set NOC-ESP esp-aes ${c.encryption} esp-sha256-hmac
- mode ${gre ? 'transport' : 'tunnel'}
- exit
+crypto ipsec transform-set NOC-ESP esp-aes ${encryption} ${legacy?'esp-sha-hmac':'esp-sha256-hmac'}
+${cliProfile(s).id==='packet-tracer'?'':` mode ${gre ? 'transport' : 'tunnel'}\n exit\n`} 
 ip access-list extended NOC-CRYPTO
  ${gre ? `permit gre host ${s.ip} host ${r.ip}` : `permit ip ${l.ip} ${l.wildcard} ${remote.ip} ${remote.wildcard}`}
  exit
 crypto map NOC-MAP 100 ipsec-isakmp
  set peer ${r.ip}
  set transform-set NOC-ESP
- set pfs group${c.pfs}
+ set pfs group${pfs}
  set security-association lifetime seconds ${c.lifetime2}
 ${v2 ? ` set ikev2-profile NOC-IKE
 ` : ''} match address NOC-CRYPTO
@@ -63,7 +64,7 @@ ${gre ? `interface Tunnel100
  exit
 ip route ${remote.ip} ${remote.mask} ${r.tunnel}` : `ip route ${remote.ip} ${remote.mask} ${s.gateway}`}
 end
-! Policy-based crypto map target: IOS XE 17.6–17.9. Later releases need a reviewed route-based design.
+! ${legacy?'Classic IOS IPsec image required.':'Policy-based crypto map target: IOS XE 17.6–17.9; verify firmware support.'}
 ! Merge NAT exemption into the existing NAT ACL before any translation permits.
 ! Preserve WAN reachability to ${r.ip} outside the tunnel.
 ! Verify: show crypto ${v2 ? 'ikev2 sa' : 'isakmp sa'}; show crypto ipsec sa`;

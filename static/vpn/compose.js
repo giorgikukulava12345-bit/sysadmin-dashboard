@@ -1,3 +1,4 @@
+import {profileCLI,profileErrors} from './cli-profile.js';
 import {generateOfficeVpn} from './office-vpn.js';
 import {modelLanConfig,switchedLan,modelGenerationError} from './router-models.js';
 import { hasSecondVlan, routedSite } from './dual-vlan.js';
@@ -11,7 +12,7 @@ import {generateStandardOffice} from './standard-office.js';
 
 /** No DOM dependencies. Each output belongs to one physical device. */
 export function composeDevice(input){
-  try{const blocked=input.role==='router'&&modelGenerationError(input.lab?.[input.side]||{});if(blocked)return {errors:[blocked],code:'',empty:false};const result=composeChecked(input);if(input.role==='router'&&!result.errors.length&&result.code)result.code=modelLanConfig(input.lab[input.side],result.code);return result;}catch{return {errors:['Generation failed: invalid or incomplete device configuration. Review the topology and feature inputs.'],code:'',empty:false};}
+  try{const blocked=input.role==='router'&&modelGenerationError(input.lab?.[input.side]||{});if(blocked)return {errors:[blocked],code:'',empty:false};const result=composeChecked(input);if(input.role==='router'&&!result.errors.length&&result.code){const site=input.lab[input.side];result.code=profileCLI(modelLanConfig(site,result.code),site);const issues=profileErrors(site,{selected:input.selected,vpnType:input.vpnType,code:result.code});if(issues.length)return {errors:issues,code:'',empty:false};}return result;}catch{return {errors:['Generation failed: invalid or incomplete device configuration. Review the topology and feature inputs.'],code:'',empty:false};}
 }
 function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnConfig,vpnType='ikev2',remote={},linkedEnterprise=null}){
   if(!lab?.a||!lab?.b||!['a','b'].includes(side)||!['router','switch','host'].includes(role))throw Error('Invalid topology context.');
