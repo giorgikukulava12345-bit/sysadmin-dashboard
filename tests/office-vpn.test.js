@@ -89,7 +89,7 @@ for(const pt of [false,true]){
 }
 {
   const input=fixture();const before=structuredClone(input.lab.b);prepareOfficeVpnPair(input.lab,'a');assert.deepEqual(input.lab.b,before);
-  input.lab.a.vendor='mikrotik';const snapshot=structuredClone(input.lab);assert.equal(prepareOfficeVpnPair(input.lab,'a'),false);assert.deepEqual(input.lab,snapshot);
+  input.lab.a.vendor='mikrotik';const snapshot=structuredClone(input.lab);assert.equal(prepareOfficeVpnPair(input.lab,'a'),true);assert.deepEqual(input.lab,snapshot);
 }
 
 // Packet Tracer defines transform-sets in global config (no transform submode).
@@ -114,3 +114,20 @@ for(const side of ['a','b']){
   }
   assert.equal(mode,'exec');assert.deepEqual([...reached].sort(),['transform','acl','map','wan-map','peer-route'].sort());
 }
+
+// Reproduce the Cisco IOS 12.4 / RouterOS screenshot, both orientations and ROS versions.
+for(const rosVersion of ['6.49.19','7.23.7'])for(const reversed of [false,true]){
+ const lab=createLab(),vpnConfig=structuredClone(DEFAULTS),iosSide=reversed?'b':'a',rosSide=reversed?'a':'b';
+ lab[iosSide].vendor='ios';selectRouterModel(lab[iosSide],'Cisco IOS 3725 (Dynamips) (EVE-NG)');lab[rosSide].vendor='mikrotik';selectRouterModel(lab[rosSide],`mikrotik-${rosVersion} (EVE-NG)`);
+ for(const side of ['a','b']){Object.assign(lab[side],{ip:side===iosSide?'192.168.73.100':'192.168.73.150',wanPrefix:'24',gateway:'192.168.73.2'});Object.assign(vpnConfig[side],lab[side],{remote:lab[side==='a'?'b':'a'].local,psk:'CiscoMikroFixture2026'});}
+ const before=structuredClone(lab);assert(prepareOfficeVpnPair(lab,iosSide));assert.deepEqual(lab,before);assert(prepareOfficeVpnPair(lab,rosSide));assert.deepEqual(lab,before);
+ const selected={internet_access:true,vpn:true,ntp_syslog:true},values={internet_access:{...featureDefaults('internet_access','ios'),officeVpn:true,standardOffice:true,parts:{interfaces:true,route:true,nat:true,firewall:false,dhcp:true,dns:true}},ntp_syslog:{ntp:'129.250.35.251'}};
+ const base={lab,role:'router',selected,values,vpnConfig,vpnType:'ikev1'};const ios=good({...base,side:iosSide}),ros=good({...base,side:rosSide});
+ assert(ios.includes('hash sha\n'));assert(ios.includes('group 5\n'));assert(ios.includes('esp-sha-hmac'));assert(!ios.includes('crypto ikev2'));
+ for(const token of ['exchange-mode=main','enc-algorithm=aes-256 hash-algorithm=sha1 dh-group=modp1536','enc-algorithms=aes-256-cbc auth-algorithms=sha1 pfs-group=modp1536','lifetime=28800s','lifetime=3600s','NOC NAT exemption','NOC office PAT','/ip firewall filter move [find comment="NOC inbound"] 0','/ip dhcp-server add','/ip route add dst-address=0.0.0.0/0','/system identity set name=R'+(rosSide==='b'?'2':'1')])assert(ros.includes(token),token);
+ assert(ros.includes('src-address='+lab[rosSide].local+' dst-address='+lab[iosSide].local));assert(!ros.includes('configure terminal'));assert(!ros.includes('crypto map'));
+ assert(ros.includes(rosVersion.startsWith('6')?'primary-ntp=129.250.35.251':'/system ntp client servers add address=129.250.35.251'));
+ const masked=maskSecrets(ros);assert(!masked.includes('CiscoMikroFixture2026'));assert(terminalText(ros,{vendor:'mikrotik',model:lab[rosSide].routerModel}).endsWith('\n'));
+ vpnConfig.b.psk='Mismatch';for(const side of ['a','b'])bad({...base,side});
+}
+console.log('Cisco / MikroTik Office VPN: both orientations, RouterOS 6 and 7, matched legacy suites, vendor preservation, DHCP, PAT exemption, firewall order, NTP and secret/atomic failure checks passed.');
