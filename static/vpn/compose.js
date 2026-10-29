@@ -1,3 +1,4 @@
+import {generateOfficeVpn} from './office-vpn.js';
 import {modelLanConfig,switchedLan,modelGenerationError} from './router-models.js';
 import { hasSecondVlan, routedSite } from './dual-vlan.js';
 import { FEATURES, forRole, boundValues, capable, generateFeature, generateRemoteVpn, lanBinding } from './features.js';
@@ -32,8 +33,9 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(address.errors.length)return{errors:address.errors,code:'',empty:false};
   if(role==='host')return{errors:[],code:address.scripts[baseIndex+2].code,empty:false};
   const failover=ids.includes('wan_failover'),office=ids.includes('internet_access');
+  if(role==='router'&&office&&selected.vpn&&values.internet_access?.officeVpn)return generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType});
   if(vendor==='ios'&&failover&&ids.includes('ipsla')&&[Number(values.wan_failover?.trackId??900),Number(values.wan_failover?.trackId??900)+1].includes(Number(values.ipsla?.track)))errors.push('Dual ISP and IP SLA must use distinct tracking object IDs.');
-  if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise','dhcp','relay'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or use the office preset.');
+  if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise','dhcp','relay'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or choose Quick Setup + VPN for a combined Cisco pair.');
   if((failover||office)&&ids.includes('static')&&values.static?.destination==='0.0.0.0'&&values.static?.mask==='0.0.0.0')errors.push('Internet Gateway / WAN Failover owns default routing. Remove the separate default static route.');
   if(failover&&ids.some(id=>['vpn','dmvpn','remotevpn','bootstrap','enterprise'].includes(id)))errors.push('Dual ISP needs a separately designed VPN/bootstrap underlay. Generate these templates separately.');
   if(vendor==='ios'&&failover&&((office&&values.internet_access?.parts?.nat!==false)||ids.includes('nat')))return {errors:['Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.'],code:'',empty:false};

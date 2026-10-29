@@ -158,3 +158,15 @@ The scanner omits Manufacturer from its table, filtering and CSV/JSON exports. L
 ### Router-only production workbench
 
 The website provides router configuration only. Switch and Computer / Host tabs, topology nodes, address editors and companion output are removed. Single-site diagrams show Router ↔ Internet; VPN diagrams show both routers with Internet between them. Removed devices do not reserve DHCP addresses or block router validation when the LAN changes. Shared standalone lab APIs retain their default behavior.
+
+### Quick Setup + VPN (Cisco pair)
+
+This separate preset selects Internet interfaces, default routing, PAT, DHCP, DNS, NTP and site-to-site IPsec on both routers. Set both vendors to Cisco, select each exact model, then click **Quick Setup + VPN**. Addressing and existing PSKs are preserved. Enter matching PSKs (or use the browser-local Generate shared PSK action), generate Side A, then select Side B and generate its separate script. A reachable ISP gateway and upstream routing are still required for real Internet access.
+
+One LAN per site and IKEv1/IKEv2 crypto maps are supported. A dedicated OFFICE-VPN-NAT ACL denies the peer LAN before permitting Internet translation. Hardware uses OFFICE-VPN-PAT route-map overload; Packet Tracer uses ACL-based PAT. The generated script removes only the ordinary preset-owned NAT-list PAT statement; other pre-existing translations and crypto maps require review. Extra NAT, ACL, firewall, failover, GRE/VTI and cross-vendor combinations are rejected atomically.
+
+Hardware/EVE-NG defaults to IKEv2 with the existing SHA-256/DH14 settings. Two explicitly selected Packet Tracer models use a fixed **lab-only** IKEv1/AES-256/SHA-1/DH5/PFS5 suite, prominently labelled in the form and output. Modern advanced settings are hidden for that simulator suite. Mixed simulator/hardware pairs are rejected. No live router is contacted or configured by the website.
+
+References: [Cisco IOS NAT exemption example](https://www.cisco.com/c/en/us/support/docs/ios-nx-os-software/ios/218432-configure-a-site-to-site-ipsec-ikev1-tun.html), [Cisco Networking Academy Packet Tracer IPsec lab](https://contenthub.netacad.com/legacy/CyberEss/1.1/en/course/files/4.3.3.4%20Packet%20Tracer%20-%20Configuring%20VPN%20Tunnel%20Mode.pdf).
+
+Validation: `node tests/office-vpn.test.js` covers both directions, ordered NAT exemption, routes, owned PAT replacement, secret masking, hardware/simulator suites and atomic rejection. Manual browser checks cover two-site activation, both outputs, preserved secrets, modern settings visibility and exiting to the ordinary preset. No live tunnel or Internet connectivity is claimed by these generation checks.
