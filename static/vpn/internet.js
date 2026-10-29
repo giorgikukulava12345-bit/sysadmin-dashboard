@@ -23,7 +23,7 @@ export function internetFields(id,vendor){
     fields.push(
       {...field('iosLanMode','Cisco LAN interface mode','subinterfaces','select'),options:{subinterfaces:'Routed Ethernet / switch access port'},when:()=>false},
       {...field('usersPool','Primary DHCP pool name','USERS'),when:office},
-      {...field('staticReserve','Reserved addresses from start of each LAN (0–254)','49','number'),when:office},
+      {...field('staticReserve','Reserved addresses from start of each LAN (0–254)','100','number'),when:office},
       {...field('managementSources','Additional SSH source CIDRs or hosts (one per line)','','textarea'),when:d=>office(d)&&d.sshEnabled===true},
       {...field('timezoneName','Timezone abbreviation','GET'),when:office},
       {...field('timezoneHours','UTC offset hours (-23 to 23)','4','number'),when:office},
