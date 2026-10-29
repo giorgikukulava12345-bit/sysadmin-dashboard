@@ -9,13 +9,23 @@ function check(message,ok){if(!ok)throw Error(message);checks++;}
 function edit(selector,value,event='input'){const node=q(selector);node.value=value;node.dispatchEvent(new Event(event,{bubbles:true}));}
 function submit(){q('[data-generate]').click();}
 try{
+ for(const [name,value] of Object.entries({'a.ip':'10.0.0.1','a.gateway':'10.0.0.2','a.local':'192.168.1.0/24','a.remote':'192.168.2.0/24','a.lanIp':'192.168.1.1','b.ip':'10.0.0.2','b.gateway':'10.0.0.1','b.local':'192.168.2.0/24','b.remote':'192.168.1.0/24','b.lanIp':'192.168.2.1'})) check(`default ${name}`,q(`[name="${name}"]`).value===value);
+ check('PSKs empty and masked initially',['a','b'].every(side=>q(`[name="${side}.psk"]`).value===''&&q(`[name="${side}.psk"]`).type==='password'));
+ edit('[name="a.psk"]','VisibilityFixture');q('[data-reveal-psk="a"]').click();
+ check('A reveal independent',q('[name="a.psk"]').type==='text'&&q('[name="b.psk"]').type==='password'&&q('[data-reveal-psk="a"]').getAttribute('aria-pressed')==='true');
+ check('reveal preserves key',q('[name="a.psk"]').value==='VisibilityFixture');
+ q('[data-reveal-psk="a"]').click();check('A hides again',q('[name="a.psk"]').type==='password');
+ q('[data-reveal-psk="b"]').click();check('B reveal independent',q('[name="b.psk"]').type==='text'&&q('[name="a.psk"]').type==='password');
+ q('[data-action="key"]').click();check('fresh shared key remasked',['a','b'].every(side=>q(`[name="${side}.psk"]`).type==='password')&&q('[name="a.psk"]').value===q('[name="b.psk"]').value&&q('[name="a.psk"]').value.length>0);
+ q('[data-reveal-psk="a"]').click();q('[data-action="clear"]').click();check('clear erases and remasks',['a','b'].every(side=>q(`[name="${side}.psk"]`).type==='password'&&q(`[name="${side}.psk"]`).value===''));
+
  edit('[data-router-model]','Cisco 2911 (Packet Tracer)','change');q('[data-office-vpn-preset]').click();
  edit('[name="a.psk"]','PairedOutputFixture_2026');edit('[name="b.psk"]','PairedOutputFixture_2026');submit();
  check('pair output displayed',!q('[data-peer-output]').hidden);
  check('both controls enabled',!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled&&!q('[data-download-peer]').disabled);
  check('fixed output ordering',q('[data-output-title]').textContent.startsWith('SIDE A')&&q('[data-peer-output-title]').textContent.startsWith('SIDE B'));
- check('A selector',q('[data-code]').textContent.includes('10 deny ip 192.168.1.0 0.0.0.255 10.20.0.0 0.0.0.255'));
- check('B selector',q('[data-peer-code]').textContent.includes('10 deny ip 10.20.0.0 0.0.0.255 192.168.1.0 0.0.0.255'));
+ check('A selector',q('[data-code]').textContent.includes('10 deny ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255'));
+ check('B selector',q('[data-peer-code]').textContent.includes('10 deny ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255'));
  check('both masked',![q('[data-code]'),q('[data-peer-code]')].some(el=>el.textContent.includes('PairedOutputFixture_2026')));
  q('[data-reveal]').checked=true;q('[data-reveal]').dispatchEvent(new Event('change',{bubbles:true}));
  check('both reveal',q('[data-code]').textContent.includes('PairedOutputFixture_2026')&&q('[data-peer-code]').textContent.includes('PairedOutputFixture_2026'));
@@ -29,7 +39,7 @@ try{
  check('peer-only settings invalidate both',q('[data-peer-output]').hidden&&q('[data-copy-config]').disabled);
  edit('[data-feature-panel=internet_access] [name=staticReserve]','25');submit();
  check('A uses A settings',q('[data-code]').textContent.includes('ntp server 129.250.35.251')&&q('[data-code]').textContent.includes('192.168.1.1 192.168.1.100'));
- check('B uses B settings',q('[data-peer-code]').textContent.includes('ntp server 192.0.2.123')&&q('[data-peer-code]').textContent.includes('10.20.0.1 10.20.0.25'));
+ check('B uses B settings',q('[data-peer-code]').textContent.includes('ntp server 192.0.2.123')&&q('[data-peer-code]').textContent.includes('192.168.2.1 192.168.2.25'));
  q('[data-clear-output]').click();check('clear removes both',q('[data-peer-output]').hidden&&q('[data-peer-code]').textContent==='');
  q('[data-office-preset]').click();check('ordinary preset stays single',q('[data-peer-output]').hidden&&!q('[data-code]').textContent.includes('NOC-CRYPTO'));
  dispose();document.querySelector('#paired-results').textContent=`${checks}/${checks} paired output checks passed`;

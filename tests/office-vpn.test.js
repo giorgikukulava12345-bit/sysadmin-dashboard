@@ -107,7 +107,7 @@ for(const side of ['a','b']){
     if(/^crypto ipsec transform-set /.test(line)){assert.equal(mode,'config');reached.add('transform');continue;}
     if(/^ip access-list extended NOC-CRYPTO/.test(line)){assert.equal(mode,'config');mode='acl';reached.add('acl');continue;}
     if(/^crypto map NOC-MAP 100 /.test(line)){assert.equal(mode,'config');mode='map';reached.add('map');continue;}
-    if(/^ip route 192\.168\.1\.0|^ip route 10\.20\.0\.0/.test(line)){assert.equal(mode,'config');reached.add('peer-route');continue;}
+    if(/^ip route 192\.168\.1\.0|^ip route 192\.168\.2\.0/.test(line)){assert.equal(mode,'config');reached.add('peer-route');continue;}
     if(/^interface /.test(line)){assert.equal(mode,'config');mode='interface';continue;}
     if(line==='crypto map NOC-MAP'){assert.equal(mode,'interface');reached.add('wan-map');continue;}
     if(/^ip dhcp pool |^ip access-list extended |^crypto isakmp policy /.test(line)){assert.equal(mode,'config');mode='submode';}
