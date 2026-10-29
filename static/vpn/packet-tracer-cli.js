@@ -5,7 +5,7 @@ export function packetTracerCLI(code){
   if(/^ip virtual-reassembly(?:\s|$)/.test(command))return [];
   if(/^service timestamps (log|debug) datetime\b/.test(command))return indent+command.replace(/\s+(localtime|show-timezone)\b/g,'');
   if(/^ntp server\s+/.test(command))return line.replace(/\s+prefer\s*$/,'');
-  if(/^ip name-server\s+/.test(command))return command.slice('ip name-server '.length).trim().split(/\s+/).map(address=>indent+'ip name-server '+address);
+  if(/^ip name-server\s+/.test(command)){const addresses=command.slice('ip name-server '.length).trim().split(/\s+/);return [indent+'ip name-server '+addresses[0],...(addresses.length>1?[indent+'! Packet Tracer resolver uses one DNS address here; keeping primary '+addresses[0]+'.']:[])];}
   if(/^dns-server\s+/.test(command)){
    const addresses=command.slice('dns-server '.length).trim().split(/\s+/);
    return [indent+'dns-server '+addresses[0],...(addresses.length>1?[indent+'! Packet Tracer DHCP supports one DNS address here; using '+addresses[0]+'.']:[])];
