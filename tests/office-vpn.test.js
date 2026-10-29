@@ -1,3 +1,4 @@
+import {prepareOfficeVpnPair} from '../static/vpn/office-vpn.js';
 import assert from 'node:assert/strict';
 import {createLab} from '../static/vpn/lab.js';
 import {DEFAULTS} from '../static/vpn/engine.js';
@@ -76,3 +77,17 @@ for(const mutate of [
   assert(code.includes('ip nat inside source list NAT interface'));
 }
 console.log('Combined Office + VPN: paired hardware and Packet Tracer CLI, NAT exemption order, peer routes, owned PAT replacement, masking, atomic failures and unchanged ordinary preset passed.');
+
+// Default Side B is FortiGate: a single preset click must prepare the Cisco pair.
+for(const pt of [false,true]){
+  const lab=createLab();lab.a.vendor='ios';selectRouterModel(lab.a,pt?'Cisco 2911 (Packet Tracer)':'Cisco ISR4331-SEC/K9');
+  const before=structuredClone(lab.b);lab.b.psk='KeepFixtureKey';
+  assert(prepareOfficeVpnPair(lab,'a'));
+  assert.equal(lab.b.vendor,'ios');assert.equal(lab.b.routerModel,lab.a.routerModel);
+  for(const field of ['ip','local','lanIp','gateway','wanPrefix'])assert.equal(lab.b[field],before[field]);
+  assert.equal(lab.b.psk,'KeepFixtureKey');assert.notEqual(lab.b.wan,lab.b.lan);
+}
+{
+  const input=fixture();const before=structuredClone(input.lab.b);prepareOfficeVpnPair(input.lab,'a');assert.deepEqual(input.lab.b,before);
+  input.lab.a.vendor='mikrotik';const snapshot=structuredClone(input.lab);assert.equal(prepareOfficeVpnPair(input.lab,'a'),false);assert.deepEqual(input.lab,snapshot);
+}
