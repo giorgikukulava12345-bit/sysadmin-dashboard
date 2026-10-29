@@ -2,9 +2,27 @@ import {cidr} from './address.js';
 import {generate as generateVpn} from './engine.js';
 import {generateStandardOffice} from './standard-office.js';
 import {gatewayParts} from './gateway-parts.js';
-import {modelGenerationError} from './router-models.js';
+import {modelGenerationError,selectRouterModel} from './router-models.js';
+import {PORTS} from './platforms.js';
 
 export const packetTracerPair=lab=>['a','b'].every(side=>lab[side].routerModel?.endsWith('(Packet Tracer)'));
+
+/** A Cisco preset prepares its peer instead of requiring a hidden remote-site edit first. */
+export function prepareOfficeVpnPair(lab,sourceSide){
+  const source=lab?.[sourceSide];
+  if(source?.vendor!=='ios')return false;
+  for(const side of ['a','b']){
+    const peer=lab[side];
+    if(side===sourceSide)continue;
+    if(peer.vendor!=='ios'){
+      peer.vendor='ios';peer.routerModel='';[peer.wan,peer.lan]=PORTS.ios;
+      if(source.routerModel)selectRouterModel(peer,source.routerModel);
+    }else if(!peer.routerModel&&source.routerModel){
+      selectRouterModel(peer,source.routerModel);
+    }
+  }
+  return true;
+}
 
 /** A single owner for office PAT and the protected LAN-to-LAN IPsec selectors. */
 export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
