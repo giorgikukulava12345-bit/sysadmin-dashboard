@@ -95,7 +95,7 @@ function render() {
   root.querySelector('#vpn-wg-note').hidden = !wg;
   for (const side of ['a', 'b']) {
     const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
-    fs.querySelector('[data-profile-note]').textContent=cliProfile(state[side]).label;
+    fs.querySelector('[data-profile-note]').textContent=cliProfile(state[side]).label+(state[side].vendor==='mikrotik'?' - match the installed version from /system resource print. An EVE-NG image label does not change the running RouterOS version.':'');
     const platform=fs.querySelector('select[name=\"'+side+'.vendor\"] option[value=ios]');if(platform)platform.textContent=state[side].vendor==='ios'?cliProfile(state[side]).label:VENDORS.ios;
     fs.querySelector('[data-security-zone]').hidden=!['juniper','paloalto'].includes(state[side].vendor)||wg;
     fs.querySelector('[data-junos]').hidden=state[side].vendor!=='juniper'||wg;
