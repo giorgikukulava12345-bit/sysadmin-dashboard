@@ -24,6 +24,7 @@ try{
  check('pair output displayed',!q('[data-peer-output]').hidden);
  check('both controls enabled',!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled&&!q('[data-download-peer]').disabled);
  check('fixed output ordering',q('[data-output-title]').textContent.startsWith('SIDE A')&&q('[data-peer-output-title]').textContent.startsWith('SIDE B'));
+ check('per-side hostnames',q('[data-code]').textContent.includes('hostname R1')&&q('[data-peer-code]').textContent.includes('hostname R2'));
  check('A selector',q('[data-code]').textContent.includes('10 deny ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255'));
  check('B selector',q('[data-peer-code]').textContent.includes('10 deny ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255'));
  check('both masked',![q('[data-code]'),q('[data-peer-code]')].some(el=>el.textContent.includes('PairedOutputFixture_2026')));

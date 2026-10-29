@@ -23,7 +23,7 @@ const good=input=>{const r=composeDevice(input);assert.deepEqual(r.errors,[],r.e
 const bad=input=>{const r=composeDevice(input);assert(r.errors.length);assert.equal(r.code,'');return r.errors.join(' ');};
 for(const pt of [false,true])for(const side of ['a','b']){
   const input=fixture(pt);input.side=side;
-  const site=input.lab[side],peer=input.lab[side==='a'?'b':'a'],code=good(input);
+  const site=input.lab[side],peer=input.lab[side==='a'?'b':'a'],code=good(input);assert(code.includes('hostname '+(side==='b'?'R2':'R1')));input.values.hardening={hostname:'CustomRouter'};assert(good(input).includes('hostname CustomRouter'));
   const local=site.local.split('/')[0],remote=peer.local.split('/')[0];
   const deny=`10 deny ip ${local} 0.0.0.255 ${remote} 0.0.0.255`;
   const permit=`20 permit ip ${local} 0.0.0.255 any`;
