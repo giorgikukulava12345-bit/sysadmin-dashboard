@@ -1,3 +1,4 @@
+import {cliProfile,profileCLI,profileErrors} from './cli-profile.js';
 import juniper from './vendors/juniper.js';
 import { ipv4, cidr } from './address.js';
 export { ipv4, cidr } from './address.js';
@@ -81,9 +82,12 @@ export function validate(c) {
   return [...new Set(errors)];
 }
 export function generate(c) {
-  const errors = validate(c);
+  const errors = [...validate(c),...['a','b'].flatMap(side=>profileErrors(c[side],{selected:{vpn:true},vpnType:c.protocol}))];
+  if(['a','b'].some(side=>cliProfile(c[side]).legacy)&&['a','b'].some(side=>c[side].vendor!=='ios'))errors.push('Legacy Cisco image profiles require a Cisco peer with the same lab IKEv1 suite.');
   if (errors.length) return { errors, a: '', b: '' };
+  c={...c,legacyIos:c.protocol==='ikev1'&&['a','b'].some(side=>cliProfile(c[side]).legacy)};
   const generators = { ios, asa, mikrotik, fortinet, paloalto, juniper };
   const render = (s, r) => (c.bindInterfaces ? interfaceConfig(s) : '') + (c.protocol === 'vti' ? vtiConfig(c, s, r) : c.protocol === 'wireguard' ? wireguard(c, s, r) : generators[s.vendor](c, s, r));
-  return { errors: [], a: render(c.a, c.b), b: render(c.b, c.a) };
+  const a=profileCLI(render(c.a,c.b),c.a),b=profileCLI(render(c.b,c.a),c.b),issues=['a','b'].flatMap(side=>profileErrors(c[side],{code:side==='a'?a:b}));
+  return issues.length?{errors:issues,a:'',b:''}:{errors:[],a,b};
 }
