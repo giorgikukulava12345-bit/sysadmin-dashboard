@@ -1,9 +1,12 @@
+import {cliProfile} from '../cli-profile.js';
 export default function mikrotik(c, s, r) {
   const legacy=Boolean(c.legacyIos),encryption=legacy?'256':c.encryption,hash=legacy?'sha1':'sha256';
   const gre = c.protocol === 'gre', dh = n => legacy?'modp1536':n === '19' ? 'ecp256' : 'modp2048';
+  // IKEv1 PSK uses the peer-bound default IP identity; ROS6 rejects remote-id=address.
+  const identity=c.protocol==='ikev1'?'':` my-id=address:${s.ip} remote-id=${cliProfile(s).id==='ros6'?'auto':'address:'+r.ip}`;
   return `${legacy?'# Classic IOS interoperability: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}/ip ipsec profile add name=NOC-IKE enc-algorithm=aes-${encryption} hash-algorithm=${hash} dh-group=${dh(c.dh)} lifetime=${c.lifetime1}s dpd-interval=10s dpd-maximum-failures=3
 /ip ipsec peer add name=NOC-PEER address=${r.ip}/32 local-address=${s.ip} exchange-mode=${c.protocol === 'ikev1' ? 'main' : 'ike2'} profile=NOC-IKE
-/ip ipsec identity add peer=NOC-PEER auth-method=pre-shared-key secret="${s.psk}" my-id=address:${s.ip} remote-id=address:${r.ip}
+/ip ipsec identity add peer=NOC-PEER auth-method=pre-shared-key secret="${s.psk}"${identity}
 /ip ipsec proposal add name=NOC-ESP enc-algorithms=aes-${encryption}-cbc auth-algorithms=${hash} pfs-group=${dh(c.pfs)} lifetime=${c.lifetime2}s
 /ip ipsec policy add peer=NOC-PEER src-address=${gre ? s.ip + '/32' : s.local} dst-address=${gre ? r.ip + '/32' : s.remote} protocol=${gre ? 'gre' : 'all'} tunnel=${gre ? 'no' : 'yes'} action=encrypt level=require proposal=NOC-ESP sa-src-address=${s.ip} sa-dst-address=${r.ip}
 ${gre ? `/interface gre add name=NOC-GRE local-address=${s.ip} remote-address=${r.ip} mtu=1400 allow-fast-path=no
