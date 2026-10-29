@@ -13,6 +13,7 @@ const a=q('[data-code]').textContent,b=q('[data-peer-code]').textContent;
 check('Cisco profile retained',a.includes('crypto isakmp policy 100')&&a.includes('hash sha')&&!a.includes('crypto ikev2'));
 check('matched MikroTik suite',b.includes('hash-algorithm=sha1 dh-group=modp1536')&&b.includes('auth-algorithms=sha1 pfs-group=modp1536')&&b.includes('exchange-mode=main'));
 check('MikroTik office PAT and exemption',b.includes('NOC office PAT')&&b.includes('NOC NAT exemption')&&b.includes('NOC outbound'));
+check('IKEv1 identity uses peer-bound PSK defaults',b.includes('/ip ipsec identity add peer=NOC-PEER auth-method=pre-shared-key')&&!b.includes('remote-id=address:')&&!b.includes('my-id=address:'));
 check('correct vendor heading',q('[data-peer-output-title]').textContent.includes('MikroTik'));
 check('no Cisco CLI on MikroTik',!b.includes('configure terminal')&&!b.includes('crypto map'));
 check('R1 and R2 identities',a.includes('hostname R1')&&b.includes('/system identity set name=R2'));
