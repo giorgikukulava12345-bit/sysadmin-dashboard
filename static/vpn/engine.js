@@ -83,7 +83,7 @@ export function validate(c) {
 }
 export function generate(c) {
   const errors = [...validate(c),...['a','b'].flatMap(side=>profileErrors(c[side],{selected:{vpn:true},vpnType:c.protocol}))];
-  if(['a','b'].some(side=>cliProfile(c[side]).legacy)&&['a','b'].some(side=>c[side].vendor!=='ios'))errors.push('Legacy Cisco image profiles require a Cisco peer with the same lab IKEv1 suite.');
+  if(['a','b'].some(side=>cliProfile(c[side]).legacy)&&['a','b'].some(side=>!['ios','mikrotik'].includes(c[side].vendor)))errors.push('Legacy Cisco image profiles support Cisco or MikroTik peers with the same lab IKEv1 suite.');
   if (errors.length) return { errors, a: '', b: '' };
   c={...c,legacyIos:c.protocol==='ikev1'&&['a','b'].some(side=>cliProfile(c[side]).legacy)};
   const generators = { ios, asa, mikrotik, fortinet, paloalto, juniper };
