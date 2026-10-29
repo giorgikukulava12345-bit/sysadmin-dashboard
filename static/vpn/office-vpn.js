@@ -13,12 +13,11 @@ export const packetTracerPair=lab=>['a','b'].every(side=>lab[side].routerModel?.
 export function prepareOfficeVpnPair(lab,sourceSide){
   const source=lab?.[sourceSide];
   if(!['ios','mikrotik'].includes(source?.vendor))return false;
-  if(source.vendor==='mikrotik'&&['a','b'].some(side=>!['ios','mikrotik'].includes(lab[side].vendor)))return false;
   for(const side of ['a','b']){
     const peer=lab[side];
     if(side===sourceSide)continue;
     if(!['ios','mikrotik'].includes(peer.vendor)){
-      peer.vendor='ios';peer.routerModel='';[peer.wan,peer.lan]=PORTS.ios;
+      peer.vendor=source.vendor;peer.routerModel='';[peer.wan,peer.lan]=PORTS[source.vendor];
       if(source.routerModel)selectRouterModel(peer,source.routerModel);
     }else if(peer.vendor===source.vendor&&!peer.routerModel&&source.routerModel){
       selectRouterModel(peer,source.routerModel);
