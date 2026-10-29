@@ -29,7 +29,7 @@ assert(terminalText(fragments,{vendor:'ios',model:'Cisco ISR 4331'}).includes('i
 const pt=terminalText(screenshotCommands,ptContext);
 assert(pt.includes('service timestamps log datetime msec\r\n'));
 assert(pt.includes('ntp server 129.250.35.251\r\n'));
-assert(pt.includes('ip name-server 8.8.8.8\r\nip name-server 1.1.1.1\r\n'));
+assert(pt.includes('ip name-server 8.8.8.8\r\n'));assert(!pt.includes('ip name-server 1.1.1.1'));assert.equal((pt.match(/^ip name-server /gm)||[]).length,1);
 assert(pt.includes(' dns-server 8.8.8.8\r\n'));assert(!pt.includes('dns-server 8.8.8.8 1.1.1.1'));
 assert(!/^\s*lease 7/m.test(pt));assert(pt.includes('simulator default applies'));
 assert(pt.includes('interface GigabitEthernet0/0\r\n description WAN_TO_ISP\r\nend\r\n'));

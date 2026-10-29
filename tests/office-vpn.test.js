@@ -91,3 +91,26 @@ for(const pt of [false,true]){
   const input=fixture();const before=structuredClone(input.lab.b);prepareOfficeVpnPair(input.lab,'a');assert.deepEqual(input.lab.b,before);
   input.lab.a.vendor='mikrotik';const snapshot=structuredClone(input.lab);assert.equal(prepareOfficeVpnPair(input.lab,'a'),false);assert.deepEqual(input.lab,snapshot);
 }
+
+// Packet Tracer defines transform-sets in global config (no transform submode).
+// Reproduce its relevant mode transitions across the whole exported script.
+for(const side of ['a','b']){
+  const input=fixture(true);input.side=side;
+  const text=terminalText(good(input),{vendor:'ios',model:input.lab[side].routerModel});
+  let mode='exec';const reached=new Set();
+  for(const raw of text.split(/\r?\n/)){
+    const line=raw.trim();if(!line||line.startsWith('!'))continue;
+    if(line==='configure terminal'){assert.equal(mode,'exec');mode='config';continue;}
+    if(line==='end'){assert.notEqual(mode,'exec');mode='exec';continue;}
+    if(line==='exit'){assert.notEqual(mode,'exec','Unexpected exit logs out of EXEC');mode=mode==='config'?'exec':'config';continue;}
+    assert.notEqual(mode,'exec','Configuration command escaped to EXEC: '+line);
+    if(/^crypto ipsec transform-set /.test(line)){assert.equal(mode,'config');reached.add('transform');continue;}
+    if(/^ip access-list extended NOC-CRYPTO/.test(line)){assert.equal(mode,'config');mode='acl';reached.add('acl');continue;}
+    if(/^crypto map NOC-MAP 100 /.test(line)){assert.equal(mode,'config');mode='map';reached.add('map');continue;}
+    if(/^ip route 192\.168\.1\.0|^ip route 10\.20\.0\.0/.test(line)){assert.equal(mode,'config');reached.add('peer-route');continue;}
+    if(/^interface /.test(line)){assert.equal(mode,'config');mode='interface';continue;}
+    if(line==='crypto map NOC-MAP'){assert.equal(mode,'interface');reached.add('wan-map');continue;}
+    if(/^ip dhcp pool |^ip access-list extended |^crypto isakmp policy /.test(line)){assert.equal(mode,'config');mode='submode';}
+  }
+  assert.equal(mode,'exec');assert.deepEqual([...reached].sort(),['transform','acl','map','wan-map','peer-route'].sort());
+}
