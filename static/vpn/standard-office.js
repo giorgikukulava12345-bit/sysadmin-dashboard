@@ -20,12 +20,12 @@ const unicast=(value,label)=>{
 };
 
 /** Atomic, ordered IOS output for the Quick Setup preset. No stored/default credentials. */
-export function generateStandardOffice({site,selected,values}){
-  try{return {errors:[],code:build(site,selected,values),empty:false};}
+export function generateStandardOffice({site,selected,values,natExemptNetwork,packetTracer=false}){
+  try{return {errors:[],code:build(site,selected,values,natExemptNetwork,packetTracer),empty:false};}
   catch(error){return {errors:[`Standard Office: ${error.message}`],code:'',empty:false};}
 }
 
-function build(s,selected,values){
+function build(s,selected,values,natExemptNetwork,packetTracer){
   const d={...s,...values.internet_access,vendor:'ios'},parts=gatewayParts(d);
   const extra=Object.keys(selected).filter(id=>selected[id]&&!['internet_access','hardening','ntp_syslog'].includes(id));
   if(extra.length)throw Error('This complete Cisco Office preset owns interfaces, NAT and management. Generate additional features separately; Dual ISP needs egress-aware NAT design.');
@@ -79,7 +79,21 @@ function build(s,selected,values){
   }else if(parts.nat){
     sections.push([...rows.map(r=>`interface ${r.port}\n ip nat inside\n ip virtual-reassembly in\n exit`),`interface ${s.wan}\n ip nat outside\n ip virtual-reassembly in\n exit`].join('\n'));
   }
-  if(parts.nat)sections.push(rows.map((r,i)=>`ip access-list extended ${i?'NAT112':'NAT'}\n permit ip ${r.n.ip} ${r.n.wildcard} any\n exit\nip nat inside source list ${i?'NAT112':'NAT'} interface ${s.wan} overload`).join('\n'));
+  if(natExemptNetwork){
+    const remote=cidr(natExemptNetwork);
+    if(!remote||remote.canonical!==natExemptNetwork||!unicastNetwork(remote)||rows.length!==1||rows.some(r=>r.n.network<=remote.end&&r.n.end>=remote.network))throw Error('VPN exemption requires one distinct canonical remote LAN.');
+    const row=rows[0],acl='OFFICE-VPN-NAT',map='OFFICE-VPN-PAT';
+    sections.push(`! Remove only the PAT rule owned by the ordinary Office preset. Review other existing NAT rules.
+no ip nat inside source list NAT interface ${s.wan} overload
+ip access-list extended ${acl}
+ 10 deny ip ${row.n.ip} ${row.n.wildcard} ${remote.ip} ${remote.wildcard}
+ 20 permit ip ${row.n.ip} ${row.n.wildcard} any
+ exit
+${packetTracer?`ip nat inside source list ${acl} interface ${s.wan} overload`:`route-map ${map} permit 10
+ match ip address ${acl}
+ exit
+ip nat inside source route-map ${map} interface ${s.wan} overload`}`);
+  }else if(parts.nat)sections.push(rows.map((r,i)=>`ip access-list extended ${i?'NAT112':'NAT'}\n permit ip ${r.n.ip} ${r.n.wildcard} any\n exit\nip nat inside source list ${i?'NAT112':'NAT'} interface ${s.wan} overload`).join('\n'));
   if(parts.firewall){
     // Keep the existing stateful policy, with its interface list bound to this mode.
     const firewall=officeConfig({...d,physicalLan:s.lan,standardOffice:true,iosLanMode:mode,parts:{interfaces:false,nat:false,route:false,firewall:true,dhcp:false,dns:false}});
