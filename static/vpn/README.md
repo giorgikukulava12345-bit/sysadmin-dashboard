@@ -161,7 +161,7 @@ The website provides router configuration only. Switch and Computer / Host tabs,
 
 ### Quick Setup + VPN (Cisco pair)
 
-This separate preset selects Internet interfaces, default routing, PAT, DHCP, DNS, NTP and site-to-site IPsec on both routers. Set both vendors to Cisco, select each exact model, then click **Quick Setup + VPN**. Addressing and existing PSKs are preserved. Enter matching PSKs (or use the browser-local Generate shared PSK action), generate Side A, then select Side B and generate its separate script. A reachable ISP gateway and upstream routing are still required for real Internet access.
+This separate preset selects Internet interfaces, default routing, PAT, DHCP, DNS, NTP and site-to-site IPsec on both routers. Select Cisco and the model for the active router, then click **Quick Setup + VPN**. A non-Cisco peer is automatically prepared as Cisco using the active model; an already selected Cisco peer model is preserved. Addressing and existing PSKs are preserved. Enter matching PSKs (or use the browser-local Generate shared PSK action), generate Side A, then select Side B and generate its separate script. A reachable ISP gateway and upstream routing are still required for real Internet access.
 
 One LAN per site and IKEv1/IKEv2 crypto maps are supported. A dedicated OFFICE-VPN-NAT ACL denies the peer LAN before permitting Internet translation. Hardware uses OFFICE-VPN-PAT route-map overload; Packet Tracer uses ACL-based PAT. The generated script removes only the ordinary preset-owned NAT-list PAT statement; other pre-existing translations and crypto maps require review. Extra NAT, ACL, firewall, failover, GRE/VTI and cross-vendor combinations are rejected atomically.
 
