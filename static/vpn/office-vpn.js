@@ -52,7 +52,7 @@ export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
   const vpn=generateVpn(config);
   if(vpn.errors.length)return fail(vpn.errors.join(' '));
   const site=lab[side],peer=lab[side==='a'?'b':'a'];
-  const office=generateStandardOffice({site,selected:{...selected,vpn:false},values,natExemptNetwork:peer.local,packetTracer:pt});
+  const office=generateStandardOffice({site,side,selected:{...selected,vpn:false},values,natExemptNetwork:peer.local,packetTracer:pt});
   if(office.errors.length)return office;
   const tunnel=pt?packetTracerIpsec(site,peer,config[side].psk):vpn[side].replace('! Merge NAT exemption into the existing NAT ACL before any translation permits.','! Office VPN NAT exemption is included above.');
   return {errors:[],empty:false,code:office.code+'\n'+tunnel+'\n'};

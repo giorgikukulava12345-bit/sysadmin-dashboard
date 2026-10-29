@@ -20,12 +20,12 @@ const unicast=(value,label)=>{
 };
 
 /** Atomic, ordered IOS output for the Quick Setup preset. No stored/default credentials. */
-export function generateStandardOffice({site,selected,values,natExemptNetwork,packetTracer=false}){
-  try{return {errors:[],code:build(site,selected,values,natExemptNetwork,packetTracer),empty:false};}
+export function generateStandardOffice({site,selected,values,natExemptNetwork,packetTracer=false,side='a'}){
+  try{return {errors:[],code:build(site,selected,values,natExemptNetwork,packetTracer,side),empty:false};}
   catch(error){return {errors:[`Standard Office: ${error.message}`],code:'',empty:false};}
 }
 
-function build(s,selected,values,natExemptNetwork,packetTracer){
+function build(s,selected,values,natExemptNetwork,packetTracer,side){
   const d={...s,...values.internet_access,vendor:'ios'},parts=gatewayParts(d);
   const extra=Object.keys(selected).filter(id=>selected[id]&&!['internet_access','hardening','ntp_syslog'].includes(id));
   if(extra.length)throw Error('This complete Cisco Office preset owns interfaces, NAT and management. Generate additional features separately; Dual ISP needs egress-aware NAT design.');
@@ -40,7 +40,7 @@ function build(s,selected,values,natExemptNetwork,packetTracer){
     identifier(r.name,'DHCP pool name');
   }
   if(new Set(rows.map(r=>r.name)).size!==rows.length)throw Error('USERS and IT DHCP pool names must differ.');
-  const h=values.hardening||{},hostname=h.hostname||'R1',domain=h.domain||'cisco.com';
+  const h=values.hardening||{},hostname=h.hostname||(side==='b'?'R2':'R1'),domain=h.domain||'cisco.com';
   if(!/^[A-Za-z][A-Za-z0-9-]{0,62}$/.test(hostname))throw Error('Hostname: use a valid IOS hostname.');
   if(!/^(?=.{3,253}$)[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(domain))throw Error('Enter a valid domain name.');
   const timezone=identifier(d.timezoneName??'GET','Timezone name');

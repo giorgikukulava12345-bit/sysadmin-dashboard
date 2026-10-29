@@ -87,7 +87,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(dual&&role==='router'&&ids.some(id=>['vpn','zbfw','dmvpn'].includes(id)))errors.push('Generate VPN/firewall overlays separately from the two-VLAN routed-trunk template; both subnets require an explicit policy design.');
   if(role==='router'&&vendor==='ios'&&office&&values.internet_access?.standardOffice){
     if(errors.length)return {errors:[...new Set(errors)],code:'',empty:false};
-    return generateStandardOffice({site,selected,values:switchedLan(site)?{...values,internet_access:{...values.internet_access,iosLanMode:'subinterfaces'}}:values});
+    return generateStandardOffice({site,side,selected,values:switchedLan(site)?{...values,internet_access:{...values.internet_access,iosLanMode:'subinterfaces'}}:values});
   }
   if(bindings){const script=address.scripts[baseIndex+(role==='switch'?1:0)];if(script.unsupported)errors.push('No base switch template for this platform.');else blocks.push({title:'BASE INTERFACE / IP BINDINGS',code:script.code});}
   const vtiOwnNat=ids.includes('vpn')&&vpnType==='vti';
