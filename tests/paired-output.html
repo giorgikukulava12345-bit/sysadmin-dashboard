@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Paired output regression</title>
+<link rel="stylesheet" href="../static/vpn/obsidian.css"><link rel="stylesheet" href="../static/vpn/lab-polish.css">
+<body style="background:#090b10;color:white"><h1>Paired output regression</h1><pre id="paired-results">Running</pre><div id="fixture"></div>
+<script type="module">
+import {mountVpn} from '../static/vpn/ui.js';
+const root=document.querySelector('#fixture'),dispose=mountVpn(root),scope=root.closest('body');
+const q=s=>scope.querySelector(s);let checks=0;
+function check(message,ok){if(!ok)throw Error(message);checks++;}
+function edit(selector,value,event='input'){const node=q(selector);node.value=value;node.dispatchEvent(new Event(event,{bubbles:true}));}
+function submit(){q('[data-generate]').click();}
+try{
+ edit('[data-router-model]','Cisco 2911 (Packet Tracer)','change');q('[data-office-vpn-preset]').click();
+ edit('[name="a.psk"]','PairedOutputFixture_2026');edit('[name="b.psk"]','PairedOutputFixture_2026');submit();
+ check('pair output displayed',!q('[data-peer-output]').hidden);
+ check('both controls enabled',!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled&&!q('[data-download-peer]').disabled);
+ check('fixed output ordering',q('[data-output-title]').textContent.startsWith('SIDE A')&&q('[data-peer-output-title]').textContent.startsWith('SIDE B'));
+ check('A selector',q('[data-code]').textContent.includes('10 deny ip 192.168.1.0 0.0.0.255 10.20.0.0 0.0.0.255'));
+ check('B selector',q('[data-peer-code]').textContent.includes('10 deny ip 10.20.0.0 0.0.0.255 192.168.1.0 0.0.0.255'));
+ check('both masked',![q('[data-code]'),q('[data-peer-code]')].some(el=>el.textContent.includes('PairedOutputFixture_2026')));
+ q('[data-reveal]').checked=true;q('[data-reveal]').dispatchEvent(new Event('change',{bubbles:true}));
+ check('both reveal',q('[data-code]').textContent.includes('PairedOutputFixture_2026')&&q('[data-peer-code]').textContent.includes('PairedOutputFixture_2026'));
+ edit('[name="b.psk"]','MismatchFixture');
+ check('editing peer invalidates both exports',q('[data-copy-config]').disabled&&q('[data-copy-peer]').disabled&&q('[data-peer-output]').hidden);
+ submit();check('failed pair emits neither script',q('[data-code]').textContent.includes('Validation failed')&&q('[data-peer-code]').textContent==='');
+ edit('[name="b.psk"]','PairedOutputFixture_2026');submit();
+ edit('.noc-selection select[data-side]','b','change');
+ check('site selector retains pair',!q('[data-peer-output]').hidden&&q('[data-output-title]').textContent.startsWith('SIDE A'));
+ edit('[data-feature-panel=ntp_syslog] [name=ntp]','192.0.2.123');
+ check('peer-only settings invalidate both',q('[data-peer-output]').hidden&&q('[data-copy-config]').disabled);
+ edit('[data-feature-panel=internet_access] [name=staticReserve]','25');submit();
+ check('A uses A settings',q('[data-code]').textContent.includes('ntp server 129.250.35.251')&&q('[data-code]').textContent.includes('192.168.1.1 192.168.1.100'));
+ check('B uses B settings',q('[data-peer-code]').textContent.includes('ntp server 192.0.2.123')&&q('[data-peer-code]').textContent.includes('10.20.0.1 10.20.0.25'));
+ q('[data-clear-output]').click();check('clear removes both',q('[data-peer-output]').hidden&&q('[data-peer-code]').textContent==='');
+ q('[data-office-preset]').click();check('ordinary preset stays single',q('[data-peer-output]').hidden&&!q('[data-code]').textContent.includes('NOC-CRYPTO'));
+ dispose();document.querySelector('#paired-results').textContent=`${checks}/${checks} paired output checks passed`;
+}catch(error){document.querySelector('#paired-results').textContent='FAILED: '+error.message;throw error;}
+</script></body></html>
