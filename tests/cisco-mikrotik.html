@@ -5,7 +5,7 @@ const check=(name,ok)=>{if(!ok)throw Error(name);checks++;};
 function edit(selector,value,event='input'){const el=q(selector);el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));}
 try{
 edit('[data-router-model]','Cisco IOS 3725 (Dynamips) (EVE-NG)','change');q('[data-office-vpn-preset]').click();
-edit('[name="b.vendor"]','mikrotik');edit('.noc-selection select[data-side]','b','change');edit('[data-router-model]','mikrotik-7.23.7 (EVE-NG)','change');
+edit('[name="b.vendor"]','mikrotik');edit('.noc-selection select[data-side]','b','change');edit('[data-router-model]','mikrotik-6.49.19 (EVE-NG)','change');
 check('MikroTik preserved after vendor change',q('[name="b.vendor"]').value==='mikrotik');q('[data-office-vpn-preset]').click();check('preset usable from MikroTik',q('[name="b.vendor"]').value==='mikrotik');
 check('IKEv1 follows classic peer',q('[name=protocol]').value==='ikev1');q('[data-action=key]').click();q('[data-generate]').click();
 check('paired outputs available',!q('[data-peer-output]').hidden&&!q('[data-copy-peer]').disabled&&!q('[data-copy-config]').disabled);
