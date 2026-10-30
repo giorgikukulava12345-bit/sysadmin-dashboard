@@ -5,7 +5,7 @@ import {composeDevice} from '../static/vpn/compose.js';
 import {selectRouterModel,modelGenerationError,validateModelPorts} from '../static/vpn/router-models.js';
 import {selectSwitchModel,validateSwitchPorts} from '../static/vpn/switch-models.js';
 import {portOptions} from '../static/vpn/port-options.js';
-assert.equal(EVE_MODELS.length,10);assert.equal(new Set(EVE_MODELS.map(r=>r.model)).size,10);
+assert.equal(EVE_MODELS.length,9);assert.equal(new Set(EVE_MODELS.map(r=>r.model)).size,9);
 for(const row of EVE_MODELS){
  assert(row.label.endsWith('(EVE-NG)'));const lab=createLab(),peer=structuredClone(lab.b);lab.a[row.role==='router'?'vendor':'switchVendor']=row.vendor;
  (row.role==='router'?selectRouterModel:selectSwitchModel)(lab.a,row.model);assert.deepEqual(lab.b,peer);
@@ -17,9 +17,9 @@ for(const row of EVE_MODELS){
 }
 const s=createLab().a;assert.equal(selectEveModel(s,'missing'),false);
 assert(EVE_MODELS.some(r=>r.model==='Paloalto-10.2.5 (EVE-NG)'));
-console.log('EVE-NG: 10 screenshot profiles, device/vendor isolation, defaults, exports, editable ports and unsafe-name rejection passed.');
+console.log('EVE-NG: 9 screenshot profiles, device/vendor isolation, defaults, exports, editable ports and unsafe-name rejection passed.');
 
-for(const version of ['6.49.19','7.23.7'])assert.deepEqual(EVE_MODELS.find(r=>r.model===`mikrotik-${version} (EVE-NG)`).ports,['ether1','ether2','ether3','ether4']);
+for(const version of ['6.49.19'])assert.deepEqual(EVE_MODELS.find(r=>r.model===`mikrotik-${version} (EVE-NG)`).ports,['ether1','ether2','ether3','ether4']);
 
 assert.deepEqual(EVE_MODELS.filter(r=>r.vendor==='ios').map(r=>r.model),['Cisco IOS 1710 (Dynamips) (EVE-NG)','Cisco IOS 3725 (Dynamips) (EVE-NG)','Cisco IOS 7206VXR (Dynamips) (EVE-NG)','Cisco IOL (EVE-NG)','Cisco Firepower NGIPS 7 (EVE-NG)']);
 

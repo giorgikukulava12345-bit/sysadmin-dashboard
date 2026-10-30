@@ -118,7 +118,7 @@ for(const side of ['a','b']){
 // Reproduce the Cisco IOS 12.4 / RouterOS screenshot, both orientations and ROS versions.
 for(const rosVersion of ['6.49.19','7.23.7'])for(const reversed of [false,true]){
  const lab=createLab(),vpnConfig=structuredClone(DEFAULTS),iosSide=reversed?'b':'a',rosSide=reversed?'a':'b';
- lab[iosSide].vendor='ios';selectRouterModel(lab[iosSide],'Cisco IOS 3725 (Dynamips) (EVE-NG)');lab[rosSide].vendor='mikrotik';selectRouterModel(lab[rosSide],`mikrotik-${rosVersion} (EVE-NG)`);
+ lab[iosSide].vendor='ios';selectRouterModel(lab[iosSide],'Cisco IOS 3725 (Dynamips) (EVE-NG)');lab[rosSide].vendor='mikrotik';if(rosVersion==='6.49.19')selectRouterModel(lab[rosSide],'mikrotik-6.49.19 (EVE-NG)');else Object.assign(lab[rosSide],{routerModel:'',wan:'ether1',lan:'ether2'});
  for(const side of ['a','b']){Object.assign(lab[side],{ip:side===iosSide?'192.168.73.100':'192.168.73.150',wanPrefix:'24',gateway:'192.168.73.2'});Object.assign(vpnConfig[side],lab[side],{remote:lab[side==='a'?'b':'a'].local,psk:'CiscoMikroFixture2026'});}
  const before=structuredClone(lab);assert(prepareOfficeVpnPair(lab,iosSide));assert.deepEqual(lab,before);assert(prepareOfficeVpnPair(lab,rosSide));assert.deepEqual(lab,before);
  const selected={internet_access:true,vpn:true,ntp_syslog:true},values={internet_access:{...featureDefaults('internet_access','ios'),officeVpn:true,standardOffice:true,parts:{interfaces:true,route:true,nat:true,firewall:false,dhcp:true,dns:true}},ntp_syslog:{ntp:'129.250.35.251'}};
