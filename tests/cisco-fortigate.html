@@ -11,6 +11,15 @@ q('[data-action=key]').click();q('[data-generate]').click();const a=q('[data-cod
 check('paired exports enabled',!q('[data-peer-output]').hidden&&!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled);check('Cisco correct suite',a.includes('hash sha')&&!a.includes('crypto ikev2'));
 check('FortiGate matching suite',b.includes('set ike-version 1')&&b.includes('set proposal aes256-sha1')&&b.includes('set dhgrp 5'));check('VPN NAT disabled both directions',(b.match(/set nat disable/g)||[]).length===2);check('Internet PAT policy',b.includes('NOC-OFFICE-INTERNET')&&b.includes('set nat enable'));check('remote route and selectors',b.includes('set device "NOC-VPN"')&&b.includes('set src-subnet 192.168.2.0 255.255.255.0')&&b.includes('set dst-subnet 192.168.1.0 255.255.255.0'));
 check('FortiGate heading',q('[data-peer-output-title]').textContent.includes('FortiGate'));check('vendor CLI isolation',!b.includes('crypto map')&&!b.includes('/ip ipsec'));check('secrets masked',!b.includes(q('[name="b.psk"]').value));
+check('AES remains default',q('[name=compatibility]').value==='standard');
+edit('[name=compatibility]','fortigate-eval-des');q('[data-generate]').click();
+const da=q('[data-code]').textContent,db=q('[data-peer-code]').textContent;
+check('DES selected explicitly',q('[name=protocol]').value==='ikev1'&&!q('[data-eval-active]').hidden);
+check('Cisco DES phase1 and ESP',da.includes('encryption des')&&da.includes('NOC-DES esp-des esp-sha-hmac')&&da.includes('set transform-set NOC-DES'));
+check('Forti DES both phases',(db.match(/set proposal des-sha1/g)||[]).length===2&&!db.includes('set proposal aes'));
+check('DES exports available',!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled);
+q('[data-office-vpn-preset]').click();check('preset preserves explicit DES choice',q('[name=compatibility]').value==='fortigate-eval-des');
+edit('[name=compatibility]','standard');q('[data-generate]').click();check('return to AES',q('[data-peer-code]').textContent.includes('set proposal aes256-sha1'));
 edit('[name="b.psk"]','Mismatch');q('[data-generate]').click();check('pair fails atomically',q('[data-copy-config]').disabled&&q('[data-copy-peer]').disabled);
 dispose();q('#results').textContent=`${checks}/${checks} Cisco FortiGate checks passed`;
 }catch(error){q('#results').textContent='FAILED: '+error.message;throw error;}
