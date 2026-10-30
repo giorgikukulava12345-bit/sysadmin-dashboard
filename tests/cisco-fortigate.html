@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Cisco FortiGate regression</title><body><pre id="results">Running</pre><div id="fixture"></div><script type="module">
+import {mountVpn} from '../static/vpn/ui.js';
+const dispose=mountVpn(document.querySelector('#fixture')),q=s=>document.querySelector(s);let checks=0;
+const check=(name,ok)=>{if(!ok)throw Error(name);checks++;};
+function edit(selector,value,event='input'){const el=q(selector);el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));}
+try{
+edit('[data-router-model]','Cisco IOS 3725 (Dynamips) (EVE-NG)','change');q('[data-office-vpn-preset]').click();check('FortiGate peer preserved',q('[name="b.vendor"]').value==='fortinet');
+edit('.noc-selection select[data-side]','b','change');edit('[data-router-model]','fortinet-FGT-v7.2.0-build1157 (EVE-NG)','change');q('[data-office-vpn-preset]').click();
+check('preset usable from FortiGate',q('[name="a.vendor"]').value==='ios'&&q('[name="b.vendor"]').value==='fortinet');check('FortiOS label matches image',q('#vpn-b-vendor option:checked').textContent.includes('7.2'));check('legacy IKEv1 selected',q('[name=protocol]').value==='ikev1');
+q('[data-action=key]').click();q('[data-generate]').click();const a=q('[data-code]').textContent,b=q('[data-peer-code]').textContent;
+check('paired exports enabled',!q('[data-peer-output]').hidden&&!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled);check('Cisco correct suite',a.includes('hash sha')&&!a.includes('crypto ikev2'));
+check('FortiGate matching suite',b.includes('set ike-version 1')&&b.includes('set proposal aes256-sha1')&&b.includes('set dhgrp 5'));check('VPN NAT disabled both directions',(b.match(/set nat disable/g)||[]).length===2);check('Internet PAT policy',b.includes('NOC-OFFICE-INTERNET')&&b.includes('set nat enable'));check('remote route and selectors',b.includes('set device "NOC-VPN"')&&b.includes('set src-subnet 192.168.2.0 255.255.255.0')&&b.includes('set dst-subnet 192.168.1.0 255.255.255.0'));
+check('FortiGate heading',q('[data-peer-output-title]').textContent.includes('FortiGate'));check('vendor CLI isolation',!b.includes('crypto map')&&!b.includes('/ip ipsec'));check('secrets masked',!b.includes(q('[name="b.psk"]').value));
+edit('[name="b.psk"]','Mismatch');q('[data-generate]').click();check('pair fails atomically',q('[data-copy-config]').disabled&&q('[data-copy-peer]').disabled);
+dispose();q('#results').textContent=`${checks}/${checks} Cisco FortiGate checks passed`;
+}catch(error){q('#results').textContent='FAILED: '+error.message;throw error;}
+</script></body></html>

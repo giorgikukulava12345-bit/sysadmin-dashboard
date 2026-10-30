@@ -3,7 +3,7 @@ import {mountVpn} from '../static/vpn/ui.js';
 const root=document.querySelector('#fixture'),dispose=mountVpn(root),q=s=>document.querySelector(s);let checks=0;
 const check=(name,ok)=>{if(!ok)throw Error(name);checks++;};
 try{
-const model=q('[data-router-model]');model.value='Cisco IOS 3725 (Dynamips) (EVE-NG)';model.dispatchEvent(new Event('change',{bubbles:true}));q('[data-office-vpn-preset]').click();
+q('[name=\"b.vendor\"]').value='ios';q('[name=\"b.vendor\"]').dispatchEvent(new Event('input',{bubbles:true}));const model=q('[data-router-model]');model.value='Cisco IOS 3725 (Dynamips) (EVE-NG)';model.dispatchEvent(new Event('change',{bubbles:true}));q('[data-office-vpn-preset]').click();
 check('IKEv1 selected automatically',q('[name=protocol]').value==='ikev1');check('profile label follows IOS image',q('#vpn-a-vendor option:checked').textContent.includes('Classic IOS'));
 check('modern protocol disabled',q('[name=protocol] option[value=ikev2]').disabled);check('modern advanced suite hidden',q('#vpn-advanced').hidden);
 q('[data-action=key]').click();q('[data-generate]').click();

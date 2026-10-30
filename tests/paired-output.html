@@ -19,7 +19,7 @@ try{
  q('[data-action="key"]').click();check('fresh shared key remasked',['a','b'].every(side=>q(`[name="${side}.psk"]`).type==='password')&&q('[name="a.psk"]').value===q('[name="b.psk"]').value&&q('[name="a.psk"]').value.length>0);
  q('[data-reveal-psk="a"]').click();q('[data-action="clear"]').click();check('clear erases and remasks',['a','b'].every(side=>q(`[name="${side}.psk"]`).type==='password'&&q(`[name="${side}.psk"]`).value===''));
 
- edit('[data-router-model]','Cisco 2911 (Packet Tracer)','change');q('[data-office-vpn-preset]').click();
+ edit('[name=\"b.vendor\"]','ios'); edit('[data-router-model]','Cisco 2911 (Packet Tracer)','change');q('[data-office-vpn-preset]').click();
  edit('[name="a.psk"]','PairedOutputFixture_2026');edit('[name="b.psk"]','PairedOutputFixture_2026');submit();
  check('pair output displayed',!q('[data-peer-output]').hidden);
  check('both controls enabled',!q('[data-copy-config]').disabled&&!q('[data-copy-peer]').disabled&&!q('[data-download-peer]').disabled);
