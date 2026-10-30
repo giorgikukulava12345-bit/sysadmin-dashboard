@@ -12,7 +12,7 @@ export function generateFortigateOffice({site,side,selected,values}){
   validateInternet(d);const wan=cidr(`${site.ip}/${site.wanPrefix}`),lan=cidr(site.local),hostname=values.hardening?.hostname||(side==='b'?'R2':'R1');
   if(!/^[A-Za-z][A-Za-z0-9-]{0,62}$/.test(hostname))throw Error('Enter a valid router hostname.');
   const sections=[`config system global\n set hostname "${hostname}"\nend`];
-  if(parts.interfaces)sections.push(`config system interface\n edit "${site.wan}"\n  set status up\n  set mode static\n  set ip ${site.ip} ${wan.mask}\n next\n edit "${site.lan}"\n  set status up\n  set mode static\n  set ip ${site.lanIp} ${lan.mask}\n next\nend`);
+  if(parts.interfaces)sections.push(`config system interface\n edit "${site.wan}"\n  set status up\n  set mode static\n  set ip ${site.ip} ${wan.mask}\n next\n edit "${site.lan}"\n  set status up\n  set mode static\n  set ip ${site.lanIp} ${lan.mask}\n  append allowaccess ping\n next\nend`);
   sections.push(officeServices({...d,parts:{...parts,dhcp:false}}));
   if(parts.dhcp){
    const count=String(d.staticReserve??'100');if(!/^\d+$/.test(count)||+count>254)throw Error('Reserved addresses must be 0 to 254.');
