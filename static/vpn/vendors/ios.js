@@ -29,23 +29,23 @@ crypto ikev2 profile NOC-IKE
  dpd 10 3 periodic
  no config-exchange request
  exit` : `crypto isakmp policy 100
- encryption aes ${encryption}
+ encryption ${c.labDes?'des':'aes '+encryption}
  hash ${legacy?'sha':'sha256'}
  authentication pre-share
  group ${dh}
  lifetime ${c.lifetime1}
  exit
 crypto isakmp key ${s.psk} address ${r.ip}`;
-  return `${legacy?'! Classic IOS lab compatibility: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}configure terminal
+  return `${c.labDes?'! FortiGate Evaluation LAB ONLY: IKEv1 / DES / SHA-1 / DH5 / PFS5. Do not use on production networks.\n':legacy?'! Classic IOS lab compatibility: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}configure terminal
 ${p1}
-crypto ipsec transform-set NOC-ESP esp-aes ${encryption} ${legacy?'esp-sha-hmac':'esp-sha256-hmac'}
+crypto ipsec transform-set ${c.labDes?'NOC-DES':'NOC-ESP'} ${c.labDes?'esp-des':'esp-aes '+encryption} ${legacy?'esp-sha-hmac':'esp-sha256-hmac'}
 ${cliProfile(s).id==='packet-tracer'?'':` mode ${gre ? 'transport' : 'tunnel'}\n exit\n`} 
 ip access-list extended NOC-CRYPTO
  ${gre ? `permit gre host ${s.ip} host ${r.ip}` : `permit ip ${l.ip} ${l.wildcard} ${remote.ip} ${remote.wildcard}`}
  exit
 crypto map NOC-MAP 100 ipsec-isakmp
  set peer ${r.ip}
- set transform-set NOC-ESP
+ set transform-set ${c.labDes?'NOC-DES':'NOC-ESP'}
  set pfs group${pfs}
  set security-association lifetime seconds ${c.lifetime2}
 ${v2 ? ` set ikev2-profile NOC-IKE

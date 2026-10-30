@@ -2,8 +2,9 @@ import { cidr } from '../address.js';
 
 export default function fortinet(c, s, r) {
   const legacy=Boolean(c.legacyIos),encryption=legacy?'256':c.encryption,hash=legacy?'sha1':'sha256',dh=legacy?'5':c.dh,pfs=legacy?'5':c.pfs;
+  const proposal=c.labDes?'des-sha1':`aes${encryption}-${hash}`;
   const gre = c.protocol === 'gre', l = cidr(s.local), remote = cidr(s.remote), iface = gre ? 'NOC-GRE' : 'NOC-VPN';
-  return `${legacy?'# Classic IOS interoperability: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}config vpn ipsec phase1-interface
+  return `${c.labDes?'# FortiGate Evaluation LAB ONLY: IKEv1 / DES / SHA-1 / DH5 / PFS5. Do not use on production networks.\n':legacy?'# Classic IOS interoperability: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}config vpn ipsec phase1-interface
  edit "NOC-VPN"
   set type static
   set interface "${s.wan}"
@@ -13,7 +14,7 @@ export default function fortinet(c, s, r) {
 ${c.protocol==='ikev1'?'  set mode main\n':''}
   set local-gw ${s.ip}
   set remote-gw ${r.ip}
-  set proposal aes${encryption}-${hash}
+  set proposal ${proposal}
   set dhgrp ${dh}
   set keylife ${c.lifetime1}
   set nattraversal enable
@@ -24,7 +25,7 @@ end
 config vpn ipsec phase2-interface
  edit "NOC-P2"
   set phase1name "NOC-VPN"
-  set proposal aes${encryption}-${hash}
+  set proposal ${proposal}
   set pfs enable
   set dhgrp ${pfs}
   set keylifeseconds ${c.lifetime2}
