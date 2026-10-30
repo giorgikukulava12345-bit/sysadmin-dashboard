@@ -18,7 +18,9 @@ class DashboardIntegrationTests(unittest.TestCase):
         self.assertNotIn(b'{% include', response.data)
         self.assertNotIn(b'CORE NETWORK TOOLS', response.data)
         self.assertIn(b'Network Engineering Lab', response.data)
-        self.assertLess(response.data.index(b'Network Engineering Lab'), response.data.index(b'SYSADMIN FILE REPOSITORY'))
+        self.assertNotIn(b'SYSADMIN FILE REPOSITORY', response.data)
+        self.assertNotIn(b'data-repository-search', response.data)
+        self.assertNotIn(b'/static/vpn/repository-search.js', response.data)
 
     def test_module_assets_are_served(self):
         for filename in ['engine.js', 'address.js', 'ui.js', 'interfaces.js', 'lab.js', 'platforms.js',

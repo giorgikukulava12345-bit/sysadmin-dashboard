@@ -1,0 +1,6 @@
+# File repository installers are no longer part of the dashboard.
+/uploads/
+
+# Development checks and catalog build tools are not runtime dependencies.
+/tests/
+/scripts/
