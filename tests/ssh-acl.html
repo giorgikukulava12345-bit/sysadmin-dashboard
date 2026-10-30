@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>SSH ACL regression</title><body><pre id="results">Running</pre><div id="fixture"></div><script type="module">
+import {mountVpn} from '../static/vpn/ui.js';
+const q=s=>document.querySelector(s),dispose=mountVpn(q('#fixture'));let checks=0;
+const check=(name,ok)=>{if(!ok)throw Error(name);checks++;};
+function edit(selector,value,event='input'){const el=q(selector);el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));}
+try{
+q('[data-feature="hardening"]').click();check('field starts with site LAN',q('[name=sshSources]').value==='192.168.1.0/24');
+edit('[name=secret]','FixtureSecret2026');edit('[name=enableSecret]','FixtureEnable2026');edit('[name=sshSources]','10.5.0.0/24\n10.6.0.10');q('[data-generate]').click();let code=q('[data-code]').textContent;
+check('standard ACL sources',code.includes('ip access-list standard NOC-SSH')&&code.includes('permit 10.5.0.0 0.0.0.255')&&code.includes('permit 10.6.0.10 0.0.0.0'));check('all VTY lines',(code.match(/access-class NOC-SSH in/g)||[]).length===2&&code.includes('line vty 5 15'));check('deny and ssh only',code.includes('deny any log')&&(code.match(/transport input ssh/g)||[]).length===2);
+edit('[name=sshSources]','10.5.0.2/24');q('[data-generate]').click();check('invalid source blocks export',q('[data-copy-config]').disabled);
+edit('[name=sshSources]','10.5.0.0/24');q('[data-office-preset]').click();q('[data-feature="hardening"]').click();edit('[name=secret]','FixtureSecret2026');edit('[name=enableSecret]','FixtureEnable2026');edit('[name=sshSources]','10.9.0.10');q('[data-generate]').click();code=q('[data-code]').textContent;
+check('office uses same field',code.includes('permit tcp 10.9.0.10 0.0.0.0 any eq 22')&&!code.includes('permit tcp 192.168.1.0'));check('office VTY binding',(code.match(/access-class SSH_NEW in/g)||[]).length===2);
+dispose();q('#results').textContent=`${checks}/${checks} SSH ACL browser checks passed`;
+}catch(error){q('#results').textContent='FAILED: '+error.message;throw error;}
+</script></body></html>
