@@ -1,5 +1,6 @@
 import {cliProfile,legacyCiscoPair} from './cli-profile.js';
 import {cidr} from './address.js';
+import {generateFortigateOffice} from './fortigate-office-vpn.js';
 import {generateMikrotikOffice} from './mikrotik-office-vpn.js';
 import {generate as generateVpn} from './engine.js';
 import {generateStandardOffice} from './standard-office.js';
@@ -12,11 +13,11 @@ export const packetTracerPair=lab=>['a','b'].every(side=>lab[side].routerModel?.
 /** A Cisco preset prepares its peer instead of requiring a hidden remote-site edit first. */
 export function prepareOfficeVpnPair(lab,sourceSide){
   const source=lab?.[sourceSide];
-  if(!['ios','mikrotik'].includes(source?.vendor))return false;
+  if(!['ios','mikrotik','fortinet'].includes(source?.vendor))return false;
   for(const side of ['a','b']){
     const peer=lab[side];
     if(side===sourceSide)continue;
-    if(!['ios','mikrotik'].includes(peer.vendor)){
+    if(!['ios','mikrotik','fortinet'].includes(peer.vendor)||(source.routerModel?.endsWith('(Packet Tracer)')&&!peer.routerModel&&peer.vendor!=='ios')){
       peer.vendor=source.vendor;peer.routerModel='';[peer.wan,peer.lan]=PORTS[source.vendor];
       if(source.routerModel)selectRouterModel(peer,source.routerModel);
     }else if(peer.vendor===source.vendor&&!peer.routerModel&&source.routerModel){
@@ -30,7 +31,7 @@ export function prepareOfficeVpnPair(lab,sourceSide){
 export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
   const fail=message=>({errors:['Quick Setup + VPN: '+message],code:'',empty:false});
   if(!['a','b'].includes(side)||!lab?.a||!lab?.b)return fail('Select both router sites.');
-  if(['a','b'].some(key=>!['ios','mikrotik'].includes(lab[key].vendor)))return fail('Select Cisco or MikroTik on both router sites for this preset.');
+  if(['a','b'].some(key=>!['ios','mikrotik','fortinet'].includes(lab[key].vendor)))return fail('Select Cisco, MikroTik or FortiGate on both router sites for this preset.');
   for(const key of ['a','b']){
     const site=lab[key],blocked=modelGenerationError(site);
     if(blocked)return fail('Side '+key.toUpperCase()+': '+blocked);
@@ -54,7 +55,7 @@ export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
   const vpn=generateVpn(config);
   if(vpn.errors.length)return fail(vpn.errors.join(' '));
   const site=lab[side],peer=lab[side==='a'?'b':'a'];
-  const office=site.vendor==='mikrotik'?generateMikrotikOffice({site,side,selected,values}):generateStandardOffice({site,side,selected:{...selected,vpn:false},values,natExemptNetwork:peer.local,packetTracer:pt});
+  const office=site.vendor==='fortinet'?generateFortigateOffice({site,side,selected,values}):site.vendor==='mikrotik'?generateMikrotikOffice({site,side,selected,values}):generateStandardOffice({site,side,selected:{...selected,vpn:false},values,natExemptNetwork:peer.local,packetTracer:pt});
   if(office.errors.length)return office;
   const tunnel=pt?packetTracerIpsec(site,peer,config[side].psk):vpn[side].replace('! Merge NAT exemption into the existing NAT ACL before any translation permits.','! Office VPN NAT exemption is included above.');
   return {errors:[],empty:false,code:office.code+'\n'+tunnel+'\n'};

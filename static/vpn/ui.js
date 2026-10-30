@@ -86,7 +86,6 @@ function syncInputs() {
   }
 }
 function render() {
-  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor)||(['a','b'].some(side=>cliProfile(state[side]).legacy)&&option.value!=='ikev1');mountSelectionMenu(el,controller.signal)();}}
   const wg = state.protocol === 'wireguard', overlay = wg || ['gre','vti'].includes(state.protocol);
   root.querySelector('[data-vti]').hidden = state.protocol !== 'vti';
   root.querySelectorAll('[data-wg]').forEach(el => { el.hidden = !wg; });
@@ -96,6 +95,7 @@ function render() {
   for (const side of ['a', 'b']) {
     const fs = root.querySelector(`#vpn-${side}-vendor`).closest('fieldset');
     fs.querySelector('[data-profile-note]').textContent=cliProfile(state[side]).label+(state[side].vendor==='mikrotik'?' - match the installed version from /system resource print. An EVE-NG image label does not change the running RouterOS version.':'');
+    const fortiPlatform=fs.querySelector('option[value=fortinet]');if(fortiPlatform)fortiPlatform.textContent=state[side].vendor==='fortinet'?cliProfile(state[side]).label:VENDORS.fortinet;
     const platform=fs.querySelector('select[name=\"'+side+'.vendor\"] option[value=ios]');if(platform)platform.textContent=state[side].vendor==='ios'?cliProfile(state[side]).label:VENDORS.ios;
     fs.querySelector('[data-security-zone]').hidden=!['juniper','paloalto'].includes(state[side].vendor)||wg;
     fs.querySelector('[data-junos]').hidden=state[side].vendor!=='juniper'||wg;
@@ -103,6 +103,7 @@ function render() {
     fs.querySelector('[data-gateway]').hidden = false;
     fs.querySelector('[data-asa]').hidden = state[side].vendor !== 'asa';
   }
+  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor)||(['a','b'].some(side=>cliProfile(state[side]).legacy)&&option.value!=='ikev1');mountSelectionMenu(el,controller.signal)();}}
   result = generate(state);
   root.dispatchEvent(new CustomEvent('vpn-state',{detail:structuredClone(state)}));
   const notice = root.querySelector('#vpn-validation');
