@@ -149,3 +149,23 @@ for(const image of ['fortinet-FGT-v6.4.6 (EVE-NG)','fortinet-FGT-v7.2.0-build115
 console.log('Cisco / FortiGate: both directions, classic and modern IOS, FortiOS 6.4/7.2, matched IKE suites, mirrored selectors, Internet NAT, no-NAT VPN policies, DHCP/NTP and atomic export passed.');
 
 {const lab=createLab();selectRouterModel(lab.a,'Cisco 2911 (Packet Tracer)');assert.equal(lab.b.vendor,'fortinet');assert(prepareOfficeVpnPair(lab,'a'));assert.equal(lab.b.vendor,'ios');assert.equal(lab.b.routerModel,lab.a.routerModel);}
+
+// Explicit DES-only FortiGate evaluation profile: both orientations, never inferred from model.
+for(const reversed of [false,true])for(const classic of [false,true]){
+ const input=fixture();const iosSide=reversed?'b':'a',fortiSide=reversed?'a':'b';
+ input.lab[iosSide].vendor='ios';selectRouterModel(input.lab[iosSide],classic?'Cisco IOS 3725 (Dynamips) (EVE-NG)':'Cisco ISR4331-SEC/K9');
+ input.lab[fortiSide].vendor='fortinet';selectRouterModel(input.lab[fortiSide],'fortinet-FGT-v7.2.0-build1157 (EVE-NG)');
+ for(const side of ['a','b'])Object.assign(input.vpnConfig[side],input.lab[side],{remote:input.lab[side==='a'?'b':'a'].local,psk:'DesLabFixture2026'});
+ input.vpnConfig.compatibility='fortigate-eval-des';input.vpnType='ikev1';
+ const ios=good({...input,side:iosSide}),forti=good({...input,side:fortiSide});
+ for(const token of ['encryption des','hash sha','group 5','transform-set NOC-DES esp-des esp-sha-hmac','set transform-set NOC-DES','set pfs group5','LAB ONLY'])assert(ios.includes(token),token);
+ assert(!ios.includes('esp-aes'));assert(!ios.includes('crypto ikev2'));assert.equal((forti.match(/set proposal des-sha1/g)||[]).length,2);assert.equal((forti.match(/set dhgrp 5/g)||[]).length,2);
+ assert(forti.includes('set mode main'));assert(!forti.includes('set proposal aes'));assert.equal((forti.match(/set nat disable/g)||[]).length,2);assert(forti.includes('set nat enable'));assert(!maskSecrets(forti).includes('DesLabFixture2026'));
+ assert(terminalText(ios,{vendor:'ios'}).includes('esp-des esp-sha-hmac'));assert(terminalText(forti,{vendor:'fortinet'}).includes('set proposal des-sha1'));
+ input.vpnType='ikev2';bad(input);input.vpnType='ikev1';input.vpnConfig.b.psk='Mismatch';bad(input);
+}
+{
+ const input=fixture();input.vpnConfig.compatibility='fortigate-eval-des';input.vpnType='ikev1';bad(input);
+ input.vpnConfig.compatibility='unknown';bad(input);
+}
+console.log('Explicit Evaluation DES profile: matched Phase 1/2, both orientations, export, unchanged NAT and invalid-mode rejection passed.');
