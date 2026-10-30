@@ -28,7 +28,7 @@ test('IPv4 strict parsing and subnet masks', () => {
   assert(cidr('1.2.3.4/32').mask === '255.255.255.255');
 });
 for (const protocol of Object.keys(PROTOCOLS)) for (const a of Object.keys(VENDORS)) for (const b of Object.keys(VENDORS)) {
-  test(`${protocol}: ${a} ↔ ${b}`, () => {
+  test(`${protocol}: ${a} â†” ${b}`, () => {
     const c = config(); c.protocol = protocol; c.a.vendor = a; c.b.vendor = b;
     c.a.privateKey = 'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=';
     c.a.publicKey = 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=';
@@ -164,6 +164,12 @@ test('Static routes support interface, next-hop, distance, permanent and mask va
   const d=defaultsFor('static');d.interface='GigabitEthernet0/1';d.distance='200';d.permanent=true;assert(generateTool('static',d).scripts[0].code.includes('GigabitEthernet0/1 10.0.0.2 200 permanent'));
   d.mask='255.0.255.0';assert(generateTool('static',d).errors.length);d.mask='255.255.255.0';d.destination='192.168.20.1';assert(generateTool('static',d).errors.length);
 });
+test('SSH source ACL covers all VTY lines and rejects invalid sources atomically',()=>{
+ const h=defaultsFor('hardening');h.secret=h.enableSecret='Example2026';h.sshSources='192.168.1.0/24\n10.0.0.10\n10.0.0.10';
+ const r=generateTool('hardening',h);assert(r.errors.length===0);const c=r.scripts[0].code;
+ assert(c.includes('ip access-list standard NOC-SSH'));assert(c.includes('permit 192.168.1.0 0.0.0.255'));assert((c.match(/permit 10.0.0.10 0.0.0.0/g)||[]).length===1);assert(c.includes('deny any log'));for(const range of ['0 4','5 15'])assert(c.includes('line vty '+range+'\n access-class NOC-SSH in\n login local\n transport input ssh'));
+ for(const source of ['192.168.1.10/24','0.0.0.0/0','127.0.0.1','224.0.0.1','10.0.0.1;reload','10.0.0.1\nreload']){h.sshSources=source;const bad=generateTool('hardening',h);assert(bad.errors.length);assert(bad.scripts.length===0);}
+});
 test('Invalid CLI strings and enums never reach output',()=>{
   for(const key of ['nat','security','vlan']){const d=defaultsFor(key);const field=key==='nat'?'inside':'interface';d[field]='Gi0/1\nreload';const r=generateTool(key,d);assert(r.errors.length&&r.scripts.length===0);}
   const d=defaultsFor('security');d.violation='reload';assert(generateTool('security',d).errors.length);
@@ -206,7 +212,7 @@ test('Vendor capability gates do not produce another platform syntax',()=>{for(c
 test('Juniper and FortiOS BGP start with deny-all route policies',()=>{for(const vendor of ['juniper','fortinet']){const r=generateFeature('bgp',featureDefaults('bgp',vendor));assert(!r.errors.length);assert(r.scripts[0].code.includes(vendor==='juniper'?'then reject':'set action deny'));}});
 test('ISP gateway must be a usable connected next-hop',()=>{const lab=createLab();lab.a.gateway='203.0.114.1';const r=labScripts(lab);assert(r.errors.some(e=>e.includes('ISP gateway'))&&!r.scripts.length);});
 test('Router-on-a-stick outputs stay on separate physical devices',()=>{const lab=createLab(),d=featureDefaults('enterprise','ios');const router=composeDevice({lab,side:'a',role:'router',selected:{enterprise:true},values:{enterprise:d}}),sw=composeDevice({lab,side:'a',role:'switch',linkedEnterprise:d});assert(!router.errors.length&&!sw.errors.length);assert(router.code.includes('encapsulation dot1Q')&&!router.code.includes('switchport mode trunk'));assert(sw.code.includes('switchport mode trunk')&&!sw.code.includes('encapsulation dot1Q'));});
-test('PAN-OS per-route admin distance respects 10–240 boundaries',()=>{const d=featureDefaults('static','paloalto');for(const distance of ['1','9','241','255'])assert(generateFeature('static',{...d,distance}).errors.length);for(const distance of ['10','240'])assert(!generateFeature('static',{...d,distance}).errors.length);});
+test('PAN-OS per-route admin distance respects 10â€“240 boundaries',()=>{const d=featureDefaults('static','paloalto');for(const distance of ['1','9','241','255'])assert(generateFeature('static',{...d,distance}).errors.length);for(const distance of ['10','240'])assert(!generateFeature('static',{...d,distance}).errors.length);});
 
 test('EIGRP named mode uses SHA256 and explicit interface summarization',()=>{const d={...featureDefaults('eigrp','ios'),mode:'advanced',authSecret:'ExampleAuth_ChangeMe26'};const r=generateFeature('eigrp',d);assert(!r.errors.length,r.errors.join(';'));assert(r.scripts[0].code.includes('authentication mode hmac-sha-256 0'));assert(r.scripts[0].code.includes('summary-address 10.10.0.0 255.255.0.0'));assert(generateFeature('eigrp',{...d,authSecret:'bad;reload'}).errors.length);});
 test('IPv6 prefixes reject host bits, malformed compression and multicast next hops',()=>{const d=featureDefaults('static6','ios');for(const destination of ['2001:db8::1/64','2001:::1/64','2001:db8::/129','x::/64'])assert(generateFeature('static6',{...d,destination}).errors.length,destination);assert(generateFeature('static6',{...d,nextHop:'ff02::1'}).errors.length);assert(!generateFeature('static6',{...d,destination:'::/0'}).errors.length);});

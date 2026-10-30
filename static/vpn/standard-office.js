@@ -1,6 +1,6 @@
 import {isCiscoPhysical} from './port-options.js';
 import {cidr, ipv4, unicastNetwork} from './address.js';
-import {generateTool} from './catalog.js';
+import {generateTool,sshAllowedSources} from './catalog.js';
 import {gatewayParts} from './gateway-parts.js';
 import {officeConfig, validateInternet} from './internet.js';
 
@@ -61,7 +61,8 @@ function build(s,selected,values,natExemptNetwork,packetTracer,side){
     // Reuse the established credential and RSA validation, then emit scrypt commands.
     const checked=generateTool('hardening',{...h,vendor:'ios'});
     if(checked.errors.length)throw Error(checked.errors.join(' '));
-    const sources=new Map(rows.map(r=>[r.n.canonical,r.n]));
+    const explicit=sshAllowedSources(h.sshSources);
+    const sources=new Map((explicit.length?explicit:rows.map(r=>r.n)).map(n=>[n.canonical,n]));
     for(const line of String(d.managementSources??'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean)){
       const n=cidr(line.includes('/')?line:`${line}/32`);
       if(!n||n.canonical!==(line.includes('/')?line:`${line}/32`)||!unicastNetwork(n))throw Error('Additional SSH sources must be canonical unicast CIDRs or individual IPv4 hosts.');
