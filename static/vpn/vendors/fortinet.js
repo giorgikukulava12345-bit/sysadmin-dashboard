@@ -1,15 +1,20 @@
 import { cidr } from '../address.js';
 
 export default function fortinet(c, s, r) {
+  const legacy=Boolean(c.legacyIos),encryption=legacy?'256':c.encryption,hash=legacy?'sha1':'sha256',dh=legacy?'5':c.dh,pfs=legacy?'5':c.pfs;
   const gre = c.protocol === 'gre', l = cidr(s.local), remote = cidr(s.remote), iface = gre ? 'NOC-GRE' : 'NOC-VPN';
-  return `config vpn ipsec phase1-interface
+  return `${legacy?'# Classic IOS interoperability: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.\n':''}config vpn ipsec phase1-interface
  edit "NOC-VPN"
+  set type static
   set interface "${s.wan}"
+  set authmethod psk
+  set peertype any
   set ike-version ${c.protocol === 'ikev1' ? '1' : '2'}
+${c.protocol==='ikev1'?'  set mode main\n':''}
   set local-gw ${s.ip}
   set remote-gw ${r.ip}
-  set proposal aes${c.encryption}-sha256
-  set dhgrp ${c.dh}
+  set proposal aes${encryption}-${hash}
+  set dhgrp ${dh}
   set keylife ${c.lifetime1}
   set nattraversal enable
   set dpd on-idle
@@ -19,9 +24,9 @@ end
 config vpn ipsec phase2-interface
  edit "NOC-P2"
   set phase1name "NOC-VPN"
-  set proposal aes${c.encryption}-sha256
+  set proposal aes${encryption}-${hash}
   set pfs enable
-  set dhgrp ${c.pfs}
+  set dhgrp ${pfs}
   set keylifeseconds ${c.lifetime2}
   set src-subnet ${gre ? s.ip + ' 255.255.255.255' : l.ip + ' ' + l.mask}
   set dst-subnet ${gre ? r.ip + ' 255.255.255.255' : remote.ip + ' ' + remote.mask}
@@ -59,6 +64,11 @@ config router static
   set device "${iface}"
 ${gre ? `  set gateway ${r.tunnel}
 ` : ''} next
+ edit 0
+  set dst ${remote.ip} ${remote.mask}
+  set blackhole enable
+  set distance 254
+ next
 end
 config firewall policy
  edit 0

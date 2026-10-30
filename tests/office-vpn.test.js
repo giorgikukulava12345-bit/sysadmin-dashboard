@@ -78,10 +78,10 @@ for(const mutate of [
 }
 console.log('Combined Office + VPN: paired hardware and Packet Tracer CLI, NAT exemption order, peer routes, owned PAT replacement, masking, atomic failures and unchanged ordinary preset passed.');
 
-// Default Side B is FortiGate: a single preset click must prepare the Cisco pair.
+// Unsupported default peers can still be prepared as the selected vendor.
 for(const pt of [false,true]){
   const lab=createLab();lab.a.vendor='ios';selectRouterModel(lab.a,pt?'Cisco 2911 (Packet Tracer)':'Cisco ISR4331-SEC/K9');
-  const before=structuredClone(lab.b);lab.b.psk='KeepFixtureKey';
+  lab.b.vendor='juniper';const before=structuredClone(lab.b);lab.b.psk='KeepFixtureKey';
   assert(prepareOfficeVpnPair(lab,'a'));
   assert.equal(lab.b.vendor,'ios');assert.equal(lab.b.routerModel,lab.a.routerModel);
   for(const field of ['ip','local','lanIp','gateway','wanPrefix'])assert.equal(lab.b[field],before[field]);
@@ -131,3 +131,21 @@ for(const rosVersion of ['6.49.19','7.23.7'])for(const reversed of [false,true])
  vpnConfig.b.psk='Mismatch';for(const side of ['a','b'])bad({...base,side});
 }
 console.log('Cisco / MikroTik Office VPN: both orientations, RouterOS 6 and 7, matched legacy suites, vendor preservation, DHCP, PAT exemption, firewall order, NTP and secret/atomic failure checks passed.');
+
+// Classic Cisco / FortiGate: protect the screenshot LANs and keep Internet policy NAT separate.
+for(const image of ['fortinet-FGT-v6.4.6 (EVE-NG)','fortinet-FGT-v7.2.0-build1157 (EVE-NG)'])for(const reversed of [false,true])for(const classic of [false,true]){
+ const lab=createLab(),vpnConfig=structuredClone(DEFAULTS),iosSide=reversed?'b':'a',fortiSide=reversed?'a':'b';
+ lab[iosSide].vendor='ios';selectRouterModel(lab[iosSide],classic?'Cisco IOS 3725 (Dynamips) (EVE-NG)':'Cisco ISR4331-SEC/K9');lab[fortiSide].vendor='fortinet';selectRouterModel(lab[fortiSide],image);
+ for(const side of ['a','b']){Object.assign(lab[side],{ip:side===iosSide?'192.168.73.50':'192.168.73.150',wanPrefix:'24',gateway:'192.168.73.2',routerOnly:true});Object.assign(vpnConfig[side],lab[side],{remote:lab[side==='a'?'b':'a'].local,psk:'CiscoFortigateFixture2026'});}
+ const before=structuredClone(lab);for(const source of ['a','b']){assert(prepareOfficeVpnPair(lab,source));assert.deepEqual(lab,before);}
+ const protocol=classic?'ikev1':'ikev2',selected={internet_access:true,vpn:true,ntp_syslog:true},values={internet_access:{...featureDefaults('internet_access','fortinet'),officeVpn:true,standardOffice:true,parts:{interfaces:true,nat:true,route:true,firewall:false,dhcp:true,dns:true}},ntp_syslog:{ntp:'129.250.35.251'}};
+ const base={lab,role:'router',selected,values,vpnConfig,vpnType:protocol};const ios=good({...base,side:iosSide}),fgt=good({...base,side:fortiSide});
+ assert(ios.includes(classic?'crypto isakmp policy 100':'crypto ikev2 proposal NOC-IKE'));assert(ios.includes('OFFICE-VPN-NAT'));
+ for(const token of ['set ike-version '+(classic?'1':'2'),'set proposal '+(classic?'aes256-sha1':'aes256-sha256'),'set dhgrp '+(classic?'5':'14'),'set authmethod psk','set remote-gw 192.168.73.50','set local-gw 192.168.73.150','set phase1name "NOC-VPN"','set device "NOC-VPN"','set blackhole enable','set distance 254','set name "NOC-OFFICE-INTERNET"','set nat enable','set name "NOC-outbound"','set name "NOC-inbound"','set ntpsync enable','set server "129.250.35.251"','set start-ip '+lab[fortiSide].lanIp.replace(/\.1$/,'.101'),'set hostname "R'+(fortiSide==='b'?'2':'1')+'"'])assert(fgt.includes(token),token);
+ assert.equal((fgt.match(/set nat disable/g)||[]).length,2);assert(!fgt.includes('ip nat inside'));assert(!fgt.includes('crypto map'));assert(!fgt.includes('/ip ipsec'));assert(!fgt.includes('unset allowaccess'));
+ assert(fgt.includes('set src-subnet '+lab[fortiSide].local.replace('/24','')+' 255.255.255.0'));assert(fgt.includes('set dst-subnet '+lab[iosSide].local.replace('/24','')+' 255.255.255.0'));
+ assert(!maskSecrets(fgt).includes('CiscoFortigateFixture2026'));vpnConfig.b.psk='Mismatch';for(const side of ['a','b'])bad({...base,side});
+}
+console.log('Cisco / FortiGate: both directions, classic and modern IOS, FortiOS 6.4/7.2, matched IKE suites, mirrored selectors, Internet NAT, no-NAT VPN policies, DHCP/NTP and atomic export passed.');
+
+{const lab=createLab();selectRouterModel(lab.a,'Cisco 2911 (Packet Tracer)');assert.equal(lab.b.vendor,'fortinet');assert(prepareOfficeVpnPair(lab,'a'));assert.equal(lab.b.vendor,'ios');assert.equal(lab.b.routerModel,lab.a.routerModel);}
