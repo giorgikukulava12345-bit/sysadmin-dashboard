@@ -17,6 +17,7 @@ export const VENDORS = {
 };
 export const PROTOCOLS = { ikev2: 'IPsec · IKEv2', ikev1: 'IPsec · IKEv1', vti: 'Cisco VTI · IKEv1 (IOS ↔ IOS)', gre: 'GRE over IPsec · IKEv2', wireguard: 'WireGuard' };
 export const DEFAULTS = {
+  compatibility: 'standard',
   bindInterfaces: false,
   vtiLegacy: false,
   protocol: 'ikev2', encryption: '256', hash: '256', dh: '14', pfs: '14', lifetime1: '28800', lifetime2: '3600',
@@ -35,6 +36,11 @@ export function support(vendor, protocol) {
 const keyOK = k => /^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$/.test(k) && !/^A{43}=$/.test(k);
 export function validate(c) {
   const errors = validateInterfaces(c);
+  if(!['standard','fortigate-eval-des'].includes(c.compatibility||'standard'))errors.push('Select a supported VPN compatibility profile.');
+  if(c.compatibility==='fortigate-eval-des'){
+    if(c.protocol!=='ikev1')errors.push('FortiGate Evaluation DES lab profile requires IKEv1.');
+    if(!['a','b'].some(side=>c[side].vendor==='fortinet')||['a','b'].some(side=>!['ios','fortinet'].includes(c[side].vendor)||cliProfile(c[side]).id==='packet-tracer'))errors.push('FortiGate Evaluation DES lab profile supports FortiGate and hardware / EVE-NG Cisco IOS peers only.');
+  }
   if (!Object.hasOwn(PROTOCOLS, c.protocol)) errors.push('Select a supported protocol.');
   if (c.protocol !== 'wireguard') {
   for (const [field, allowed] of Object.entries({ encryption: ['128','256'], hash: ['256'], dh: ['14','19'], pfs: ['14','19'] })) {
@@ -85,7 +91,8 @@ export function generate(c) {
   const errors = [...validate(c),...['a','b'].flatMap(side=>profileErrors(c[side],{selected:{vpn:true},vpnType:c.protocol}))];
   if(['a','b'].some(side=>cliProfile(c[side]).legacy)&&['a','b'].some(side=>!['ios','mikrotik','fortinet'].includes(c[side].vendor)))errors.push('Legacy Cisco image profiles support Cisco, MikroTik or FortiGate peers with the same lab IKEv1 suite.');
   if (errors.length) return { errors, a: '', b: '' };
-  c={...c,legacyIos:c.protocol==='ikev1'&&['a','b'].some(side=>cliProfile(c[side]).legacy)};
+  const labDes=c.compatibility==='fortigate-eval-des';
+  c={...c,labDes,legacyIos:c.protocol==='ikev1'&&(labDes||['a','b'].some(side=>cliProfile(c[side]).legacy))};
   const generators = { ios, asa, mikrotik, fortinet, paloalto, juniper };
   const render = (s, r) => (c.bindInterfaces ? interfaceConfig(s) : '') + (c.protocol === 'vti' ? vtiConfig(c, s, r) : c.protocol === 'wireguard' ? wireguard(c, s, r) : generators[s.vendor](c, s, r));
   const a=profileCLI(render(c.a,c.b),c.a),b=profileCLI(render(c.b,c.a),c.b),issues=['a','b'].flatMap(side=>profileErrors(c[side],{code:side==='a'?a:b}));
