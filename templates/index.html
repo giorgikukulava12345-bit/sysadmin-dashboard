@@ -77,6 +77,21 @@
 <link rel="stylesheet" href="/static/vpn/obsidian.css?v=dropdown-visibility-20261028">
 <link rel="stylesheet" href="/static/vpn/header-network.css">
 <link rel="stylesheet" href="/static/vpn/lab-polish.css">
+
+<!-- Vercel Web Analytics: aggregate visitor/page-view metrics only. -->
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  window.va('beforeSend', function (event) {
+    if (event.url) {
+      var url = new URL(event.url, window.location.origin);
+      url.search = '';
+      url.hash = '';
+      event.url = url.href;
+    }
+    return event;
+  });
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </head>
 
 <body class="font-sans text-slate-300 min-h-screen relative">
