@@ -129,3 +129,5 @@ assert(analyze('version 12.4\nntp server 1.1.1.1','ios').firmware==='12.4');asse
 console.log('Configuration analysis: five vendors, 77 feature templates, actual VPN and port-forward additions, PAT review, duplicate/conflict gates and version checks passed.');
 
 assert(add("/ip service set telnet disabled=no","/ip service set ssh disabled=no","mikrotik").code.includes("set ssh"));
+
+assert(analyze(ios,"ios").detected.interfaces);assert(!analyze(ios,"ios").detected.internet_access);assert(add(ios,"ntp server 1.1.1.1","ios",{selected:{internet_access:true}}).errors.length);

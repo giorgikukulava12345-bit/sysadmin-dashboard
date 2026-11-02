@@ -69,7 +69,7 @@ function flatten(root,path=[]){return root.children.flatMap(n=>n.children.length
 
 // Positive configuration evidence only. Presence does not prove runtime operation.
 const RULES={
- interfaces:/\b(?:ip address \d|ip address add|set ip \d|family inet address|layer3 ip)\b/,
+ interfaces:/\b(?:ip address \d+(?:\.\d+){3}|ip address add|set ip \d+(?:\.\d+){3}|family inet address|layer3 ip)\b/,
  dns:/\b(?:ip name-server|ip dns set|config system dns|system name-server|dns-setting servers)\b/,
  nat:/\b(?:ip nat inside source|firewall nat|security nat|rulebase nat rules|set nat enable)\b/,
  portforward:/\b(?:ip nat inside source static (?:tcp|udp)|action=dst-nat|config firewall vip|destination-nat|destination-translation)\b/,
@@ -131,7 +131,6 @@ export function analyzeConfiguration(text,vendor){
   if(vendor==='paloalto')for(const l of leaves)if(/destination 0\.0\.0\.0\/0/.test(l.text)){const m=l.text.match(/nexthop ip-address (\S+)/);if(m)gateway=m[1];}
   const natWan=vendor==='ios'?root.children.filter(n=>n.text.startsWith('interface ')).find(n=>n.children.some(l=>l.text==='ip nat outside'))?.text.slice(10):vendor==='mikrotik'?leaves.map(l=>/\/ip firewall nat.*chain=srcnat/.test(l.text)?attrs(l.text)['out-interface']:null).find(Boolean):'';
   if(defaults.length>1)detected.wan_failover={lines:defaults.slice(0,5).map(l=>l.line)};
-  if(gateway&&detected.nat)detected.internet_access={lines:detected.nat.lines};
   const wan=interfaces.find(i=>i.id===natWan)||interfaces.find(i=>gateway&&cidr(i.ip+'/'+i.prefix).network<=ipv4(gateway)&&cidr(i.ip+'/'+i.prefix).end>=ipv4(gateway));
   const lan=interfaces.find(i=>i.id!==wan?.id&&!/^(?:Loopback|lo|Tunnel|st\.|tunnel\.)/.test(i.id));
   if(interfaces.length>2)warnings.push('Multiple interfaces detected: choose the actual WAN and LAN before applying topology suggestions.');
@@ -247,6 +246,7 @@ export function additionsConfiguration(existing,generated,vendor,{selected={},si
   if(vendor==='ios'&&analysis.firmware.startsWith('12.')&&/crypto ikev2|netconf-yang|restconf/.test(generated))throw Error('The pasted configuration reports IOS 12.x. Select its matching classic IOS image profile; IKEv2 / NETCONF / RESTCONF commands are not supplied for that profile.');
   if(vendor==='mikrotik'&&analysis.firmware.startsWith('6.')&&/\/system ntp client servers|\/interface wireguard|\/routing (?:bgp|ospf|table|rule|filter)/.test(generated))throw Error('The pasted export reports RouterOS 6. Select the RouterOS 6 image/profile before generating version-specific commands.');
   if(selected.bootstrap||selected.enterprise)throw Error('Empty-device setup presets cannot be added to an existing configuration. Choose individual services.');
+  if(selected.internet_access&&['nat','dhcp','static','zbfw'].some(id=>analysis.detected[id]))throw Error('Existing gateway components were detected. Choose individual new services instead of applying a complete Internet Gateway preset over them.');
   const natPlan=selected.vpn&&analysis.detected.nat&&vendor==='ios'?ciscoNatExemption(prior,site,peer,includeNatExemption):[];
   if(selected.vpn&&vendor==='juniper'&&analysis.detected.nat){
    const old=flatten(prior).map(l=>l.text),fresh=flatten(next).map(l=>l.text),vpnZone=fresh.map(s=>s.match(/^set security zones security-zone (\S+) interfaces st\./)?.[1]).find(Boolean);
