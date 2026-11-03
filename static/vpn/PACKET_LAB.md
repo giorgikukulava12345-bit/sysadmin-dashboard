@@ -1,8 +1,20 @@
-# Free reviewed Packet Tracer lab workspace
+# Free local vision AI and reviewed Packet Tracer lab workspace
+
+## Local AI (optional, no paid API)
+
+The workspace now supports actual image-and-task reasoning through a locally installed Ollama Qwen3-VL model. Use `qwen3-vl:4b` (3.3 GB), `:2b` or `:8b`. No cloud model IDs are accepted. Start Ollama, pull the desired model and run the downloadable `static/agent/noc_lab_ai.py` helper with Python 3.10+. The Windows `start_lab_ai.ps1` launcher checks prerequisites, verifies the helper checksum, pulls the selected local model, and starts the helper. It does not change global execution policy, open network interfaces or install a startup service.
+
+The helper binds **127.0.0.1:8767 only**, forwards to **127.0.0.1:11434 only** without proxies, requires the exact production website Origin/loopback Host and a random per-process bearer token, and handles browser local-network preflight. No image/task/token logging, shell execution, device access, arbitrary endpoint, cloud model or model pull endpoint is exposed. One bounded inference runs at a time; request/image/output sizes and timeouts are limited.
+
+`packet-lab-ai.js` creates whole-page and detail image views, sends them and the task/service catalog to the local helper and validates the structured draft atomically. Unknown devices/services/types are rejected. Missing service fields become empty values rather than unrelated lab defaults. The imported draft stays editable, cannot auto-generate/apply CLI, displays uncertainties and requires a fresh review checkbox. Previous device forms can be restored. Input edits/cancellation ignore stale responses. Clear removes the temporary token and draft.
+
+Vision AI can misread small labels, infer a wrong link or misunderstand incomplete lab sheets. Original screenshots are required for readable detail. Destructive cleanup stages and unsupported/missing requirements must be reported as uncertainties, not invented commands. This is not a guarantee of universal or error-free Packet Tracer support. Local CPU inference can take minutes; cancellation stops importing the result, while the local model may finish computing its current request.
+
+Tests: `node tests/packet-lab-ai.test.js`, `python -m unittest discover -s tests -p test_lab_ai.py`, and `tests/packet-lab-ai.html` (17 UI assertions for connection/import/restore/invalid result/clear). Actual vision inference and production connection are verified separately from mocked UI transport.
 
 `packet-lab-ui.js` mounts a separate collapsed workspace before the lab. It does not restore the removed current-configuration analyzer or switch/host tabs in the existing router workbench.
 
-Workflow: upload/paste an image, run local enhanced OCR, enter the full assignment, suggest device names, then explicitly enter each device's model, ports, addresses and required service parameters. Confirm review before generating. Every device gets separate plain-text configuration/instructions, copy/download and EXEC verification commands. Changing an input removes old results. Clear removes all in-tab lab data. Nothing is saved to storage or posted to a server.
+Workflow: upload/paste an image, enter the full assignment, then either use local vision AI to propose device/service forms or use enhanced OCR and manually complete them. Confirm review before generating. Every device gets separate plain-text configuration/instructions, copy/download and EXEC verification commands. Changing an input removes old results. Clear removes lab data and the AI session token. Nothing is saved to browser storage or posted to the website server; local AI sends image/task data to the user's own loopback helper.
 
 OCR is Tesseract.js 7 with the existing pinned multi-pass recognition pipeline. Engine/language files download from jsDelivr; images remain in the tab. English OCR is used. This is **not a vision language model**: arbitrary prose, wire crossings, missing labels, Georgian OCR, and assignment intent are not automatically solved. Device-name suggestions never assign ports or IPs. Use original-resolution screenshots and manually verify every digit. No promise of error-free recognition or universal Packet Tracer CLI coverage is made.
 
