@@ -42,10 +42,10 @@ export function generateLab(devices,{reviewed=false,task=''}={}){
   if(!ports.length)fail('Enter the device interfaces; missing ports are never guessed.');
   if(d.kind==='switch'&&ports.some(p=>p.address&&!/^Vlan/.test(p.port)))fail('2960 uses an SVI for management; physical ports are Layer 2.');
   if(d.kind==='host'){
-   if(ports.length!==1||!ports[0].address)fail('Host requires one addressed Ethernet interface.');const n=ports[0].net,g=ipv4(d.gateway);if(g===null||g<=n.network||g>=n.end||d.gateway===ports[0].address.split('/')[0])fail('Enter the host gateway in its subnet.');
+   if(ports.length!==1||!ports[0].address)fail('Host requires one addressed Ethernet interface.');const n=ports[0].net,g=ipv4(d.gateway);if(d.gateway&&(g===null||g<=n.network||g>=n.end||d.gateway===ports[0].address.split('/')[0]))fail('Enter the host gateway in its subnet, or leave blank if none is required.');
    if(d.services?.length)fail('Host service/server configuration uses Packet Tracer Desktop/Services, not IOS.');
-   scripts.push({name:d.name,kind:d.kind,code:`Packet Tracer → ${d.name} → Desktop → IP Configuration → Static\nIPv4 address: ${ports[0].address.split('/')[0]}\nSubnet mask: ${n.mask}\nDefault gateway: ${d.gateway}\nDNS server: ${d.dns||'Set according to the task'}\n\nCommand Prompt verification:\nipconfig\nping ${d.gateway}`,verify:`ipconfig\nping ${d.gateway}`});
-   summary.push(`${d.name}: host ${ports[0].address}; gateway ${d.gateway}.`);continue;
+   const verify='ipconfig'+(d.gateway?'\nping '+d.gateway:'');scripts.push({name:d.name,kind:d.kind,code:`Packet Tracer → ${d.name} → Desktop → IP Configuration → Static\nIPv4 address: ${ports[0].address.split('/')[0]}\nSubnet mask: ${n.mask}\nDefault gateway: ${d.gateway||'Leave blank if the task does not specify a gateway'}\nDNS server: ${d.dns||'Set according to the task'}\n\nCommand Prompt verification:\n${verify}`,verify});
+   summary.push(`${d.name}: host ${ports[0].address}; gateway ${d.gateway||"not specified"}.`);continue;
   }
   const lines=['enable','configure terminal',`hostname ${d.name}`];if(d.kind==='multilayer')lines.push('ip routing');
   for(const p of ports){if(p.tag)lines.push(`interface ${p.port.split('.')[0]}`,' no shutdown',' exit');if(/^Vlan\d+$/.test(p.port)&&+p.port.slice(4)!==1)lines.push('vlan '+p.port.slice(4),' exit');lines.push('interface '+p.port);if(p.tag)lines.push(' encapsulation dot1Q '+p.tag);if(p.address){if(d.kind==='multilayer'&&!/^(Vlan|Loopback|Tunnel)/.test(p.port))lines.push(' no switchport');lines.push(' ip address '+p.address.split('/')[0]+' '+p.net.mask);}lines.push(' no shutdown',' exit');}lines.push('end');
