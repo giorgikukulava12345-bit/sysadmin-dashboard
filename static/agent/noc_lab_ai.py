@@ -12,7 +12,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ORIGIN = 'https://giorgikukulava.vercel.app'
-MODELS = ('qwen3-vl:4b', 'qwen3-vl:2b', 'qwen3-vl:8b')
+MODELS = ('qwen3-vl:4b-instruct', 'qwen3-vl:2b-instruct', 'qwen3-vl:8b-instruct')
 MAX_BODY = 12 * 1024 * 1024
 PLAN_SCHEMA = {'type': 'object', 'required': ['summary', 'uncertainties', 'devices'], 'additionalProperties': False, 'properties': {
  'summary': {'type': 'string'}, 'uncertainties': {'type': 'array', 'items': {'type': 'string'}},
@@ -60,7 +60,7 @@ def bounded_schema(catalog):
 
 def validate_request(data):
     if not isinstance(data, dict) or data.get('model') not in MODELS:
-        raise ValueError('Choose an installed local qwen3-vl model (2b, 4b or 8b).')
+        raise ValueError('Choose an installed local Qwen3-VL Instruct model (2b-instruct, 4b-instruct or 8b-instruct).')
     images = data.get('images')
     if not isinstance(images, list) or not 1 <= len(images) <= 5:
         raise ValueError('Provide 1–5 image views.')
@@ -94,7 +94,7 @@ def ollama(path, payload=None, timeout=10):
 
 def analyze(data):
     validate_request(data)
-    payload = {'model': data['model'], 'stream': False, 'think': False, 'format': bounded_schema(data.get('catalog', '{}')),
+    payload = {'model': data['model'], 'stream': False, 'format': bounded_schema(data.get('catalog', '{}')),
        'options': {'temperature': 0, 'num_ctx': 16384, 'num_predict': 4096}, 'keep_alive': '5m',
        'messages': [{'role': 'system', 'content': SYSTEM + '\nBe compact: summary under 150 words; at most 12 short uncertainties. Include ONLY task-required services and meaningful fields. Do not copy the service catalog, repeat devices or add narrative/CLI properties. If detail is unreadable, leave it blank and report the uncertainty instead of reasoning at length.'}, {'role': 'user', 'images': data['images'],
         'content': 'SERVICE CATALOG (field keys/types; examples are not requirements):\n' + data.get('catalog', '') +

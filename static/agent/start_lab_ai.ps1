@@ -1,4 +1,4 @@
-param([ValidateSet('qwen3-vl:4b','qwen3-vl:2b','qwen3-vl:8b')][string]$Model='qwen3-vl:4b')
+param([ValidateSet('qwen3-vl:4b-instruct','qwen3-vl:2b-instruct','qwen3-vl:8b-instruct')][string]$Model='qwen3-vl:2b-instruct')
 $ErrorActionPreference='Stop'
 $ollamaCommand=Get-Command ollama -ErrorAction SilentlyContinue
 if(-not $ollamaCommand){throw 'Install free Ollama from https://ollama.com/download/windows, then open a new PowerShell window and run this file again.'}
@@ -9,7 +9,7 @@ if(-not $pythonCommand){throw 'Python 3.10+ is required. Install it from https:/
 & $pythonCommand.Source @pythonPrefix -c 'import sys; assert sys.version_info >= (3,10), "Python 3.10+ required"'
 if($LASTEXITCODE -ne 0){throw 'A working Python 3.10+ installation is required.'}
 $helperPath=Join-Path $PSScriptRoot 'noc_lab_ai.py'
-$helperHash='eab281d3a309ae1f6f7d47d715afcc972bf0efb3dab06b10fcbcda0dd6cb5e2d'
+$helperHash='fd9a4fbb26780ddd6312f3c691f42f231194afb41d64b46191ea006b4f2c001f'
 if(-not (Test-Path -LiteralPath $helperPath)){Invoke-WebRequest -Uri 'https://giorgikukulava.vercel.app/static/agent/noc_lab_ai.py' -OutFile $helperPath}
 if((Get-FileHash -Algorithm SHA256 -LiteralPath $helperPath).Hash.ToLowerInvariant() -ne $helperHash){throw 'Local helper checksum does not match this launcher. Download the latest helper and launcher together from the website.'}
 $env:OLLAMA_HOST='127.0.0.1:11434'
