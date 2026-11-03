@@ -35,6 +35,7 @@ export function generateLab(devices,{reviewed=false,task=''}={}){
  const names=new Set(),addresses=new Set();
  for(const d of devices){try{
   safe(d.name,'Hostname');if(names.has(d.name.toLowerCase()))fail('Duplicate hostname.');names.add(d.name.toLowerCase());if(!Object.hasOwn(LAB_MODELS,d.kind))fail('Select a supported Packet Tracer device type.');
+  if(d.aiDraft&&d.kind==='router'&&!LAB_ROUTER_MODELS.includes(d.model))fail('AI did not confirm a supported router model. Select the actual hardware model before export.');
   const model=d.kind==='router'?(d.model||LAB_MODELS.router):LAB_MODELS[d.kind];if(d.kind==='router'&&!LAB_ROUTER_MODELS.includes(model))fail('Select a supported router model.');
   const ports=labInterfaces(d.interfaces);for(const p of ports){if(!p.address)continue;const ip=p.address.split('/')[0];if(addresses.has(ip))fail('IPv4 address reused on another interface: '+ip);addresses.add(ip);}
   if(d.kind!=='host')for(const p of ports){const physical=p.port.split('.')[0];if(/^(Vlan|Loopback|Tunnel)/.test(physical))continue;if(/^Serial/.test(physical)){if(d.serialInstalled!==true)fail('Confirm that the exact serial module/ports are installed in Packet Tracer.');continue;}const valid=d.kind==='router'?model.includes('2811')?/^FastEthernet0\/[01]$/.test(physical):new RegExp('^GigabitEthernet0/[0-'+(model.includes('1941')?'1':'2')+']$').test(physical):/^FastEthernet0\/(?:[1-9]|1\d|2[0-4])$|^GigabitEthernet0\/[12]$/.test(physical);if(!valid)fail(p.port+' does not match the selected model onboard port map.');}

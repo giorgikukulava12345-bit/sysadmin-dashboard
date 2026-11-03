@@ -1,7 +1,7 @@
 import {LAB_SERVICES,LAB_ROUTER_MODELS,LAB_MODELS,labFields,labDefaults} from './packet-lab-model.js';
-export const LOCAL_AI_URL='http://127.0.0.1:8767';
+export const LOCAL_AI_URL='http://localhost:8767';
 export const LOCAL_AI_MODELS=['qwen3-vl:4b','qwen3-vl:2b','qwen3-vl:8b'];
-export function aiCatalog(){return JSON.stringify({models:LAB_ROUTER_MODELS,kinds:LAB_MODELS,services:Object.fromEntries(Object.keys(LAB_SERVICES).map(id=>[id,{title:LAB_SERVICES[id],fields:labFields(id).map(f=>({key:f.key,type:f.type||'text',label:f.label,...(f.options?{options:f.options}:{})}))}]))});}
+export function aiCatalog(){return JSON.stringify({models:LAB_ROUTER_MODELS,kinds:LAB_MODELS,services:Object.fromEntries(Object.keys(LAB_SERVICES).map(id=>[id,{title:LAB_SERVICES[id],fields:labFields(id).map(f=>({key:f.key,type:f.type||'text',...(f.options?{options:f.options}:{})}))}]))});}
 export function reviewedAiDraft(plan){
  if(!plan||typeof plan!=='object'||!Array.isArray(plan.devices)||!plan.devices.length||plan.devices.length>32)throw Error('AI returned no complete device list. Try a clearer screenshot.');
  const text=(v,max=12000)=>typeof v==='string'?v.slice(0,max):'';
@@ -14,7 +14,7 @@ export function reviewedAiDraft(plan){
    for(const f of fields)data[f.key]=f.type==='checkbox'?false:'';
    for(const f of fields)if(Object.hasOwn(s.data,f.key)){const v=s.data[f.key];if(f.type==='checkbox'){if(typeof v!=='boolean')throw Error('AI returned an invalid checkbox value.');data[f.key]=v;}else if(typeof v==='string'||typeof v==='number')data[f.key]=String(v).slice(0,12000);else if(v!==null)throw Error('AI returned an invalid service field.');}
    return {id:s.id,data};});
-  return {name:text(d.name,63),kind:d.kind,model:text(d.model,100),interfaces:text(d.interfaces),gateway:text(d.gateway,50),dns:text(d.dns,50),serialInstalled:false,services};
+  return {name:text(d.name,63),kind:d.kind,model:text(d.model,100),interfaces:text(d.interfaces),gateway:text(d.gateway,50),dns:text(d.dns,50),aiDraft:true,serialInstalled:false,services};
  });
  return {devices,summary:text(plan.summary),uncertainties:plan.uncertainties.map(x=>text(x,1000)).slice(0,64)};
 }
