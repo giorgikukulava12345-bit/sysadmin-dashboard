@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {aiCatalog,reviewedAiDraft,LOCAL_AI_URL,LOCAL_AI_MODELS} from '../static/vpn/packet-lab-ai.js';
+import {generateLab} from '../static/vpn/packet-lab-model.js';
 const plan={summary:'Two-switch VLAN task',uncertainties:['Verify switch model'],devices:[{name:'S1',kind:'switch',interfaces:'FastEthernet0/1,,S2 Fa0/1\nFastEthernet0/6,,PC-A\nVlan1,192.168.1.11/24',services:[{id:'vlan',data:{interface:'FastEthernet0/6',vlan:10,name:'Students',mode:'access'}}]}]};
 let r=reviewedAiDraft(plan);assert.equal(r.devices[0].name,'S1');assert.equal(r.devices[0].services[0].data.vlan,'10');assert.equal(r.devices[0].services[0].data.allowed,'');assert.equal(r.devices[0].serialInstalled,false);assert.equal(r.uncertainties.length,1);
 assert.throws(()=>reviewedAiDraft({...plan,uncertainties:null}));assert.throws(()=>reviewedAiDraft({...plan,devices:[...plan.devices,{name:'bad',kind:'firewall',interfaces:'',services:[]}]}));assert.throws(()=>reviewedAiDraft({...plan,devices:[{...plan.devices[0],services:[{id:'execute',data:{}}]}]}));assert.throws(()=>reviewedAiDraft({...plan,devices:[{...plan.devices[0],services:[{id:'vlan',data:{interface:{unsafe:'object'}}}]}]}));
-assert.equal(LOCAL_AI_URL,'http://127.0.0.1:8767');assert(LOCAL_AI_MODELS.every(x=>!x.includes('cloud')));assert(JSON.parse(aiCatalog()).services.lab_trunk);assert(JSON.parse(aiCatalog()).models.length===3);
+assert.equal(LOCAL_AI_URL,'http://localhost:8767');assert(LOCAL_AI_MODELS.every(x=>!x.includes('cloud')));assert(JSON.parse(aiCatalog()).services.lab_trunk);assert(JSON.parse(aiCatalog()).models.length===3);
+const unknownRouter=reviewedAiDraft({summary:'Unknown router',uncertainties:['Model is unreadable'],devices:[{name:'R1',kind:'router',model:'',interfaces:'GigabitEthernet0/0,10.0.0.1/30',services:[]}]});assert.equal(generateLab(unknownRouter.devices,{reviewed:true}).scripts.length,0);assert.match(generateLab(unknownRouter.devices,{reviewed:true}).errors.join(),/actual hardware model/);
 console.log('Local AI draft import: bounded atomic schema, uncertainty reporting, known service fields, no sample-value fill and local-only models passed.');
