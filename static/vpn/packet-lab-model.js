@@ -10,7 +10,7 @@ export const LAB_ROUTER_MODELS=['Cisco 2911 (Packet Tracer)','Cisco 1941 (Packet
 const OMIT=new Set(['vpn','bootstrap','enterprise','internet_access','wan_failover','vxlan','dmvpn','automation','copp','bfd','isis','remotevpn','pvlan','span','ipsla','multicast','ospf_advanced']);
 export const LAB_SERVICES={...Object.fromEntries(Object.entries(FEATURES).filter(([id,f])=>f.vendors.includes('ios')&&!OMIT.has(id)).map(([id,f])=>[id,f.title])),...Object.fromEntries(Object.entries(LAB_EXTRA).map(([id,f])=>[id,f.title]))};
 export const labDefaults=id=>LAB_EXTRA[id]?extraDefaults(id):featureDefaults(id,'ios');
-export const labFields=id=>LAB_EXTRA[id]?.fields||featureFields(id,'ios');
+export const labFields=id=>LAB_EXTRA[id]?.fields||[...featureFields(id,'ios'),...(id==='portforward'?[{key:'inside',label:'Reviewed inside interface',value:'',type:'text'},{key:'outside',label:'Reviewed outside interface',value:'',type:'text'}]:[])];
 export const labDefinition=id=>id==='hardening'?{...FEATURES[id],roles:['router','switch']}:LAB_EXTRA[id]||FEATURES[id];
 export const LAB_REPEATABLE=new Set(['vlan','static','static6','dhcp','acl','relay','lab_serial']);
 const fail=m=>{throw Error(m);};
@@ -51,10 +51,14 @@ export function generateLab(devices,{reviewed=false,task=''}={}){
   const services=d.services||[];if(!Array.isArray(services)||services.length>32)fail('Maximum 32 service blocks per device.');
   if(services.some(s=>s.id==='dhcp')&&services.some(s=>s.id==='relay'))fail('DHCP server and relay on the same device require a separately reviewed interface design. Generate separately.');
   if(services.some(s=>s.id==='nat')&&services.some(s=>s.id==='zbfw'))fail('PAT + ZBFW needs an integrated firewall/NAT design; use the gateway workbench.');
-  const seenServices=new Set();for(const s of services){
+  const seenServices=new Set(),objects=new Set();for(const s of services){
    if(!Object.hasOwn(LAB_SERVICES,s.id))fail('Unsupported lab service: '+s.id);const signature=s.id+':'+(LAB_REPEATABLE.has(s.id)?JSON.stringify(s.data):'single');if(seenServices.has(signature))fail('Duplicate '+s.id+' block.');seenServices.add(signature);
    const f=labDefinition(s.id),role=d.kind==='switch'?'switch':'router';if(!(f.roles||[f.role]).includes(role)&&!(d.kind==='multilayer'&&(f.roles||[f.role]).includes('switch')))fail(s.id+': not supported for this device type.');
    const data={...labDefaults(s.id),...s.data,vendor:'ios'};if(s.id==='hardening')data.hostname=d.name;
+   if(['acl','dhcp'].includes(s.id)){const key=s.id+':'+data.name;if(objects.has(key))fail('Duplicate '+s.id+' object name: '+data.name);objects.add(key);}
+   if(['nat','portforward'].includes(s.id)){const inside=ports.find(p=>p.port===data.inside),outside=ports.find(p=>p.port===data.outside);if(!inside?.address||!outside?.address||inside===outside)fail(s.id+': select distinct addressed inside/outside interfaces.');if(s.id==='nat'&&data.network!==inside.net.canonical)fail('NAT source network must match the reviewed inside interface.');Object.assign(data,{publicIp:outside.address.split('/')[0],localNetwork:inside.net.canonical,lanIp:inside.address.split('/')[0]});}
+   if(s.id==='dhcp'&&!ports.some(p=>p.address?.split('/')[0]===data.gateway&&p.net.canonical===data.network))fail('DHCP gateway/network must match a reviewed interface.');
+   if(s.id==='fhrp'){const port=ports.find(p=>p.port===data.interface);if(!port?.address)fail('FHRP requires an addressed reviewed interface.');data.localIp=port.address.split('/')[0];data.localNetwork=port.net.canonical;}
    if(d.kind==='switch'&&['fhrp','glbp'].includes(s.id))fail('Layer 2 2960 does not provide routed first-hop redundancy. Select a router or supported Layer 3 switch.');
    if(s.id==='lab_ipv6')for(const row of String(data.addresses||'').split(/\r?\n/).filter(x=>x.trim()))if(!ports.some(p=>p.port===row.split(',')[0].trim()))fail('IPv6 interface must be included in the reviewed device port list.');
    if(s.id==='etherchannel')for(const port of String(data.members).split(',').map(x=>x.trim()))if(!ports.some(p=>p.port===port))fail('EtherChannel members must be included in the reviewed device port list.');
