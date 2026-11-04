@@ -30,7 +30,7 @@ export function suggestLabDevices(text){
 }
 const VERIFY={vlan:['show vlan brief','show interfaces trunk'],security:['show port-security'],stp:['show spanning-tree'],bpduguard:['show spanning-tree'],etherchannel:['show etherchannel summary'],ospf:['show ip ospf neighbor','show ip protocols'],eigrp:['show ip eigrp neighbors','show ip protocols'],bgp:['show ip bgp summary'],nat:['show ip nat translations','show ip nat statistics'],portforward:['show ip nat translations'],dhcp:['show ip dhcp binding','show ip dhcp pool'],relay:['show running-config'],fhrp:['show standby brief'],glbp:['show glbp brief'],ntp_syslog:['show ntp associations'],acl:['show access-lists'],hardening:['show ip ssh'],snmp:['show snmp'],gre_tunnel:['show interfaces tunnel 200'],redistribution:['show ip protocols']};
 export function generateLab(devices,{reviewed=false,task=''}={}){
- const errors=[],scripts=[],summary=[];if(!reviewed)return {errors:['Confirm every device, interface, address and required service against the image and task.'],scripts:[],summary:[]};
+ const errors=[],scripts=[],summary=[];if(!reviewed)return {errors:['Confirm every device, interface, address and required service against the task.'],scripts:[],summary:[]};
  if(!Array.isArray(devices)||!devices.length||devices.length>32)return {errors:['Add 1–32 devices.'],scripts:[],summary:[]};
  const names=new Set(),addresses=new Set();
  for(const d of devices){try{
@@ -39,9 +39,13 @@ export function generateLab(devices,{reviewed=false,task=''}={}){
   const model=d.kind==='router'?(d.model||LAB_MODELS.router):LAB_MODELS[d.kind];if(d.kind==='router'&&!LAB_ROUTER_MODELS.includes(model))fail('Select a supported router model.');
   const ports=labInterfaces(d.interfaces);for(const p of ports){if(!p.address)continue;const ip=p.address.split('/')[0];if(addresses.has(ip))fail('IPv4 address reused on another interface: '+ip);addresses.add(ip);}
   if(d.kind!=='host')for(const p of ports){const physical=p.port.split('.')[0];if(/^(Vlan|Loopback|Tunnel)/.test(physical))continue;if(/^Serial/.test(physical)){if(d.serialInstalled!==true)fail('Confirm that the exact serial module/ports are installed in Packet Tracer.');continue;}const valid=d.kind==='router'?model.includes('2811')?/^FastEthernet0\/[01]$/.test(physical):new RegExp('^GigabitEthernet0/[0-'+(model.includes('1941')?'1':'2')+']$').test(physical):/^FastEthernet0\/(?:[1-9]|1\d|2[0-4])$|^GigabitEthernet0\/[12]$/.test(physical);if(!valid)fail(p.port+' does not match the selected model onboard port map.');}
-  if(!ports.length)fail('Enter the device interfaces; missing ports are never guessed.');
+  if(!ports.length&&d.kind!=='switch'&&!(d.kind==='host'&&d.dhcpClient))fail('Enter the device interfaces; missing ports are never guessed.');
   if(d.kind==='switch'&&ports.some(p=>p.address&&!/^Vlan/.test(p.port)))fail('2960 uses an SVI for management; physical ports are Layer 2.');
   if(d.kind==='host'){
+   if(d.dhcpClient){
+    scripts.push({name:d.name,kind:d.kind,code:'Packet Tracer > '+d.name+' > Desktop > IP Configuration > DHCP',verify:'ipconfig\nping <remote PC IPv4>'});
+    summary.push(d.name+': obtain IPv4 settings by DHCP.');continue;
+   }
    if(ports.length!==1||!ports[0].address)fail('Host requires one addressed Ethernet interface.');const n=ports[0].net,g=ipv4(d.gateway);if(d.gateway&&(g===null||g<=n.network||g>=n.end||d.gateway===ports[0].address.split('/')[0]))fail('Enter the host gateway in its subnet, or leave blank if none is required.');
    if(d.services?.length)fail('Host service/server configuration uses Packet Tracer Desktop/Services, not IOS.');
    const verify='ipconfig'+(d.gateway?'\nping '+d.gateway:'');scripts.push({name:d.name,kind:d.kind,code:`Packet Tracer → ${d.name} → Desktop → IP Configuration → Static\nIPv4 address: ${ports[0].address.split('/')[0]}\nSubnet mask: ${n.mask}\nDefault gateway: ${d.gateway||'Leave blank if the task does not specify a gateway'}\nDNS server: ${d.dns||'Set according to the task'}\n\nCommand Prompt verification:\n${verify}`,verify});
