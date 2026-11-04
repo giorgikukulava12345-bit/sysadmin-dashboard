@@ -1,4 +1,4 @@
-import {cliProfile,legacyCiscoPair} from './cli-profile.js';
+import {ciscoVtiPair,cliProfile,legacyCiscoPair} from './cli-profile.js';
 import {cidr} from './address.js';
 import {generateFortigateOffice} from './fortigate-office-vpn.js';
 import {generateMikrotikOffice} from './mikrotik-office-vpn.js';
@@ -8,7 +8,7 @@ import {gatewayParts} from './gateway-parts.js';
 import {modelGenerationError,selectRouterModel} from './router-models.js';
 import {PORTS} from './platforms.js';
 
-export const officeVtiAvailable=lab=>lab.a.vendor==='ios'&&lab.b.vendor==='ios'&&!legacyCiscoPair(lab);
+export const officeVtiAvailable=ciscoVtiPair;
 
 export const packetTracerPair=lab=>['a','b'].every(side=>lab[side].routerModel?.endsWith('(Packet Tracer)'));
 
