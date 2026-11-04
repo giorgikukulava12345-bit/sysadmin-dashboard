@@ -1,4 +1,4 @@
-import {cliProfile,profileCLI,profileErrors} from './cli-profile.js';
+import {cliProfile,legacyCiscoPair,profileCLI,profileErrors} from './cli-profile.js';
 import juniper from './vendors/juniper.js';
 import { ipv4, cidr } from './address.js';
 export { ipv4, cidr } from './address.js';
@@ -92,9 +92,10 @@ export function generate(c) {
   if(['a','b'].some(side=>cliProfile(c[side]).legacy)&&['a','b'].some(side=>!['ios','mikrotik','fortinet'].includes(c[side].vendor)))errors.push('Legacy Cisco image profiles support Cisco, MikroTik or FortiGate peers with the same lab IKEv1 suite.');
   if (errors.length) return { errors, a: '', b: '' };
   const labDes=c.compatibility==='fortigate-eval-des';
-  c={...c,labDes,legacyIos:c.protocol==='ikev1'&&(labDes||['a','b'].some(side=>cliProfile(c[side]).legacy))};
+  const classicVti=c.protocol==='vti'&&legacyCiscoPair(c);
+  c={...c,labDes,vtiLegacy:classicVti||c.vtiLegacy,legacyIos:c.protocol==='ikev1'&&(labDes||['a','b'].some(side=>cliProfile(c[side]).legacy))};
   const generators = { ios, asa, mikrotik, fortinet, paloalto, juniper };
-  const render = (s, r) => (c.bindInterfaces ? interfaceConfig(s) : '') + (c.protocol === 'vti' ? vtiConfig(c, s, r) : c.protocol === 'wireguard' ? wireguard(c, s, r) : generators[s.vendor](c, s, r));
+  const render = (s, r) => (c.bindInterfaces ? interfaceConfig(s) : '') + (c.protocol === 'vti' ? vtiConfig(c, s, r, classicVti) : c.protocol === 'wireguard' ? wireguard(c, s, r) : generators[s.vendor](c, s, r));
   const a=profileCLI(render(c.a,c.b),c.a),b=profileCLI(render(c.b,c.a),c.b),issues=['a','b'].flatMap(side=>profileErrors(c[side],{code:side==='a'?a:b}));
   return issues.length?{errors:issues,a:'',b:''}:{errors:[],a,b};
 }
