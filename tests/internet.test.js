@@ -50,3 +50,20 @@ console.log(`${checks} internet / dual ISP checks passed.`);
 
 const wide=setup('mikrotik');wide.a.wanPrefix='24';Object.assign(wide.a,{local:'198.18.40.128/25',lanIp:'198.18.40.129',switchIp:'198.18.40.254',hostIp:'198.18.40.130'});check(build(wide,{internet_access:true},{internet_access:featureDefaults('internet_access','mikrotik')}).errors.length,'Larger primary WAN overlap with LAN must be rejected');
 const overlappingBackup=setup('mikrotik');overlappingBackup.a.wanPrefix='24';check(build(overlappingBackup,{wan_failover:true},{wan_failover:{...featureDefaults('wan_failover','mikrotik'),ip2:'198.18.40.134',gateway2:'198.18.40.133'}}).errors.length,'Backup /30 must not sit inside primary /24');
+
+{
+ const lab=setup('ios');
+ const office={...featureDefaults('internet_access','ios'),standardOffice:true,officeFailover:true,parts:{firewall:false}};
+ const wan={...featureDefaults('wan_failover','ios'),ip2:'198.18.41.6',gateway2:'198.18.41.5'};
+ const result=build(lab,{internet_access:true,wan_failover:true,ipsla:true,ntp_syslog:true},{
+   internet_access:office,wan_failover:wan,
+   ipsla:{...featureDefaults('ipsla','ios'),target:lab.a.gateway,sourceInterface:lab.a.wan},
+   ntp_syslog:{ntp:'129.250.35.251'}
+ });
+ check(!result.errors.length,result.errors.join(', '));
+ for(const command of ['ip dhcp pool','ip name-server','ntp server','ip sla','match interface '+lab.a.wan,'match interface '+wan.wan2]){
+   check(result.code.includes(command),'Dual ISP Office includes '+command);
+ }
+ check((result.code.match(/^ip route 0\.0\.0\.0 0\.0\.0\.0 /gm)||[]).length===2,'Exactly two tracked defaults');
+ check((result.code.match(/^ip nat inside source route-map /gm)||[]).length===2,'Exactly two egress-specific PAT rules');
+}
