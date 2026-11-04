@@ -39,4 +39,3 @@ export function mountPacketLab(root){
  on(q('[data-pt-clear]'),'click',()=>{q('[data-pt-task]').value='';devices.length=0;invalidate();render();status('Lab data cleared. Previous clipboard content is unchanged.');});
  return()=>{abort.abort();root.replaceChildren();};
 }
-if(typeof document!=='undefined'){const anchor=document.querySelector('#vpn-configurator');if(anchor){const root=document.createElement('section');anchor.before(root);mountPacketLab(root);}}
