@@ -212,9 +212,15 @@ export function mountWorkbench(vpnRoot){
         shortcut.type='button';
         shortcut.className='noc-feature-toggle';
         shortcut.textContent='Route-based Site-to-Site IPsec VPN';
-        shortcut.title='Static VTI with IKEv1. Select Cisco IOS on both sides.';
-        shortcut.disabled=lab.a.vendor!=='ios'||lab.b.vendor!=='ios'||hasOfficePair();
-        if(shortcut.disabled)shortcut.textContent+=' (Cisco IOS pair required outside Quick Setup + VPN)';
+        const unavailable=lab.a.vendor!=='ios'||lab.b.vendor!=='ios'
+          ?'Select Cisco on both sides.'
+          :legacyCiscoPair(lab)
+            ?'VTI is unavailable for the selected lab image. For Packet Tracer use Site-to-Site VPN with IPsec IKEv1.'
+            :['a','b'].some(key=>selection[key].router.internet_access)
+              ?'Turn off Internet Gateway on both sides to configure VTI separately.'
+              :'';
+        shortcut.title=unavailable||'Static VTI with IKEv1. Use an IOS image with VTI support.';
+        shortcut.disabled=Boolean(unavailable);
         shortcut.addEventListener('click',()=>{
           selection.a.router=toggleFeature(selection.a.router,'vpn',true,lab.a.vendor);
           selection.b.router=toggleFeature(selection.b.router,'vpn',true,lab.b.vendor);
@@ -224,7 +230,15 @@ export function mountWorkbench(vpnRoot){
           protocol.dispatchEvent(new Event('input',{bubbles:true}));
           renderContext();
         },{signal:abort.signal});
-        grids[f.category].append(shortcut);
+        const card=document.createElement('div');
+        card.append(shortcut);
+        if(unavailable){
+          const hint=document.createElement('p');
+          hint.className='noc-note';
+          hint.textContent=unavailable;
+          card.append(hint);
+        }
+        grids[f.category].append(card);
         continue;
       }
       const label=document.createElement('label');label.className='noc-feature-toggle';label.title=f.note||TOOLS[f.tool]?.note||f.title;const input=document.createElement('input');input.type='checkbox';input.dataset.feature=id;const part=role==='router'?FEATURE_PARTS[id]:undefined,component=Boolean(part&&selection[side].router.internet_access);const managed=(officeManagedFeatures(chosenVendor(),role,role==='router'?Boolean(selected().internet_access):Boolean(selection[side].router.internet_access)&&officePreset[side]&&binding[side].switch).includes(id)&&(!component||gatewayParts(gatewayData())[part]));input.checked=managed||Boolean(selected()[id]);input.disabled=!component&&!managed&&!capable(id,chosenVendor());label.dataset.unsupported=String(input.disabled);label.dataset.presetManaged=String(managed);const text=document.createElement('span');text.textContent=component?(id==='static'?'IPv4 default route':OFFICE_CARD_TITLES[id]):id==='internet_access'&&customOffice[side]?'Custom Gateway Components':managed?OFFICE_CARD_TITLES[id]:f.title;if(['hardening','ntp_syslog'].includes(id)&&input.checked){const badge=document.createElement('small');badge.className='noc-preset-badge';badge.textContent='Baseline management';text.append(badge);}if(id==='ipsla'&&selected().wan_failover&&chosenVendor()==='ios'){const badge=document.createElement('small');badge.className='noc-preset-badge';badge.textContent='Linked to WAN failover';text.append(badge);}if(managed){const badge=document.createElement('small');badge.className='noc-preset-badge';badge.textContent=customOffice[side]?'Custom gateway component':'Included in Office preset';text.append(badge);label.title='Toggle this gateway component independently. Shared topology inputs are preserved.';}if(!managed&&!capable(id,chosenVendor())){const small=document.createElement('small');small.textContent='Unavailable for this vendor';text.append(small);}label.append(input,text);(['bootstrap','enterprise'].includes(id)?presets:['bgp','multicast','isis','static6','ospf3','pbr','eigrp','redistribution','ospf_advanced'].includes(id)?grids.advanced:grids[f.category]).append(label);
