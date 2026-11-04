@@ -44,6 +44,13 @@ export function parseLabTask(text) {
         if (host) host.dhcpClient = true;
       }
     }
+    const compactLink = line.match(/^(?:-\s*)?([\w-]+)([^()]*)\s+connected to\s+([\w-]+)([^()]*)$/i);
+    if (compactLink && find(compactLink[1]) && find(compactLink[3])) {
+      for (const [name, details] of [[compactLink[1], compactLink[2]], [compactLink[3], compactLink[4]]]) {
+        setPort(find(name), details, details.match(subnet)?.[0]);
+      }
+      continue;
+    }
     const link = line.match(/^(?:-\s*)?(?:Router\s+)?([\w-]+)\s+connected to\s+(?:Router\s+)?([\w-]+)[^(]*\(([^()]+)\s+to\s+([^()]+)\)/i);
     if (link && find(link[1]) && find(link[2])) {
       const prefix = line.match(subnet)?.[0].split('/')[1];
