@@ -1,6 +1,6 @@
 import { cidr } from './address.js';
 
-export function vtiConfig(c, s, peer) {
+export function vtiConfig(c, s, peer, classicVti = false) {
   const local = cidr(s.local), remote = cidr(s.remote), legacy = Boolean(c.vtiLegacy);
   const nat = c.officeManagedNat ? '' : `
 ! 5. NAT Exemption ACL
@@ -36,7 +36,7 @@ crypto ipsec transform-set TS-VTI esp-aes ${c.encryption} ${legacy ? 'esp-sha-hm
  exit
 crypto ipsec profile IPSEC-PROFILE-VTI
  set transform-set TS-VTI
- set pfs group${c.pfs}
+ set pfs group${classicVti ? '2' : c.pfs}
  set security-association lifetime seconds ${c.lifetime2}
  exit
 
