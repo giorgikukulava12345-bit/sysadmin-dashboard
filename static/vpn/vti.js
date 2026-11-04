@@ -2,6 +2,23 @@ import { cidr } from './address.js';
 
 export function vtiConfig(c, s, peer) {
   const local = cidr(s.local), remote = cidr(s.remote), legacy = Boolean(c.vtiLegacy);
+  const nat = c.officeManagedNat ? '' : `
+! 5. NAT Exemption ACL
+! Rebuilds the named NAT ACL; merge any other existing translation entries first.
+no ip access-list extended NAT
+ip access-list extended NAT
+ deny ip ${local.ip} ${local.wildcard} ${remote.ip} ${remote.wildcard}
+ permit ip ${local.ip} ${local.wildcard} any
+ exit
+! The NAT rule must reference ACL NAT for the exemption to take effect.
+! If replacing an existing NAT rule, remove/merge that rule before using this line.
+ip nat inside source list NAT interface ${s.wan} overload
+interface ${s.wan}
+ ip nat outside
+ exit
+interface ${s.lan}
+ ip nat inside
+ exit`;
   return `configure terminal
 ! 1. Phase 1 (ISAKMP)
 crypto isakmp policy 1
@@ -36,23 +53,7 @@ interface Tunnel0
 
 ! 4. Static Routing to Remote Network
 ip route ${remote.ip} ${remote.mask} Tunnel0
-
-! 5. NAT Exemption ACL
-! Rebuilds the named NAT ACL; merge any other existing translation entries first.
-no ip access-list extended NAT
-ip access-list extended NAT
- deny ip ${local.ip} ${local.wildcard} ${remote.ip} ${remote.wildcard}
- permit ip ${local.ip} ${local.wildcard} any
- exit
-! The NAT rule must reference ACL NAT for the exemption to take effect.
-! If replacing an existing NAT rule, remove/merge that rule before using this line.
-ip nat inside source list NAT interface ${s.wan} overload
-interface ${s.wan}
- ip nat outside
- exit
-interface ${s.lan}
- ip nat inside
- exit
+${nat}
 end
 ! Verify: show crypto isakmp sa; show crypto ipsec sa; show interface Tunnel0
 ! ${legacy ? 'Legacy lab compatibility: DH2 / SHA1. Use the modern profile for new deployments.' : 'IKEv1 VTI with SHA256. Verify firmware and reserved Tunnel0/profile/ACL names.'}`;
