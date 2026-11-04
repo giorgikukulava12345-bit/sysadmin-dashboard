@@ -11,6 +11,8 @@ export function cliProfile(site={}) {
  return {id:vendor||'unknown',label:vendor==='paloalto'?'PAN-OS · candidate configuration; commit separately':vendor==='juniper'?'Junos · candidate configuration; commit separately':'Select a platform'};
 }
 export const legacyCiscoPair=lab=>['a','b'].some(side=>cliProfile(lab?.[side]).legacy);
+export const supportsCiscoVti=site=>site?.vendor==='ios'&&(!cliProfile(site).legacy||/Cisco IOS 3725 .*Dynamips/.test(site.routerModel));
+export const ciscoVtiPair=lab=>['a','b'].every(side=>supportsCiscoVti(lab?.[side]));
 export function profileCLI(code,site){
  const profile=cliProfile(site);let text=String(code);
  if(profile.id==='ios-classic')text=text.replace(/ip virtual-reassembly in\b/g,'ip virtual-reassembly').replace(/algorithm-type scrypt secret/g,'secret');
@@ -22,7 +24,7 @@ export function profileCLI(code,site){
 }
 export function profileErrors(site,{selected={},vpnType,code=''}={}){
  const p=cliProfile(site),errors=[];
- if(p.legacy&&selected.vpn&&vpnType!=='ikev1')errors.push(p.label+': choose IKEv1; IKEv2/GRE/VTI are not provided for this image profile.');
+ if(p.legacy&&selected.vpn&&vpnType!=='ikev1'&&!(vpnType==='vti'&&supportsCiscoVti(site)))errors.push(p.label+': choose IKEv1; IKEv2/GRE/VTI are not provided for this image profile.');
  if(p.id==='ios-classic'&&/crypto ikev2|algorithm-type scrypt|netconf-yang|restconf|l2vpn|vxlan/.test(code))errors.push(p.label+': selected commands require a newer IOS image.');
  if(p.id==='ros6'&&(/\/routing (?:bgp|ospf|filter|table|rule)\b|\/interface (?:wireguard|vxlan)\b|\/interface ovpn-client|\/ip vrf\b/.test(code)||['bgp','ospf','ospf_advanced','wireguard','vxlan','automation','bootstrap','remotevpn'].some(id=>selected[id])||['wireguard','openvpn'].includes(vpnType)))errors.push('RouterOS 6: this selected feature template requires RouterOS 7. Choose a RouterOS 7 image or remove the feature.');
  if(['fortios64','fortios72'].includes(p.id)&&(vpnType==='ssl'||selected.remotevpn))errors.push('This FortiOS image does not match the supplied SSL VPN template, which targets 7.4; choose a matching template/image.');
