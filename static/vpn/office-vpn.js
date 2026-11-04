@@ -8,6 +8,8 @@ import {gatewayParts} from './gateway-parts.js';
 import {modelGenerationError,selectRouterModel} from './router-models.js';
 import {PORTS} from './platforms.js';
 
+export const officeVtiAvailable=lab=>lab.a.vendor==='ios'&&lab.b.vendor==='ios'&&!legacyCiscoPair(lab);
+
 export const packetTracerPair=lab=>['a','b'].every(side=>lab[side].routerModel?.endsWith('(Packet Tracer)'));
 
 /** A Cisco preset prepares its peer instead of requiring a hidden remote-site edit first. */
@@ -39,7 +41,7 @@ export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
   }
   const pt=packetTracerPair(lab),legacy=legacyCiscoPair(lab);
   if(['a','b'].some(key=>Boolean(lab[key].routerModel?.endsWith('(Packet Tracer)')))!==pt)return fail('Use Packet Tracer profiles on both sides, or use hardware/EVE-NG profiles on both sides.');
-  if(!['ikev1','ikev2'].includes(vpnType)||legacy&&vpnType!=='ikev1')return fail(legacy?'Legacy IOS / Packet Tracer uses the explicitly labelled IKEv1 lab profile.':'Choose IPsec IKEv1 or IKEv2; GRE, VTI and remote-access VPNs need separate designs.');
+  if(!(vpnType==='vti'&&officeVtiAvailable(lab))&&(!['ikev1','ikev2'].includes(vpnType)||legacy&&vpnType!=='ikev1'))return fail(legacy?'Legacy IOS / Packet Tracer uses the explicitly labelled IKEv1 lab profile.':'Choose IPsec IKEv1 or IKEv2; VTI is available for compatible Cisco pairs.');
   const parts=gatewayParts(values.internet_access);
   if(!parts.interfaces||!parts.nat||!parts.route||parts.firewall)return fail('Keep Router interfaces, NAT / PAT and IPv4 default route enabled. Stateful firewall is not part of this VPN preset.');
   const extra=Object.keys(selected).filter(id=>selected[id]&&!['internet_access','vpn','ntp_syslog','hardening'].includes(id));
@@ -49,7 +51,7 @@ export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
     const site=lab[key],config=vpnConfig[key],peer=lab[key==='a'?'b':'a'];
     if(!config||['vendor','ip','wan','lan','wanPrefix','gateway','local','lanIp'].some(field=>config[field]!==site[field])||config.remote!==peer.local)return fail('VPN addressing must match the shared topology on both sides.');
   }
-  const config={...vpnConfig,a:{...vpnConfig.a,routerModel:lab.a.routerModel},b:{...vpnConfig.b,routerModel:lab.b.routerModel},protocol:vpnType,bindInterfaces:false};
+  const config={...vpnConfig,a:{...vpnConfig.a,routerModel:lab.a.routerModel},b:{...vpnConfig.b,routerModel:lab.b.routerModel},protocol:vpnType,bindInterfaces:false,officeManagedNat:vpnType==='vti'};
   // PT has an explicit fixed lab suite, independent of the modern advanced form.
   if(pt)Object.assign(config,{encryption:'256',hash:'256',dh:'14',pfs:'14',lifetime1:'28800',lifetime2:'3600'});
   const vpn=generateVpn(config);
