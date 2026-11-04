@@ -176,8 +176,12 @@ root.addEventListener('click', async event => {
   }
   if (action === 'key') {
     if (!globalThis.crypto?.getRandomValues) { status.textContent = 'Secure randomness unavailable. Enter a key generated on your device.'; return; }
-    const bytes = crypto.getRandomValues(new Uint8Array(32));
-    const key = state.protocol === 'wireguard' ? btoa(String.fromCharCode(...bytes)) : Array.from(bytes, x => x.toString(16).padStart(2, '0')).join('');
+    const wireguard = state.protocol === 'wireguard';
+    const bytes = crypto.getRandomValues(new Uint8Array(wireguard ? 32 : 8));
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+    const key = wireguard
+      ? btoa(String.fromCharCode(...bytes))
+      : Array.from(bytes, byte => alphabet[byte & 63]).join('');
     state.a.psk = state.b.psk = key;
     status.textContent = 'A fresh shared PSK is set on both sides.';
   }
