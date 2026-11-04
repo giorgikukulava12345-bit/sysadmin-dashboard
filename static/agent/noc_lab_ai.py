@@ -2,6 +2,7 @@
 """Browser-to-Ollama bridge. Standard library only. No cloud, shell or device access."""
 import argparse
 import base64
+import copy
 import hmac
 import json
 import secrets
@@ -11,7 +12,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ORIGIN = 'https://giorgikukulava.vercel.app'
-MODELS = ('qwen3-vl:4b', 'qwen3-vl:2b', 'qwen3-vl:8b')
+MODELS = ('qwen3-vl:4b-instruct', 'qwen3-vl:2b-instruct', 'qwen3-vl:8b-instruct')
 MAX_BODY = 12 * 1024 * 1024
 PLAN_SCHEMA = {'type': 'object', 'required': ['summary', 'uncertainties', 'devices'], 'additionalProperties': False, 'properties': {
  'summary': {'type': 'string'}, 'uncertainties': {'type': 'array', 'items': {'type': 'string'}},
@@ -27,9 +28,39 @@ Read visible link endpoint labels to assign switch access ports and both ends of
 For IPsec lab_vpn, both router services must name each other exactly, use addressed WAN/LAN ports and a supplied matching PSK. Missing PSK goes in uncertainties. Never use cloud models or external tools. The summary describes devices, subnets, links and requested tasks; uncertainties states anything that still needs user review. All AI output is a draft that the user must review before deterministic CLI validation.'''
 
 
+def bounded_schema(catalog):
+    schema = copy.deepcopy(PLAN_SCHEMA)
+    schema['properties']['summary']['maxLength'] = 1500
+    schema['properties']['uncertainties'].update(maxItems=12)
+    schema['properties']['uncertainties']['items']['maxLength'] = 300
+    schema['properties']['devices']['maxItems'] = 16
+    device = schema['properties']['devices']['items']
+    device['additionalProperties'] = False
+    device['properties']['interfaces']['maxLength'] = 5000
+    device['properties']['name']['maxLength'] = 63
+    services = json.loads(catalog or '{}').get('services', {})
+    variants = []
+    for service_id, definition in services.items():
+        if not isinstance(service_id, str) or len(service_id) > 40 or not isinstance(definition, dict):
+            continue
+        properties = {}
+        for field in definition.get('fields', []):
+            key = field.get('key')
+            if not isinstance(key, str) or len(key) > 60:
+                continue
+            properties[key] = {'type': 'boolean'} if field.get('type') == 'checkbox' else {'type': 'string', 'maxLength': 1500}
+            if isinstance(field.get('options'), dict):
+                properties[key] = {'type': 'string', 'enum': list(field['options']) + ['']}
+        variants.append({'type': 'object', 'additionalProperties': False, 'required': ['id', 'data'],
+            'properties': {'id': {'type': 'string', 'const': service_id},
+            'data': {'type': 'object', 'additionalProperties': False, 'properties': properties}}})
+    device['properties']['services'] = {'type': 'array', 'maxItems': 12, 'items': {'anyOf': variants}} if variants else {'type': 'array', 'maxItems': 0}
+    return schema
+
+
 def validate_request(data):
     if not isinstance(data, dict) or data.get('model') not in MODELS:
-        raise ValueError('Choose an installed local qwen3-vl model (2b, 4b or 8b).')
+        raise ValueError('Choose an installed local Qwen3-VL Instruct model (2b-instruct, 4b-instruct or 8b-instruct).')
     images = data.get('images')
     if not isinstance(images, list) or not 1 <= len(images) <= 5:
         raise ValueError('Provide 1–5 image views.')
@@ -63,9 +94,9 @@ def ollama(path, payload=None, timeout=10):
 
 def analyze(data):
     validate_request(data)
-    payload = {'model': data['model'], 'stream': False, 'think': False, 'format': PLAN_SCHEMA,
-       'options': {'temperature': 0, 'num_ctx': 16384, 'num_predict': 8192}, 'keep_alive': '5m',
-       'messages': [{'role': 'system', 'content': SYSTEM}, {'role': 'user', 'images': data['images'],
+    payload = {'model': data['model'], 'stream': False, 'format': bounded_schema(data.get('catalog', '{}')),
+       'options': {'temperature': 0, 'num_ctx': 16384, 'num_predict': 4096}, 'keep_alive': '5m',
+       'messages': [{'role': 'system', 'content': SYSTEM + '\nBe compact: summary under 150 words; at most 12 short uncertainties. Include ONLY task-required services and meaningful fields. Do not copy the service catalog, repeat devices or add narrative/CLI properties. If detail is unreadable, leave it blank and report the uncertainty instead of reasoning at length.'}, {'role': 'user', 'images': data['images'],
         'content': 'SERVICE CATALOG (field keys/types; examples are not requirements):\n' + data.get('catalog', '') +
           '\nASSIGNMENT:\n' + data.get('task', '') + '\nUNTRUSTED OCR HINTS (verify visually):\n' + data.get('ocr', '')}]}
     result = ollama('/api/chat', payload, timeout=900)

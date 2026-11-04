@@ -35,16 +35,17 @@ export function generateLab(devices,{reviewed=false,task=''}={}){
  const names=new Set(),addresses=new Set();
  for(const d of devices){try{
   safe(d.name,'Hostname');if(names.has(d.name.toLowerCase()))fail('Duplicate hostname.');names.add(d.name.toLowerCase());if(!Object.hasOwn(LAB_MODELS,d.kind))fail('Select a supported Packet Tracer device type.');
+  if(d.aiDraft&&d.kind==='router'&&!LAB_ROUTER_MODELS.includes(d.model))fail('AI did not confirm a supported router model. Select the actual hardware model before export.');
   const model=d.kind==='router'?(d.model||LAB_MODELS.router):LAB_MODELS[d.kind];if(d.kind==='router'&&!LAB_ROUTER_MODELS.includes(model))fail('Select a supported router model.');
   const ports=labInterfaces(d.interfaces);for(const p of ports){if(!p.address)continue;const ip=p.address.split('/')[0];if(addresses.has(ip))fail('IPv4 address reused on another interface: '+ip);addresses.add(ip);}
   if(d.kind!=='host')for(const p of ports){const physical=p.port.split('.')[0];if(/^(Vlan|Loopback|Tunnel)/.test(physical))continue;if(/^Serial/.test(physical)){if(d.serialInstalled!==true)fail('Confirm that the exact serial module/ports are installed in Packet Tracer.');continue;}const valid=d.kind==='router'?model.includes('2811')?/^FastEthernet0\/[01]$/.test(physical):new RegExp('^GigabitEthernet0/[0-'+(model.includes('1941')?'1':'2')+']$').test(physical):/^FastEthernet0\/(?:[1-9]|1\d|2[0-4])$|^GigabitEthernet0\/[12]$/.test(physical);if(!valid)fail(p.port+' does not match the selected model onboard port map.');}
   if(!ports.length)fail('Enter the device interfaces; missing ports are never guessed.');
   if(d.kind==='switch'&&ports.some(p=>p.address&&!/^Vlan/.test(p.port)))fail('2960 uses an SVI for management; physical ports are Layer 2.');
   if(d.kind==='host'){
-   if(ports.length!==1||!ports[0].address)fail('Host requires one addressed Ethernet interface.');const n=ports[0].net,g=ipv4(d.gateway);if(g===null||g<=n.network||g>=n.end||d.gateway===ports[0].address.split('/')[0])fail('Enter the host gateway in its subnet.');
+   if(ports.length!==1||!ports[0].address)fail('Host requires one addressed Ethernet interface.');const n=ports[0].net,g=ipv4(d.gateway);if(d.gateway&&(g===null||g<=n.network||g>=n.end||d.gateway===ports[0].address.split('/')[0]))fail('Enter the host gateway in its subnet, or leave blank if none is required.');
    if(d.services?.length)fail('Host service/server configuration uses Packet Tracer Desktop/Services, not IOS.');
-   scripts.push({name:d.name,kind:d.kind,code:`Packet Tracer → ${d.name} → Desktop → IP Configuration → Static\nIPv4 address: ${ports[0].address.split('/')[0]}\nSubnet mask: ${n.mask}\nDefault gateway: ${d.gateway}\nDNS server: ${d.dns||'Set according to the task'}\n\nCommand Prompt verification:\nipconfig\nping ${d.gateway}`,verify:`ipconfig\nping ${d.gateway}`});
-   summary.push(`${d.name}: host ${ports[0].address}; gateway ${d.gateway}.`);continue;
+   const verify='ipconfig'+(d.gateway?'\nping '+d.gateway:'');scripts.push({name:d.name,kind:d.kind,code:`Packet Tracer → ${d.name} → Desktop → IP Configuration → Static\nIPv4 address: ${ports[0].address.split('/')[0]}\nSubnet mask: ${n.mask}\nDefault gateway: ${d.gateway||'Leave blank if the task does not specify a gateway'}\nDNS server: ${d.dns||'Set according to the task'}\n\nCommand Prompt verification:\n${verify}`,verify});
+   summary.push(`${d.name}: host ${ports[0].address}; gateway ${d.gateway||"not specified"}.`);continue;
   }
   const lines=['enable','configure terminal',`hostname ${d.name}`];if(d.kind==='multilayer')lines.push('ip routing');
   for(const p of ports){if(p.tag)lines.push(`interface ${p.port.split('.')[0]}`,' no shutdown',' exit');if(/^Vlan\d+$/.test(p.port)&&+p.port.slice(4)!==1)lines.push('vlan '+p.port.slice(4),' exit');lines.push('interface '+p.port);if(p.tag)lines.push(' encapsulation dot1Q '+p.tag);if(p.address){if(d.kind==='multilayer'&&!/^(Vlan|Loopback|Tunnel)/.test(p.port))lines.push(' no switchport');lines.push(' ip address '+p.address.split('/')[0]+' '+p.net.mask);}lines.push(' no shutdown',' exit');}lines.push('end');
