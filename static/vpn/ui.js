@@ -1,4 +1,4 @@
-import {cliProfile} from './cli-profile.js';
+import {ciscoVtiPair,cliProfile} from './cli-profile.js';
 import { WAN_PREFIXES } from './interfaces.js';
 import { mountSelectionMenu } from './selection-menu.js';
 import { vpnAvailable } from './lab-policy.js';
@@ -52,7 +52,7 @@ root.innerHTML = `<form id="vpn-form" novalidate>
     <p class="text-xs text-amber-200 mt-2">If set proposal ? on the FortiGate lists only DES, explicitly select the Evaluation lab profile. It sets IKEv1, DES / SHA-1, DH5 and PFS5 on both peers. DES is insecure; use only in an isolated lab. An EVE-NG model name does not identify license capabilities.</p>
     <p data-eval-active class="text-xs text-amber-200 mt-2" hidden>Evaluation DES lab profile active on BOTH sides. For AES, select Standard and use an AES-capable FortiGate license.</p>
   </div>
-  <label data-vti class="flex items-start gap-3 mb-4 text-xs text-amber-200" hidden><input name="vtiLegacy" type="checkbox" class="accent-cyan-400"><span>Legacy VTI lab profile: DH2 / SHA1<span class="block text-slate-500 mt-1">Off: use the selected AES/DH settings with SHA256. On: reproduce the reference template's DH2/SHA1 suite. PFS is not configured by this VTI profile. Both peers use Tunnel0 and a rebuilt ACL NAT.</span></span></label>
+  <label data-vti class="flex items-start gap-3 mb-4 text-xs text-amber-200" hidden><input name="vtiLegacy" type="checkbox" class="accent-cyan-400"><span>Legacy VTI lab profile: DH2 / SHA1<span class="block text-slate-500 mt-1">Off: use the selected AES/DH settings with SHA256. On: reproduce the reference template's DH2/SHA1 suite. The Cisco 3725 lab uses DH2/PFS2 automatically. Both peers use Tunnel0.</span></span></label>
   <label data-vpn-binding class="flex items-start gap-3 mb-5 text-sm text-slate-300"><input id="vpn-bindInterfaces" name="bindInterfaces" type="checkbox" class="accent-cyan-400 mt-1"><span>Include physical interface IP assignments in CLI<span class="block text-xs text-slate-500 mt-1">Enabling this adds WAN/LAN address commands and, on ASA, nameif/security-level assignments. Existing interface configuration may be changed. Internet routing, zones and VLANs must already be configured.</span></span></label>
   <div class="grid lg:grid-cols-2 gap-4">${site('a')}${site('b')}</div>
   <div class="flex flex-wrap gap-2 mt-4">
@@ -111,7 +111,7 @@ function render() {
     fs.querySelector('[data-gateway]').hidden = false;
     fs.querySelector('[data-asa]').hidden = state[side].vendor !== 'asa';
   }
-  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor)||((evalDes||['a','b'].some(side=>cliProfile(state[side]).legacy))&&option.value!=='ikev1');mountSelectionMenu(el,controller.signal)();}}
+  if(mountOptions.workbench!==false){for(const el of root.querySelectorAll('select')){if(el.name==='protocol')for(const option of el.options)option.disabled=!vpnAvailable(option.value,state.a.vendor,state.b.vendor)||((evalDes||['a','b'].some(side=>cliProfile(state[side]).legacy))&&option.value!=='ikev1'&&!(option.value==='vti'&&ciscoVtiPair(state)));mountSelectionMenu(el,controller.signal)();}}
   result = generate(state);
   root.dispatchEvent(new CustomEvent('vpn-state',{detail:structuredClone(state)}));
   const notice = root.querySelector('#vpn-validation');
@@ -193,7 +193,7 @@ root.addEventListener('click', async event => {
 root.addEventListener('lab-edit',event=>{
   for(const side of ['a','b']){const patch=event.detail[side];for(const key of ['routerModel','vendor','ip','wanPrefix','wan','lan','local','lanIp','gateway'])state[side][key]=patch[key];}
   if(!['a','b'].some(side=>state[side].vendor==='fortinet'))state.compatibility='standard';
-  if((state.compatibility==='fortigate-eval-des'||['a','b'].some(side=>cliProfile(state[side]).legacy))&&!['wireguard'].includes(state.protocol))state.protocol='ikev1';
+  if((state.compatibility==='fortigate-eval-des'||['a','b'].some(side=>cliProfile(state[side]).legacy))&&!['wireguard'].includes(state.protocol)&&!(state.protocol==='vti'&&ciscoVtiPair(state)))state.protocol='ikev1';
   state.a.remote=state.b.local;state.b.remote=state.a.local;state.bindInterfaces=true;syncInputs();render();
 },{signal:controller.signal});
 syncInputs(); render();
