@@ -34,12 +34,13 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(address.errors.length)return{errors:address.errors,code:'',empty:false};
   if(role==='host')return{errors:[],code:address.scripts[baseIndex+2].code,empty:false};
   const failover=ids.includes('wan_failover'),office=ids.includes('internet_access');
+  const officeFailover=failover&&office&&vendor==='ios'&&values.internet_access?.standardOffice&&values.internet_access.officeFailover;
   if(role==='router'&&office&&selected.vpn&&values.internet_access?.officeVpn)return generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType});
   if(vendor==='ios'&&failover&&ids.includes('ipsla')&&[Number(values.wan_failover?.trackId??900),Number(values.wan_failover?.trackId??900)+1].includes(Number(values.ipsla?.track)))errors.push('Dual ISP and IP SLA must use distinct tracking object IDs.');
   if(office&&ids.some(id=>['nat','acl','zbfw','vpn','dmvpn','remotevpn','portforward','bootstrap','enterprise','dhcp','relay'].includes(id)))errors.push('Internet Gateway owns NAT and firewall policy. Uncheck overlapping NAT, ACL, VPN and complete setup templates, or choose Quick Setup + VPN for a combined Cisco pair.');
   if((failover||office)&&ids.includes('static')&&values.static?.destination==='0.0.0.0'&&values.static?.mask==='0.0.0.0')errors.push('Internet Gateway / WAN Failover owns default routing. Remove the separate default static route.');
   if(failover&&ids.some(id=>['vpn','dmvpn','remotevpn','bootstrap','enterprise'].includes(id)))errors.push('Dual ISP needs a separately designed VPN/bootstrap underlay. Generate these templates separately.');
-  if(vendor==='ios'&&failover&&((office&&values.internet_access?.parts?.nat!==false)||ids.includes('nat')))return {errors:['Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.'],code:'',empty:false};
+  if(vendor==='ios'&&failover&&!officeFailover&&((office&&values.internet_access?.parts?.nat!==false)||ids.includes('nat')))return {errors:['Cisco ACL-only NAT route-maps cannot distinguish two ISP egress paths. Disable Dual ISP for this PAT template, or design platform-supported egress-aware NAT separately.'],code:'',empty:false};
   if(failover&&ids.includes('nat')&&values.nat?.natMode&&values.nat.natMode!=='overload')errors.push('Automatic Dual ISP translation supports interface PAT / Overload only.');
   if(failover&&ids.includes('zbfw')&&(values.zbfw?.outside!==site.wan||values.zbfw?.inside!==logical.lan))errors.push('Dual ISP ZBFW must use the topology LAN and primary WAN interfaces.');
   if(failover&&office&&vendor==='paloalto'&&values.wan_failover?.virtualRouter!==values.internet_access?.virtualRouter)errors.push('Internet Gateway and WAN Failover must use the same virtual router.');
@@ -86,13 +87,15 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
     if(ids.includes('span')&&shared.includes(values.span?.destination))errors.push('SPAN destination must not reuse a VLAN lab port.');
   }
   if(dual&&role==='router'&&ids.some(id=>['vpn','zbfw','dmvpn'].includes(id)))errors.push('Generate VPN/firewall overlays separately from the two-VLAN routed-trunk template; both subnets require an explicit policy design.');
-  if(role==='router'&&vendor==='ios'&&office&&values.internet_access?.standardOffice){
+  if(officeFailover&&values.internet_access.parts?.firewall===true)errors.push('Disable the stateful firewall component for this Dual ISP Office template.');
+  if(role==='router'&&vendor==='ios'&&office&&values.internet_access?.standardOffice&&!officeFailover){
     if(errors.length)return {errors:[...new Set(errors)],code:'',empty:false};
     return generateStandardOffice({site,side,selected,values:switchedLan(site)?{...values,internet_access:{...values.internet_access,iosLanMode:'subinterfaces'}}:values});
   }
-  if(bindings){const script=address.scripts[baseIndex+(role==='switch'?1:0)];if(script.unsupported)errors.push('No base switch template for this platform.');else blocks.push({title:'BASE INTERFACE / IP BINDINGS',code:script.code});}
+  if(bindings&&!officeFailover){const script=address.scripts[baseIndex+(role==='switch'?1:0)];if(script.unsupported)errors.push('No base switch template for this platform.');else blocks.push({title:'BASE INTERFACE / IP BINDINGS',code:script.code});}
   const vtiOwnNat=ids.includes('vpn')&&vpnType==='vti';
   for(const id of ids){
+    if(officeFailover&&['internet_access','ntp_syslog','hardening'].includes(id))continue;
     if(!FEATURES[id]||!forRole(FEATURES[id],role)||!capable(id,vendor)){errors.push(`${FEATURES[id]?.title||id}: no validated ${vendor} template for this device. Uncheck it or choose a supported vendor.`);continue;}
     if(id==='vpn'){
       const result=['openvpn','ssl'].includes(vpnType)?generateRemoteVpn(vpnType,remote,site):vpnConfig?generateVpn({...vpnConfig,bindInterfaces:false}):{errors:['Complete the VPN settings.']};
@@ -136,7 +139,12 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   if(errors.length)return{errors:[...new Set(errors)],code:'',empty:false};if(!blocks.length)return{errors:[],code:'',empty:true};
   // Do not concatenate configuration modes blindly: each fragment exits its own mode.
   const comment=vendor==='ios'?'!':'#';
+  if(officeFailover){
+    const config={...values,internet_access:{...values.internet_access,parts:{...values.internet_access.parts,route:false}}};
+    const officeSelection={...selected,wan_failover:false,ipsla:false};
+    const officeResult=generateStandardOffice({site,side,selected:officeSelection,values:config,wan2:values.wan_failover.wan2});
+    if(officeResult.errors.length)return officeResult;
+    blocks.unshift({title:'STANDARD OFFICE / DUAL ISP',code:officeResult.code});
+  }
   return{errors:[],code:blocks.map(b=>role==='switch'?b.code.trim():`${comment} === ${b.title} ===\n${b.code.trim()}`).join('\n\n')+'\n',empty:false};
 }
-
-
