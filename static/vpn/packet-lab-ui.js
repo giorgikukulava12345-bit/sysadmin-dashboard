@@ -1,5 +1,22 @@
 import {parseLabTask} from './packet-lab-text.js';
-import {LAB_MODELS,LAB_ROUTER_MODELS,LAB_SERVICES,LAB_REPEATABLE,labDefaults,labFields,labDefinition,generateLab} from './packet-lab-model.js';
+import {LAB_MODELS,LAB_ROUTER_MODELS,LAB_SERVICES,LAB_REPEATABLE,labDefaults,labFields,labDefinition,generateLab,labPhysicalPorts} from './packet-lab-model.js';
+
+const labPresets = {
+ 'Two LANs · DHCP and static routing': [
+  'PC0 connected to Switch0 (Ethernet0 to Fa0/2).',
+  'Switch0 connected to R-1 (Fa0/1 to Gi0/1).',
+  'R-1 connected to R-2 (Gi0/0 to Gi0/0) subnet 10.0.0.0/30 (R-1 IP: 10.0.0.1, R-2 IP: 10.0.0.2).',
+  'R-2 connected to Switch1 (Gi0/1 to Fa0/1).',
+  'Switch1 connected to PC1 (Fa0/2 to Ethernet0).',
+  'R-1 Gi0/1: 192.168.1.1/24',
+  'R-2 Gi0/1: 192.168.2.1/24',
+  'Configure R-1 as a DHCP server for 192.168.1.0/24. Exclude 192.168.1.1 to 192.168.1.10. Set default gateway to 192.168.1.1.',
+  'Configure R-2 as a DHCP server for 192.168.2.0/24. Exclude 192.168.2.1 to 192.168.2.10. Set default gateway to 192.168.2.1.',
+  'Configure static routing on R-1 to 192.168.2.0/24 via 10.0.0.2.',
+  'Configure static routing on R-2 to 192.168.1.0/24 via 10.0.0.1.',
+  'PC0 and PC1 use DHCP.'
+ ].join('\n')
+};
 
 
 const css=`.pt-lab{margin:18px auto;max-width:1280px;border:1px solid #234652;border-radius:16px;padding:22px;background:#0c1019;color:#cbd5e1;font:13px/1.7 Inter,sans-serif}.pt-lab summary{cursor:pointer;color:#67e8f9;font-weight:700}.pt-lab label{display:block;margin:10px 0}.pt-lab input:not([type=checkbox]),.pt-lab select,.pt-lab textarea{box-sizing:border-box;width:100%;padding:10px;border:1px solid #334155;border-radius:7px;background:#080b12;color:#e2e8f0;font:12px/1.6 ui-monospace,monospace}.pt-lab textarea{min-height:110px;resize:vertical}.pt-lab button{background:#103040;color:#67e8f9;border:1px solid #1a6c80;border-radius:7px;padding:10px 15px;margin:6px 8px 6px 0;cursor:pointer}.pt-lab button:disabled{opacity:.4;cursor:default}.pt-lab .pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.pt-lab .pt-device,.pt-lab .pt-service,.pt-lab .pt-result{border:1px solid #273344;border-radius:10px;padding:16px;margin:15px 0}.pt-lab pre{white-space:pre;overflow:auto;max-height:480px;padding:15px;background:#05070b;border-radius:8px;font:12px/1.8 ui-monospace,monospace}.pt-lab .pt-muted{color:#94a3b8}.pt-lab [role=status]{white-space:pre-wrap;color:#fbbf24}.pt-lab [hidden]{display:none!important}.pt-lab :focus-visible{outline:2px solid #22d3ee;outline-offset:2px}@media(max-width:760px){.pt-lab .pt-grid{grid-template-columns:1fr}}`;
@@ -13,7 +30,21 @@ export function mountPacketLab(root){
  function render(){q('[data-pt-devices]').replaceChildren();devices.forEach((d,index)=>{
   const card=el('section');card.className='pt-device';card.append(el('h4',`Device ${index+1}`));const grid=el('div');grid.className='pt-grid';card.append(grid);
   input(grid,'Hostname / device name',d.name,v=>d.name=v);input(grid,'Packet Tracer model / role',d.kind,v=>{d.kind=v;d.model='';d.aiDraft=false;d.services=[];render();},{options:{...LAB_MODELS,router:'Router · choose hardware below'}});
-  if(d.kind==='router')input(card,'Router hardware model',d.aiDraft?(d.model||''):(d.model||LAB_MODELS.router),v=>d.model=v,{options:{'':'Select verified router model',...Object.fromEntries(LAB_ROUTER_MODELS.map(x=>[x,x]))}}); if(d.kind==='router')input(card,'Exact serial module and port labels are installed and verified',!!d.serialInstalled,v=>d.serialInstalled=v,{type:'checkbox'}); input(card,'Interfaces: full port, IPv4/prefix, peer label, optional dot1Q VLAN (one per line)',d.interfaces,v=>d.interfaces=v,{area:true});
+  if(d.kind==='router')input(card,'Router hardware model',d.aiDraft?(d.model||''):(d.model||LAB_MODELS.router),v=>{d.model=v;render();},{options:{'':'Select verified router model',...Object.fromEntries(LAB_ROUTER_MODELS.map(x=>[x,x]))}}); if(d.kind==='router')input(card,'Exact serial module and port labels are installed and verified',!!d.serialInstalled,v=>d.serialInstalled=v,{type:'checkbox'}); input(card,'Interfaces: full port, IPv4/prefix, peer label, optional dot1Q VLAN (one per line)',d.interfaces,v=>d.interfaces=v,{area:true});
+  if(d.kind!=='host'){
+   const picker=el('div');picker.className='pt-grid';card.append(picker);
+   const ports=labPhysicalPorts(d.kind,d.model||LAB_MODELS.router);
+   const port=input(picker,'Choose physical port',ports[0],()=>{},{options:Object.fromEntries(ports.map(p=>[p,p]))});
+   const ip=input(picker,'IPv4 / prefix (optional)', '',()=>{});
+   const add=el('button','Add or update port');add.type='button';picker.append(add);
+   on(add,'click',()=>{
+    const rows=(d.interfaces||'').split(/\r?\n/).filter(row=>row.trim());
+    const index=rows.findIndex(row=>row.split(',')[0].trim()===port.value);
+    if(index<0)rows.push(port.value+','+ip.value.trim());
+    else{const columns=rows[index].split(',');columns[1]=ip.value.trim();rows[index]=columns.join(',');}
+    d.interfaces=rows.join('\n');invalidate();render();
+   });
+  }
   card.append(el('p','Examples: GigabitEthernet0/0, 10.0.0.1/30, R2 Gi0/0\nVlan10, 192.168.10.1/24\nGigabitEthernet0/1.10, 192.168.10.1/24, SW1 trunk, 10\nFastEthernet0/1, , PC1\nHost: Ethernet0, 192.168.10.10/24, SW1 Fa0/1'));
   if(d.kind==='host'){input(card,'Obtain IPv4 settings by DHCP',d.dhcpClient,v=>{d.dhcpClient=v;render();},{type:'checkbox'});input(card,'Host default gateway',d.gateway,v=>d.gateway=v);input(card,'Host DNS server (optional)',d.dns||'',v=>d.dns=v);}
   if(d.kind!=='host'){
@@ -26,6 +57,16 @@ export function mountPacketLab(root){
   }
   const remove=el('button','Remove device');remove.type='button';on(remove,'click',()=>{devices.splice(index,1);invalidate();render();});card.append(remove);q('[data-pt-devices]').append(card);
  });}
+ const presetPanel=el('div');
+ const preset=input(presetPanel,'Lab template','',()=>{},{options:{'':'Choose a template',...Object.fromEntries(Object.keys(labPresets).map(name=>[name,name]))}});
+ const load=el('button','Load template');load.type='button';presetPanel.append(load);
+ q('[data-pt-task]').closest('label').before(presetPanel);
+ on(load,'click',()=>{
+  if(!preset.value)return;
+  if((devices.length||q('[data-pt-task]').value.trim())&&!window.confirm('Replace the current assignment and device draft with this template?'))return;
+  q('[data-pt-task]').value=labPresets[preset.value];
+  q('[data-pt-suggest]').click();
+ });
  on(q('[data-pt-suggest]'),'click',()=>{
   const draft=parseLabTask(q('[data-pt-task]').value);
   if(!draft.devices.length){status(draft.notes.join('\n'));return;}

@@ -5,7 +5,14 @@ import {LAB_EXTRA,extraDefaults,extraGenerate} from './packet-lab-services.js';
 import {DEFAULTS,generate as generateVpn} from './engine.js';
 
 export const LAB_MODELS={router:'Cisco 2911 (Packet Tracer)',switch:'Cisco 2960 (Packet Tracer)',multilayer:'Cisco 3560 (Packet Tracer)',host:'Packet Tracer PC'};
-export const LAB_ROUTER_MODELS=['Cisco 2911 (Packet Tracer)','Cisco 1941 (Packet Tracer)','Cisco 2811 (Packet Tracer)'];
+export const LAB_ROUTER_MODELS=['Cisco 2911 (Packet Tracer)','Cisco 1941 (Packet Tracer)','Cisco 2811 (Packet Tracer)','Cisco 4321 (Packet Tracer)'];
+export function labPhysicalPorts(kind, model=LAB_MODELS.router) {
+ if(kind==='host')return ['Ethernet0'];
+ if(kind!=='router')return [...Array.from({length:24},(_,i)=>'FastEthernet0/'+(i+1)),'GigabitEthernet0/1','GigabitEthernet0/2'];
+ if(model.includes('4321'))return ['GigabitEthernet0/0/0','GigabitEthernet0/0/1'];
+ const prefix=model.includes('2811')?'FastEthernet0/':'GigabitEthernet0/';
+ return Array.from({length:model.includes('2911')?3:2},(_,i)=>prefix+i);
+}
 // Templates requiring hardware/IOS XE or a separate multi-device workbench are not advertised here.
 const OMIT=new Set(['vpn','bootstrap','enterprise','internet_access','wan_failover','vxlan','dmvpn','automation','copp','bfd','isis','remotevpn','pvlan','span','ipsla','multicast','ospf_advanced']);
 export const LAB_SERVICES={...Object.fromEntries(Object.entries(FEATURES).filter(([id,f])=>f.vendors.includes('ios')&&!OMIT.has(id)).map(([id,f])=>[id,f.title])),...Object.fromEntries(Object.entries(LAB_EXTRA).map(([id,f])=>[id,f.title]))};
@@ -38,7 +45,7 @@ export function generateLab(devices,{reviewed=false,task=''}={}){
   if(d.aiDraft&&d.kind==='router'&&!LAB_ROUTER_MODELS.includes(d.model))fail('AI did not confirm a supported router model. Select the actual hardware model before export.');
   const model=d.kind==='router'?(d.model||LAB_MODELS.router):LAB_MODELS[d.kind];if(d.kind==='router'&&!LAB_ROUTER_MODELS.includes(model))fail('Select a supported router model.');
   const ports=labInterfaces(d.interfaces);for(const p of ports){if(!p.address)continue;const ip=p.address.split('/')[0];if(addresses.has(ip))fail('IPv4 address reused on another interface: '+ip);addresses.add(ip);}
-  if(d.kind!=='host')for(const p of ports){const physical=p.port.split('.')[0];if(/^(Vlan|Loopback|Tunnel)/.test(physical))continue;if(/^Serial/.test(physical)){if(d.serialInstalled!==true)fail('Confirm that the exact serial module/ports are installed in Packet Tracer.');continue;}const valid=d.kind==='router'?model.includes('2811')?/^FastEthernet0\/[01]$/.test(physical):new RegExp('^GigabitEthernet0/[0-'+(model.includes('1941')?'1':'2')+']$').test(physical):/^FastEthernet0\/(?:[1-9]|1\d|2[0-4])$|^GigabitEthernet0\/[12]$/.test(physical);if(!valid)fail(p.port+' does not match the selected model onboard port map.');}
+  if(d.kind!=='host')for(const p of ports){const physical=p.port.split('.')[0];if(/^(Vlan|Loopback|Tunnel)/.test(physical))continue;if(/^Serial/.test(physical)){if(d.serialInstalled!==true)fail('Confirm that the exact serial module/ports are installed in Packet Tracer.');continue;}const valid=labPhysicalPorts(d.kind,model).includes(physical);if(!valid)fail(p.port+' does not match the selected model onboard port map.');}
   if(!ports.length&&d.kind!=='switch'&&!(d.kind==='host'&&d.dhcpClient))fail('Enter the device interfaces; missing ports are never guessed.');
   if(d.kind==='switch'&&ports.some(p=>p.address&&!/^Vlan/.test(p.port)))fail('2960 uses an SVI for management; physical ports are Layer 2.');
   if(d.kind==='host'){
