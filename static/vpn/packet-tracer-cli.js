@@ -1,6 +1,6 @@
 /** Conservative syntax for Packet Tracer profiles; hardware IOS output stays intact. */
 export function packetTracerCLI(code){
- return String(code).replace(/\r\n?/g,'\n').split('\n').flatMap(line=>{
+ code = String(code).replace(/\r\n?/g,'\n').split('\n').flatMap(line=>{
   const command=line.trim(),indent=line.slice(0,line.length-line.trimStart().length);
   if(/^ip virtual-reassembly(?:\s|$)/.test(command))return [];
   if(/^service timestamps (log|debug) datetime\b/.test(command))return indent+command.replace(/\s+(localtime|show-timezone)\b/g,'');
@@ -13,4 +13,10 @@ export function packetTracerCLI(code){
   if(/^lease\s+\d/.test(command))return indent+'! Packet Tracer: custom DHCP lease omitted; simulator default applies.';
   return line;
  }).join('\n');
+ // Keep the generated dual-WAN sections in a single configuration session.
+ if(code.includes('! === Dual ISP / WAN Failover ===')){
+  code=code.replace(/^end[ \t]*\n((?:[ \t]*(?:!.*)?\n)*)configure terminal[ \t]*\n/gm,'$1');
+  code=code.replace(/^((?:[ \t]*(?:!.*)?\n)*)configure terminal\b/,'$1enable\nconfigure terminal');
+ }
+ return code;
 }
