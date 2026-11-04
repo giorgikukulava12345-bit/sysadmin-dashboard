@@ -18,12 +18,12 @@ class LocalAITests(unittest.TestCase):
     def test_launcher_checksum(self):
         self.assertIn(hashlib.sha256(path.read_bytes()).hexdigest(),(path.parent/'start_lab_ai.ps1').read_text())
     def test_limits(self):
-        for value in [{}, {'model': 'qwen3-vl:4b-cloud', 'images': []}, {'model':'qwen3-vl:4b-instruct','images':['evil']}]:
+        for value in [{}, {'model': 'qwen3-vl:4b-cloud', 'images': []}, {'model':'qwen3-vl:4b-instruct','task':'VLAN lab','images':['evil']}]:
             with self.assertRaises(ValueError):
                 agent.validate_request(value)
 
     def test_fixed_local_request(self):
-        data = {'model':'qwen3-vl:4b-instruct','images':['iVBORw0KGgo='],'task':'VLAN lab','catalog':'{}'}
+        data = {'model':'qwen3-vl:4b-instruct','task':'VLAN lab','catalog':'{}'}
         plan = {'summary':'review','uncertainties':[],'devices':[{'name':'S1','kind':'switch','interfaces':'','services':[]}]}
         with patch.object(agent, 'ollama', return_value={'message':{'content':json.dumps(plan)}}) as call:
             self.assertEqual(agent.analyze(data), plan)
