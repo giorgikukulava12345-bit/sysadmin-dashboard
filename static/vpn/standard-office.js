@@ -20,12 +20,12 @@ const unicast=(value,label)=>{
 };
 
 /** Atomic, ordered IOS output for the Quick Setup preset. No stored/default credentials. */
-export function generateStandardOffice({site,selected,values,natExemptNetwork,packetTracer=false,side='a'}){
-  try{return {errors:[],code:build(site,selected,values,natExemptNetwork,packetTracer,side),empty:false};}
+export function generateStandardOffice({site,selected,values,natExemptNetwork,packetTracer=false,side='a',wan2}){
+  try{return {errors:[],code:build(site,selected,values,natExemptNetwork,packetTracer,side,wan2),empty:false};}
   catch(error){return {errors:[`Standard Office: ${error.message}`],code:'',empty:false};}
 }
 
-function build(s,selected,values,natExemptNetwork,packetTracer,side){
+function build(s,selected,values,natExemptNetwork,packetTracer,side,wan2){
   const d={...s,...values.internet_access,vendor:'ios'},parts=gatewayParts(d);
   const extra=Object.keys(selected).filter(id=>selected[id]&&!['internet_access','hardening','ntp_syslog'].includes(id));
   if(extra.length)throw Error('This complete Cisco Office preset owns interfaces, NAT and management. Generate additional features separately; Dual ISP needs egress-aware NAT design.');
@@ -94,6 +94,18 @@ ${packetTracer?`ip nat inside source list ${acl} interface ${s.wan} overload`:`r
  match ip address ${acl}
  exit
 ip nat inside source route-map ${map} interface ${s.wan} overload`}`);
+  }else if(parts.nat&&wan2){
+    sections.push(`ip access-list extended NOC-DUAL-WAN-NAT
+${rows.map(r=>` permit ip ${r.n.ip} ${r.n.wildcard} any`).join('\n')}
+ exit`);
+    sections.push([s.wan,wan2].map((port,index)=>`interface ${port}
+ ip nat outside
+ exit
+route-map NOC-DUAL-WAN-${index+1} permit 10
+ match ip address NOC-DUAL-WAN-NAT
+ match interface ${port}
+ exit
+ip nat inside source route-map NOC-DUAL-WAN-${index+1} interface ${port} overload`).join('\n'));
   }else if(parts.nat)sections.push(rows.map((r,i)=>`ip access-list extended ${i?'NAT112':'NAT'}\n permit ip ${r.n.ip} ${r.n.wildcard} any\n exit\nip nat inside source list ${i?'NAT112':'NAT'} interface ${s.wan} overload`).join('\n'));
   if(parts.firewall){
     // Keep the existing stateful policy, with its interface list bound to this mode.
