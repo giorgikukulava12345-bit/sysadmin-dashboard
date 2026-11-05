@@ -48,11 +48,11 @@ try{
  submit();
  check('combined mode needs matching PSKs or preserves a valid pair',q('[data-peer-output]').hidden===Boolean(q('[data-errors]').textContent));
  edit('[name="a.psk"]','VlanVpnFixture2026');edit('[name="b.psk"]','VlanVpnFixture2026');submit();
- check('both combined router outputs',!q('[data-peer-output]').hidden&&q('[data-code]').textContent.includes('permit ip 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255')&&q('[data-peer-code]').textContent.includes('permit ip 192.168.30.0 0.0.0.255 192.168.20.0 0.0.0.255'));
+ check('both combined router outputs',!q('[data-peer-output]').hidden&&q('[data-code]').textContent.includes('permit ip 192.168.20.0 0.0.0.255 192.168.40.0 0.0.0.255')&&q('[data-peer-code]').textContent.includes('permit ip 192.168.40.0 0.0.0.255 192.168.20.0 0.0.0.255'));
  const swA=q('[data-switch-output]'),swB=q('[data-peer-switch-output]');
  check('both switch outputs visible',!swA.hidden&&!swB.hidden);
- check('switch ports match Packet Tracer defaults',swB.querySelector('[data-switch-code]').textContent.includes('interface FastEthernet0/1\n switchport mode trunk')&&swB.textContent.includes('VLAN 20 clients → FastEthernet0/3'));
- check('switch scripts belong to different sites',swA.textContent.includes('ip default-gateway 192.168.1.1')&&swB.textContent.includes('ip default-gateway 192.168.2.1'));
+ check('switch ports match Packet Tracer defaults',swB.querySelector('[data-switch-code]').textContent.includes('interface FastEthernet0/1\n switchport mode trunk')&&swB.textContent.includes('VLAN 40 clients → FastEthernet0/3'));
+ check('switch scripts belong to different sites',swA.textContent.includes('ip default-gateway 192.168.10.1')&&swB.textContent.includes('ip default-gateway 192.168.30.1')&&swA.textContent.includes('hostname SW1')&&swB.textContent.includes('hostname SW2')&&swA.textContent.includes('allowed vlan 10,20')&&swB.textContent.includes('allowed vlan 30,40'));
  edit('.noc-selection select[data-side]','a','change');
  check('switch outputs stay in order without regeneration',!swA.hidden&&!swB.hidden&&swA.textContent.includes('Side A Switch')&&swB.textContent.includes('Side B Switch'));
  q('[data-office-vpn-preset]').click();submit();

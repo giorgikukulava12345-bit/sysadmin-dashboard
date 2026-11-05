@@ -424,6 +424,24 @@ export function mountWorkbench(vpnRoot){
       }
     }
     if(!prepareOfficeVpnPair(lab,side))return;
+    if(dual){
+      const defaults=createLab();
+      for(const [key,primary,secondary] of [['a',10,20],['b',30,40]]){
+        const site=lab[key],original=defaults[key];
+        if(site.local===original.local&&site.lanIp===original.lanIp){
+          site.local=`192.168.${primary}.0/24`;
+          site.lanIp=`192.168.${primary}.1`;
+        }
+        if(site.vlan2Subnet===original.vlan2Subnet&&site.vlan2Gateway===original.vlan2Gateway){
+          site.vlan2Subnet=`192.168.${secondary}.0/24`;
+          site.vlan2Gateway=`192.168.${secondary}.1`;
+        }
+        if(site.vlan===original.vlan&&site.vlan2===original.vlan2){
+          site.vlan=String(primary);
+          site.vlan2=String(secondary);
+        }
+      }
+    }
     role='router';submitted=false;companion=null;
     configureOfficePair(dual);
     topologyToVpn();
