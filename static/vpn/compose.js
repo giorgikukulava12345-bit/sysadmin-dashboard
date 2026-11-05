@@ -20,6 +20,7 @@ function composeChecked({lab,side,role,selected={},values={},bindings=false,vpnC
   const dual=hasSecondVlan(site);
   const customNoInterfaces=role==='router'&&selected.internet_access&&values.internet_access?.parts?.interfaces===false;bindings=customNoInterfaces?false:bindings||dual;
   const logical=routedSite(site);
+  if(role==='router'&&site.officeSubinterfaces&&dual&&switchedLan(site))return {errors:['Choose a routed Ethernet LAN port for 802.1Q subinterfaces.'],code:'',empty:false};
   const ids=Object.keys(selected).filter(id=>selected[id]).sort((a,b)=>(a==='aaa'?1:0)-(b==='aaa'?1:0));
   const paired=ids.includes('vpn')||ids.includes('gre_tunnel');
   const address=labScripts(lab,{sides:paired?['a','b']:[side],routerOnly:role==='router'});
