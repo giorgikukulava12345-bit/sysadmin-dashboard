@@ -5,11 +5,17 @@ export const CISCO_SWITCHES=['Cisco Catalyst 2960-24TT-L','Cisco 2960-24TT (Pack
 const ports=[...Array.from({length:24},(_,i)=>({value:'FastEthernet0/'+(i+1),speed:'10/100 Mbps'})),...Array.from({length:2},(_,i)=>({value:'GigabitEthernet0/'+(i+1),speed:'1 Gbps'}))].map(p=>({...p,label:p.value+' · '+p.speed}));
 export const SWITCH_PORTS=Object.fromEntries(CISCO_SWITCHES.map(name=>[name,ports]));
 export function switchPortOptions(model,exclude=''){return (SWITCH_PORTS[model]||[]).filter(p=>!String(exclude).split(',').includes(p.value));}
-export function selectSwitchModel(site,model){
+export function selectSwitchModel(site,model,{subinterfaces=false}={}){
  if(selectEveModel(site,model,'switch'))return;
  if(site.switchVendor==='mikrotik')return selectMikrotikModel(site,model,'switch');
  site.switchModel=CISCO_SWITCHES.includes(model)?model:'';
  if(site.switchVendor!=='ios'||!site.switchModel)return;
+ if(subinterfaces&&model==='Cisco 2960-24TT (Packet Tracer)'){
+  site.uplink='FastEthernet0/1';
+  site.access='FastEthernet0/2';
+  site.vlan2Access='FastEthernet0/3';
+  return;
+ }
  site.uplink='GigabitEthernet0/1';site.access='FastEthernet0/1';site.vlan2Access='FastEthernet0/2';
 }
 export function validateSwitchPorts(site){
