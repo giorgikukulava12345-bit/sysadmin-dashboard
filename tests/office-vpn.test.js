@@ -1,3 +1,4 @@
+import {selectSwitchModel} from '../static/vpn/switch-models.js';
 import {prepareOfficeVpnPair} from '../static/vpn/office-vpn.js';
 import assert from 'node:assert/strict';
 import {createLab} from '../static/vpn/lab.js';
@@ -169,3 +170,44 @@ for(const reversed of [false,true])for(const classic of [false,true]){
  input.vpnConfig.compatibility='unknown';bad(input);
 }
 console.log('Explicit Evaluation DES profile: matched Phase 1/2, both orientations, export, unchanged NAT and invalid-mode rejection passed.');
+
+
+for(const profile of ['pt','classic','modern']){
+  const input=fixture(profile==='pt');
+  for(const side of ['a','b']){
+    const site=input.lab[side];
+    if(profile==='classic')selectRouterModel(site,'Cisco IOS 3725 (Dynamips) (EVE-NG)');
+    Object.assign(site,{officeVlans:true,officeSubinterfaces:true,vlan2Enabled:'on'});
+    const model=profile==='pt'?'Cisco 2960-24TT (Packet Tracer)':profile==='classic'?'Cisco IOL L2 (EVE-NG)':'Cisco Catalyst 2960-24TT-L';
+    selectSwitchModel(site,model,{subinterfaces:true});
+    Object.assign(input.vpnConfig[side],site);
+  }
+  if(profile==='classic')input.vpnType='ikev1';
+  Object.assign(input.values.internet_access,{officeSubinterfaceVpn:true,iosLanMode:'subinterfaces'});
+  for(const side of ['a','b']){
+    const site=input.lab[side],peer=input.lab[side==='a'?'b':'a'];
+    const code=good({...input,side});
+    for(const [local,tag] of [[site.local,site.vlan],[site.vlan2Subnet,site.vlan2]]){
+      assert(code.includes('encapsulation dot1Q '+tag));
+      assert(code.includes('network '+local.split('/')[0]+' 255.255.255.0'));
+      for(const remote of [peer.local,peer.vlan2Subnet]){
+        const pair=local.split('/')[0]+' 0.0.0.255 '+remote.split('/')[0]+' 0.0.0.255';
+        assert(code.includes(' permit ip '+pair));
+        assert(code.indexOf('deny ip '+pair)<code.indexOf('50 permit ip'));
+        assert(code.includes('deny ip '+pair));
+        assert(code.includes('ip route '+remote.split('/')[0]+' 255.255.255.0 '+peer.ip));
+      }
+    }
+    assert.equal((code.match(/ip dhcp pool /g)||[]).length,2);
+    assert(code.includes('no ip nat inside source list NAT112'));
+    const sw=good({...input,side,role:'switch',selected:{},values:{},bindings:true});
+    assert(sw.includes('interface '+site.uplink+'\n switchport mode trunk'));
+    assert(sw.includes('switchport trunk allowed vlan '+site.vlan+','+site.vlan2));
+    assert(!sw.includes('crypto map'));
+  }
+  bad({...input,vpnType:'vti'});
+  input.lab.b.vlan2Subnet=input.lab.a.vlan2Subnet;
+  input.lab.b.vlan2Gateway=input.lab.a.vlan2Gateway;
+  assert.match(bad(input),/overlap/);
+}
+console.log('Office Subinterfaces + VPN: 4 mirrored selectors and PAT exemptions, dual DHCP and switch trunk, Packet Tracer / EVE-NG / IOS XE, invalid topology rejected.');

@@ -1,9 +1,11 @@
+import {officeVpnTraffic} from '../office-vpn-traffic.js';
 import {cliProfile} from '../cli-profile.js';
 import { cidr } from '../address.js';
 
 export default function ios(c, s, r) {
   const legacy=Boolean(c.legacyIos),encryption=legacy?'256':c.encryption,dh=legacy?'5':c.dh,pfs=legacy?'5':c.pfs;
   const l = cidr(s.local), remote = cidr(s.remote), gre = c.protocol === 'gre', v2 = c.protocol !== 'ikev1';
+  const office=s.officeSecondLan&&r.officeSecondLan?officeVpnTraffic(s,r,s.officeSecondLan,r.officeSecondLan):null;
   const p1 = v2 ? `crypto ikev2 proposal NOC-IKE
  encryption aes-cbc-${encryption}
  integrity sha256
@@ -41,7 +43,7 @@ ${p1}
 crypto ipsec transform-set ${c.labDes?'NOC-DES':'NOC-ESP'} ${c.labDes?'esp-des':'esp-aes '+encryption} ${legacy?'esp-sha-hmac':'esp-sha256-hmac'}
 ${cliProfile(s).id==='packet-tracer'?'':` mode ${gre ? 'transport' : 'tunnel'}\n exit\n`} 
 ip access-list extended NOC-CRYPTO
- ${gre ? `permit gre host ${s.ip} host ${r.ip}` : `permit ip ${l.ip} ${l.wildcard} ${remote.ip} ${remote.wildcard}`}
+${office?.selectors ?? (gre ? ` permit gre host ${s.ip} host ${r.ip}` : ` permit ip ${l.ip} ${l.wildcard} ${remote.ip} ${remote.wildcard}`)}
  exit
 crypto map NOC-MAP 100 ipsec-isakmp
  set peer ${r.ip}
@@ -62,7 +64,7 @@ ${gre ? `interface Tunnel100
  tunnel destination ${r.ip}
  tunnel mode gre ip
  exit
-ip route ${remote.ip} ${remote.mask} ${r.tunnel}` : `ip route ${remote.ip} ${remote.mask} ${s.gateway}`}
+ip route ${remote.ip} ${remote.mask} ${r.tunnel}` : office?.routes ?? `ip route ${remote.ip} ${remote.mask} ${s.gateway}`}
 end
 ! ${legacy?'Classic IOS IPsec image required.':'Policy-based crypto map target: IOS XE 17.6–17.9; verify firmware support.'}
 ! Merge NAT exemption into the existing NAT ACL before any translation permits.

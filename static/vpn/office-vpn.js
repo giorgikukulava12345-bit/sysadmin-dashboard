@@ -1,3 +1,5 @@
+import {officeVpnTraffic} from './office-vpn-traffic.js';
+import {validateSecondVlan} from './dual-vlan.js';
 import {ciscoVtiPair,cliProfile,legacyCiscoPair} from './cli-profile.js';
 import {cidr} from './address.js';
 import {generateFortigateOffice} from './fortigate-office-vpn.js';
@@ -34,10 +36,18 @@ export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
   const fail=message=>({errors:['Quick Setup + VPN: '+message],code:'',empty:false});
   if(!['a','b'].includes(side)||!lab?.a||!lab?.b)return fail('Select both router sites.');
   if(['a','b'].some(key=>!['ios','mikrotik','fortinet'].includes(lab[key].vendor)))return fail('Select Cisco, MikroTik or FortiGate on both router sites for this preset.');
+  const dual=Boolean(values.internet_access?.officeSubinterfaceVpn);
+  if(dual&&(vpnType==='vti'||['a','b'].some(key=>lab[key].vendor!=='ios'||!lab[key].officeSubinterfaces||lab[key].vlan2Enabled!=='on')))return fail('Subinterfaces + VPN requires two Cisco routers with both VLANs enabled and policy-based IPsec.');
   for(const key of ['a','b']){
     const site=lab[key],blocked=modelGenerationError(site);
     if(blocked)return fail('Side '+key.toUpperCase()+': '+blocked);
-    if(site.vlan2Enabled==='on')return fail('This preset supports one LAN per site.');
+    if(!dual&&site.vlan2Enabled==='on')return fail('Use Quick Setup + Subinterfaces + VPN for two LANs per site.');
+    if(dual){
+      const peer=lab[key==='a'?'b':'a'],otherWan=cidr(peer.ip+'/'+peer.wanPrefix),second=cidr(site.vlan2Subnet);
+      const errors=validateSecondVlan(site,peer);
+      if(second&&otherWan&&second.network<=otherWan.end&&otherWan.network<=second.end)errors.push('Second VLAN subnet overlaps the peer WAN.');
+      if(errors.length)return fail('Side '+key.toUpperCase()+': '+errors.join(' '));
+    }
   }
   const pt=packetTracerPair(lab),legacy=legacyCiscoPair(lab);
   if(['a','b'].some(key=>Boolean(lab[key].routerModel?.endsWith('(Packet Tracer)')))!==pt)return fail('Use Packet Tracer profiles on both sides, or use hardware/EVE-NG profiles on both sides.');
@@ -52,19 +62,20 @@ export function generateOfficeVpn({lab,side,selected,values,vpnConfig,vpnType}){
     if(!config||['vendor','ip','wan','lan','wanPrefix','gateway','local','lanIp'].some(field=>config[field]!==site[field])||config.remote!==peer.local)return fail('VPN addressing must match the shared topology on both sides.');
   }
   const config={...vpnConfig,a:{...vpnConfig.a,routerModel:lab.a.routerModel},b:{...vpnConfig.b,routerModel:lab.b.routerModel},protocol:vpnType,bindInterfaces:false,officeManagedNat:vpnType==='vti'};
+  if(dual)for(const key of ['a','b'])config[key].officeSecondLan=lab[key].vlan2Subnet;
   // PT has an explicit fixed lab suite, independent of the modern advanced form.
   if(pt)Object.assign(config,{encryption:'256',hash:'256',dh:'14',pfs:'14',lifetime1:'28800',lifetime2:'3600'});
   const vpn=generateVpn(config);
   if(vpn.errors.length)return fail(vpn.errors.join(' '));
   const site=lab[side],peer=lab[side==='a'?'b':'a'];
-  const office=site.vendor==='fortinet'?generateFortigateOffice({site,side,selected,values}):site.vendor==='mikrotik'?generateMikrotikOffice({site,side,selected,values}):generateStandardOffice({site,side,selected:{...selected,vpn:false},values,natExemptNetwork:peer.local,packetTracer:pt});
+  const office=site.vendor==='fortinet'?generateFortigateOffice({site,side,selected,values}):site.vendor==='mikrotik'?generateMikrotikOffice({site,side,selected,values}):generateStandardOffice({site,side,selected:{...selected,vpn:false},values,natExemptNetwork:dual?[peer.local,peer.vlan2Subnet]:peer.local,packetTracer:pt});
   if(office.errors.length)return office;
-  const tunnel=pt?packetTracerIpsec(site,peer,config[side].psk):vpn[side].replace('! Merge NAT exemption into the existing NAT ACL before any translation permits.','! Office VPN NAT exemption is included above.');
+  const tunnel=pt?packetTracerIpsec(site,peer,config[side].psk,dual):vpn[side].replace('! Merge NAT exemption into the existing NAT ACL before any translation permits.','! Office VPN NAT exemption is included above.');
   return {errors:[],empty:false,code:office.code+'\n'+tunnel+'\n'};
 }
 
-function packetTracerIpsec(site,peer,key){
-  const local=cidr(site.local),remote=cidr(peer.local);
+function packetTracerIpsec(site,peer,key,dual){
+  const {selectors,routes}=officeVpnTraffic(site,peer,dual?site.vlan2Subnet:null,dual?peer.vlan2Subnet:null);
   return `! Packet Tracer lab only: IKEv1 / AES-256 / SHA-1 / DH5 / PFS5.
 ! This legacy suite is not the hardware production default.
 ! Prerequisite: securityk9 must be active under Current in show version on both routers.
@@ -79,7 +90,7 @@ crypto isakmp policy 100
 crypto isakmp key ${key} address ${peer.ip}
 crypto ipsec transform-set NOC-ESP esp-aes 256 esp-sha-hmac
 ip access-list extended NOC-CRYPTO
- permit ip ${local.ip} ${local.wildcard} ${remote.ip} ${remote.wildcard}
+${selectors}
  exit
 crypto map NOC-MAP 100 ipsec-isakmp
  set peer ${peer.ip}
@@ -90,7 +101,7 @@ crypto map NOC-MAP 100 ipsec-isakmp
 interface ${site.wan}
  crypto map NOC-MAP
  exit
-ip route ${remote.ip} ${remote.mask} ${site.gateway}
+${routes}
 end
 ! Verify the security license and supported IPsec commands in your Packet Tracer image.
 ! Verify: show crypto isakmp sa; show crypto ipsec sa`;

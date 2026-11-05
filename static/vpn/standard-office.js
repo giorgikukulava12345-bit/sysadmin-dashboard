@@ -84,14 +84,17 @@ function build(s,selected,values,natExemptNetwork,packetTracer,side,wan2){
     sections.push([...rows.map(r=>`interface ${r.port}\n ip nat inside\n ip virtual-reassembly in\n exit`),`interface ${s.wan}\n ip nat outside\n ip virtual-reassembly in\n exit`].join('\n'));
   }
   if(natExemptNetwork){
-    const remote=cidr(natExemptNetwork);
-    if(!remote||remote.canonical!==natExemptNetwork||!unicastNetwork(remote)||rows.length!==1||rows.some(r=>r.n.network<=remote.end&&r.n.end>=remote.network))throw Error('VPN exemption requires one distinct canonical remote LAN.');
-    const row=rows[0],acl='OFFICE-VPN-NAT',map='OFFICE-VPN-PAT';
-    sections.push(`! Remove only the PAT rule owned by the ordinary Office preset. Review other existing NAT rules.
+    const dual=Array.isArray(natExemptNetwork),networks=dual?natExemptNetwork:[natExemptNetwork],remotes=networks.map(cidr);
+    const overlaps=(a,b)=>a.network<=b.end&&b.network<=a.end;
+    if(rows.length!==(dual?2:1)||remotes.length!==rows.length||remotes.some((r,i)=>!r||r.canonical!==networks[i]||!unicastNetwork(r)||rows.some(row=>overlaps(row.n,r)))||dual&&overlaps(...remotes))throw Error('VPN exemption requires distinct canonical remote LANs.');
+    const acl='OFFICE-VPN-NAT',map='OFFICE-VPN-PAT';
+    const rules=[...rows.flatMap(({n})=>remotes.map(r=>`deny ip ${n.ip} ${n.wildcard} ${r.ip} ${r.wildcard}`)),...rows.map(({n})=>`permit ip ${n.ip} ${n.wildcard} any`)];
+    sections.push(`! Remove prior Office PAT rules; review other existing NAT rules.
 no ip nat inside source list NAT interface ${s.wan} overload
-ip access-list extended ${acl}
- 10 deny ip ${row.n.ip} ${row.n.wildcard} ${remote.ip} ${remote.wildcard}
- 20 permit ip ${row.n.ip} ${row.n.wildcard} any
+${dual?`no ip nat inside source list NAT112 interface ${s.wan} overload
+no ip access-list extended ${acl}
+`:''}ip access-list extended ${acl}
+${rules.map((rule,i)=>` ${10*(i+1)} ${rule}`).join('\n')}
  exit
 ${packetTracer?`ip nat inside source list ${acl} interface ${s.wan} overload`:`route-map ${map} permit 10
  match ip address ${acl}

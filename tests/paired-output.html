@@ -43,6 +43,17 @@ try{
  check('B uses B settings',q('[data-peer-code]').textContent.includes('ntp server 192.0.2.123')&&q('[data-peer-code]').textContent.includes('192.168.2.1 192.168.2.25'));
  q('[data-clear-output]').click();check('clear removes both',q('[data-peer-output]').hidden&&q('[data-peer-code]').textContent==='');
  q('[data-office-preset]').click();check('ordinary preset stays single',q('[data-peer-output]').hidden&&!q('[data-code]').textContent.includes('NOC-CRYPTO'));
+ q('[data-subinterface-vpn-preset]').click();
+ check('only combined VLAN preset highlighted',q('[data-subinterface-vpn-preset]').getAttribute('aria-pressed')==='true'&&q('[data-office-vpn-preset]').getAttribute('aria-pressed')==='false');
+ submit();
+ check('combined mode needs matching PSKs or preserves a valid pair',q('[data-peer-output]').hidden===Boolean(q('[data-errors]').textContent));
+ edit('[name="a.psk"]','VlanVpnFixture2026');edit('[name="b.psk"]','VlanVpnFixture2026');submit();
+ check('both combined router outputs',!q('[data-peer-output]').hidden&&q('[data-code]').textContent.includes('permit ip 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255')&&q('[data-peer-code]').textContent.includes('permit ip 192.168.30.0 0.0.0.255 192.168.20.0 0.0.0.255'));
+ check('B switch output available',!q('[data-switch-output]').hidden&&q('[data-switch-output-title]').textContent.startsWith('SIDE B')&&q('[data-switch-code]').textContent.includes('interface FastEthernet0/1'));
+ edit('.noc-selection select[data-side]','a','change');
+ check('A switch output retained without regeneration',!q('[data-switch-output]').hidden&&q('[data-switch-output-title]').textContent.startsWith('SIDE A'));
+ q('[data-office-vpn-preset]').click();submit();
+ check('switch back to single LAN VPN',!q('[data-peer-output]').hidden&&q('[data-switch-output]').hidden&&!q('[data-code]').textContent.includes('encapsulation dot1Q'));
  dispose();document.querySelector('#paired-results').textContent=`${checks}/${checks} paired output checks passed`;
 }catch(error){document.querySelector('#paired-results').textContent='FAILED: '+error.message;throw error;}
 </script></body></html>
