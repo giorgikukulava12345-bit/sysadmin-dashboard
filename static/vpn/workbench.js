@@ -37,6 +37,17 @@ export function mountWorkbench(vpnRoot){
 <details class="noc-card"><summary>Planning utility · VLSM subnet planner</summary><div data-planner></div></details>`;
   vpnRoot.before(shell);vpnRoot.classList.add('noc-vpn');shell.querySelector('[data-vpn-slot]').append(vpnRoot);
   const find=s=>shell.querySelector(s),vendorInput=find('[data-vendor]'),settings=find('[data-settings]');
+  const firstSwitchPanel=find('[data-switch-output]');
+  const secondSwitchPanel=firstSwitchPanel.cloneNode(true);
+  secondSwitchPanel.removeAttribute('data-switch-output');
+  secondSwitchPanel.setAttribute('data-peer-switch-output','');
+  find('[data-peer-output]').after(firstSwitchPanel,secondSwitchPanel);
+  const switchPanels=[firstSwitchPanel,secondSwitchPanel].map((panel,index)=>{
+    const wiring=document.createElement('p');
+    wiring.className='noc-muted';
+    panel.prepend(wiring);
+    return {panel,index,wiring,find:selector=>panel.querySelector(selector)};
+  });
   find('[data-features]').closest('.noc-card').before(find('[data-existing-panel]'));
   for(const[value,title]of Object.entries(PLATFORMS)){const o=document.createElement('option');o.value=value;o.textContent=title;vendorInput.append(o);}
   let submittedKey='',outputCleared=false,officePreset={a:false,b:false},customOffice={a:false,b:false},companion=null,pairResults=null;
@@ -124,7 +135,7 @@ export function mountWorkbench(vpnRoot){
     const chips=find('[data-preset-components]');chips.replaceChildren();for(const [key,title]of components){const button=document.createElement('button');button.type='button';button.dataset.removePreset=key;button.textContent=title;button.setAttribute('aria-label','Remove '+title);button.title='Remove '+title+' and customize this configuration';button.addEventListener('click',()=>{removePresetChip(key);find('[data-preset-components] button')?.focus({preventScroll:true});},{signal:abort.signal});chips.append(button);}
     find('[data-preset-view]').textContent=submitted&&result.errors.length?'Review validation messages':'View generated configuration';
     find('[data-preset-detail]').textContent=custom?'Preset mode is off. Click any chip to remove it, or toggle individual gateway components below. Shared addresses stay in the topology; only enabled components generate commands.':'Click any chip to remove that feature and switch to a custom configuration. Remaining features and entered values are preserved. Only selected components contribute commands.';
-    if(selected().vpn&&gatewayData().officeVpn&&!submitted)find('[data-preset-detail]').textContent=subinterfacesActive?'Edit VLANs and switch ports for each site, then enter matching PSKs and generate. Select each site to copy its switch configuration.':'Quick Setup + VPN is selected on both router sites. Enter matching PSKs below (or use Generate shared PSK), then generate both scripts together below.';
+    if(selected().vpn&&gatewayData().officeVpn&&!submitted)find('[data-preset-detail]').textContent=subinterfacesActive?'Enter matching PSKs and generate. Both router and both switch configurations appear together, with the cable ports for each switch.':'Quick Setup + VPN is selected on both router sites. Enter matching PSKs below (or use Generate shared PSK), then generate both scripts together below.';
   }
   const existingContext=()=>existingContexts[side][role];
   function paintAnalysis(){
@@ -145,7 +156,13 @@ export function mountWorkbench(vpnRoot){
     const target=item.side,peer=target==='a'?'b':'a';return additionsConfiguration(item.integration.text,output.code,vendor,{selected:item.selected,site:item.lab[target],peer:item.lab[peer],includeNatExemption:Boolean(item.integration.includeNatExemption)});
   }
   function clearOfficePreset(){selection[side].router.internet_access=false;officePreset[side]=false;binding[side].router=binding[side].switch=false;renderContext();}
-  const selectedSwitchOutput=()=>pairResults?.[side]?.switchOutput||companion;
+  function switchExport(index){
+    const key=pairResults?(index===0?'a':'b'):side;
+    const output=pairResults?pairResults[key].switchOutput:index===0?companion:null;
+    const site=lab[key];
+    const context={vendor:'ios',role:'switch',model:site.switchModel};
+    return {key,site,context,code:submitted&&!result.errors.length?output?.code:null};
+  }
   function paintOutput(){
     paintPresetBanner();
     const outputSide=pairResults?'a':side;find('[data-output-panel]').dataset.paired=String(Boolean(pairResults));
@@ -156,13 +173,24 @@ export function mountWorkbench(vpnRoot){
     find('[data-code]').textContent=!submitted?(outputCleared?'// Output cleared. Click Submit / Generate Configuration to build CLI.':'// Draft changed. Click Submit / Generate Configuration to validate and build CLI.'):result.errors.length?'// Validation failed. No partial configuration is emitted.':result.empty?'// Select at least one feature or include interface bindings.':displayTerminalText(find('[data-reveal]').checked?result.code:maskSecrets(result.code),{vendor,role,model:outputModel});
     find('[data-code]').parentElement.setAttribute('aria-label',pairResults?'Side A router configuration':'Selected device configuration');
     highlightCLI(find('[data-code]'));
-    const switchOutput=selectedSwitchOutput(),switchReady=Boolean(submitted&&switchOutput?.code&&!result.errors.length);
-    const switchContext={vendor:'ios',role:'switch',model:lab[side].switchModel};
-    find('[data-switch-output]').hidden=!switchReady;
-    find('[data-switch-output-title]').textContent=(pairResults?'SIDE '+side.toUpperCase()+' // ':'')+(lab[side].switchModel||'Cisco Switch');
-    find('[data-switch-code]').textContent=switchReady?displayTerminalText(switchOutput.code,switchContext):'';
-    find('[data-switch-status]').textContent='';
-    if(switchReady)highlightCLI(find('[data-switch-code]'));
+    for(const {panel,index,wiring,find:findSwitch} of switchPanels){
+      const {key,site,context,code}=switchExport(index);
+      const label='Side '+key.toUpperCase()+' Switch';
+      panel.hidden=!code;
+      findSwitch('[data-switch-output-title]').textContent=label+' // '+(site.switchModel||'Cisco');
+      findSwitch('[data-copy-switch]').textContent='Copy '+label+' Config';
+      findSwitch('[data-download-switch]').textContent='Download '+label+' Config';
+      findSwitch('[data-copy-switch]').disabled=findSwitch('[data-download-switch]').disabled=!code;
+      wiring.textContent=code&&site.officeSubinterfaces
+        ?`Router ${site.lan} ↔ switch ${site.uplink} (trunk) · VLAN ${site.vlan} clients → ${site.access} · VLAN ${site.vlan2} clients → ${site.vlan2Access}`
+        :'';
+      wiring.hidden=!wiring.textContent;
+      const preview=findSwitch('[data-switch-code]');
+      preview.parentElement.setAttribute('aria-label',label+' configuration');
+      preview.textContent=code?displayTerminalText(code,context):'';
+      findSwitch('[data-switch-status]').textContent='';
+      if(code)highlightCLI(preview);
+    }
     const peerReady=Boolean(submitted&&pairResults&&!result.errors.length);find('[data-peer-output-title]').textContent='SIDE B // '+(PLATFORMS[lab.b.vendor]||lab.b.vendor)+' ROUTER';find('[data-peer-output]').hidden=!peerReady;find('[data-copy-peer]').disabled=find('[data-download-peer]').disabled=!peerReady;find('[data-copy-peer]').textContent='Copy Side B Config';find('[data-peer-copy-status]').textContent='';find('[data-peer-code]').textContent=peerReady?displayTerminalText(find('[data-reveal]').checked?pairResults.b.code:maskSecrets(pairResults.b.code),{vendor:lab.b.vendor,role:'router',model:lab.b.routerModel}):'';if(peerReady)highlightCLI(find('[data-peer-code]'));
     find('[data-windows-ping-help]').hidden=!peerReady;
     for(const key of ['a','b'])find('[data-windows-ping-'+key+']').textContent=peerReady?`New-NetFirewallRule -DisplayName "NOC VPN Ping from Site ${key==='a'?'B':'A'}" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -RemoteAddress ${[lab[key==='a'?'b':'a'].local,...(subinterfaceVpnActive()?[lab[key==='a'?'b':'a'].vlan2Subnet]:[])].join(',')} -Action Allow -Profile Any`:'';
@@ -280,7 +308,7 @@ export function mountWorkbench(vpnRoot){
     const subinterfaceVpnButton=find('[data-subinterface-vpn-preset]');
     subinterfaceVpnButton.hidden=role!=='router';
     subinterfaceVpnButton.disabled=chosenVendor()!=='ios';
-    subinterfaceVpnButton.title='Cisco pair: two VLANs per site with DHCP, Internet PAT and policy-based IPsec. Select Side A or Side B to edit VLANs and export that switch.';
+    subinterfaceVpnButton.title='Cisco pair: two VLANs per site with DHCP, Internet PAT and policy-based IPsec. Both switch configurations are shown after generation.';
     const combinedButton=find('[data-office-vpn-preset]');combinedButton.hidden=role!=='router';combinedButton.disabled=!['ios','mikrotik','fortinet'].includes(chosenVendor());combinedButton.title=combinedButton.disabled?'Select Cisco, MikroTik or FortiGate for the active router.':'Preserve Cisco / MikroTik / FortiGate peers, IP addresses and PSKs; prepare an unset peer when needed.';const combinedActive=Boolean(selected().vpn&&values[side].router.internet_access?.officeVpn);combinedButton.setAttribute('aria-pressed',String(combinedActive));combinedButton.classList.toggle('noc-copied',combinedActive);
     const visibleModel=['router','switch'].includes(role)&&(['ios','mikrotik','fortinet'].includes(chosenVendor())||role==='router'&&['fortinet','paloalto'].includes(chosenVendor()));find('[data-model-label]').textContent='2 · '+(role==='switch'?'Switch':'Router')+' model';modelInput.setAttribute('aria-label',role==='switch'?'Switch model':'Router model');find('[data-model-search]').setAttribute('aria-label','Search '+(chosenVendor()==='paloalto'?'Palo Alto':chosenVendor()==='fortinet'?'FortiGate':chosenVendor()==='mikrotik'?'MikroTik':'Cisco')+' '+(role==='switch'?'switch':'router')+' models');find('[data-model-field]').hidden=!visibleModel;catalogStatus.hidden=!visibleModel||(role==='switch'&&chosenVendor()!=='mikrotik');if(chosenVendor()==='fortinet'){catalogStatus.textContent=FORTIGATE_CATALOG.length+' FortiGate models · Fortinet hardware catalog';}else if(chosenVendor()==='paloalto'){catalogStatus.textContent='PAN-OS EVE-NG lab profiles';}else if(chosenVendor()==='mikrotik'){catalogStatus.replaceChildren();catalogStatus.append(document.createTextNode(MIKROTIK_CATALOG.filter(r=>r.device_type===role).length+' MikroTik hardware models · Selected models from your list · '));const link=document.createElement('a');link.href='https://mikrotik.com/products';link.target='_blank';link.rel='noopener noreferrer';link.textContent='MikroTik product directory ↗';catalogStatus.append(link);}else catalogStatus.innerHTML=ciscoCatalogStatus;(role==='switch'?populateSwitchModels:populateRouterModels)(modelInput,'',chosenVendor());modelInput.value=lab[side][role==='switch'?'switchModel':'routerModel']||'';find('[data-model-search]').value='';(role==='switch'?renderSwitchModelInfo:renderRouterModelInfo)(find('[data-model-summary]'),visibleModel?modelInput.value:'');
     find('[data-integrate]').checked=existingContexts[side][role].enabled;find('[data-existing]').value=existingContexts[side][role].text;
@@ -414,25 +442,28 @@ export function mountWorkbench(vpnRoot){
     try{await navigator.clipboard.writeText(code);if(!disposed&&submitted&&pairResults?.b.code===source){find('[data-peer-copy-status]').textContent='Copied Side B configuration, including secrets.';find('[data-copy-peer]').textContent='Copied successfully! ✓';}}
     catch{if(!disposed)find('[data-peer-copy-status]').textContent='Clipboard unavailable. Reveal, select and copy the Side B terminal text.';}
   },{signal:abort.signal});
-  find('[data-copy-switch]').addEventListener('click',async()=>{
-    const switchOutput=selectedSwitchOutput();
-    if(!submitted||!switchOutput?.code||result.errors.length)return;
-    try{
-      await navigator.clipboard.writeText(terminalText(switchOutput.code,{vendor:'ios',role:'switch',model:lab[side].switchModel}));
-      find('[data-switch-status]').textContent='Switch configuration copied.';
-    }catch{find('[data-switch-status]').textContent='Clipboard unavailable. Use Download Switch Config.';}
-  },{signal:abort.signal});
-  find('[data-download-switch]').addEventListener('click',()=>{
-    const switchOutput=selectedSwitchOutput();
-    if(!submitted||!switchOutput?.code||result.errors.length)return;
-    const code=terminalText(switchOutput.code,{vendor:'ios',role:'switch',model:lab[side].switchModel});
-    const url=URL.createObjectURL(new Blob([code],{type:'text/plain;charset=utf-8'}));
-    const link=document.createElement('a');
-    link.href=url;
-    link.download='noc-'+side+'-cisco-switch.conf';
-    link.click();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-  },{signal:abort.signal});
+  for(const {index,find:findSwitch} of switchPanels){
+    findSwitch('[data-copy-switch]').addEventListener('click',async()=>{
+      const {key,context,code}=switchExport(index);
+      if(!code)return;
+      try{
+        await navigator.clipboard.writeText(terminalText(code,context));
+        if(!disposed&&switchExport(index).code===code&&switchExport(index).key===key){
+          findSwitch('[data-switch-status]').textContent='Side '+key.toUpperCase()+' switch configuration copied.';
+        }
+      }catch{if(!disposed)findSwitch('[data-switch-status]').textContent='Clipboard unavailable. Use the switch download button.';}
+    },{signal:abort.signal});
+    findSwitch('[data-download-switch]').addEventListener('click',()=>{
+      const {key,context,code}=switchExport(index);
+      if(!code)return;
+      const url=URL.createObjectURL(new Blob([terminalText(code,context)],{type:'text/plain;charset=utf-8'}));
+      const link=document.createElement('a');
+      link.href=url;
+      link.download='noc-'+key+'-cisco-switch.conf';
+      link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },{signal:abort.signal});
+  }
   find('[data-download-peer]').addEventListener('click',()=>{
     if(!submitted||result.errors.length||!pairResults?.b.code)return;
     const code=terminalText(pairResults.b.code,{vendor:lab.b.vendor,role:'router',model:lab.b.routerModel}),url=URL.createObjectURL(new Blob([code],{type:'text/plain;charset=utf-8',endings:'transparent'})),link=document.createElement('a');link.href=url;link.download='noc-b-router-'+lab.b.vendor+'.conf';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);find('[data-peer-copy-status]').textContent='Downloaded Side B configuration, including secrets.';
