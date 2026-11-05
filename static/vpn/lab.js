@@ -31,8 +31,8 @@ export function labScripts(lab,{sides=['a','b'],routerOnly=false}={}) {
     if(!/^\d+$/.test(s.vlan)||+s.vlan<1||+s.vlan>4094)errors.push(`${label}: VLAN must be 1–4094.`);
     for(const key of ['uplink','access','hostIf'])if(!nameOK(s[key]))errors.push(`${label}: invalid ${key} interface.`);
     if(s.uplink===s.access)errors.push(`${label}: switch uplink and host port must differ.`);
-    for(const key of ['switchIp','hostIp']) {const v=ipv4(s[key]);if(!n||v===null||v<=n.network||v>=n.end)errors.push(`${label}: ${key} must be a usable LAN host.`);}
-    if(new Set([s.switchIp,s.hostIp,s.lanIp]).size!==3)errors.push(`${label}: router, switch and host IPs must differ.`);
+    for(const key of s.officeSubinterfaces?['switchIp']:['switchIp','hostIp']) {const v=ipv4(s[key]);if(!n||v===null||v<=n.network||v>=n.end)errors.push(`${label}: ${key} must be a usable LAN host.`);}
+    if(s.officeSubinterfaces?s.switchIp===s.lanIp:new Set([s.switchIp,s.hostIp,s.lanIp]).size!==3)errors.push(`${label}: router, switch and host IPs must differ.`);
     if(!Object.hasOwn(PLATFORMS,s.switchVendor))errors.push(`${label}: choose a switch vendor.`);
     }
   }
@@ -82,5 +82,3 @@ export function mountLab(root,{onChange=()=>{},showDeviceOutputs=true,routerOnly
   render();
   return{set(next){for(const side of ['a','b'])if(next[side])state[side]={...state[side],...next[side]};render(true);},destroy(){disposed=true;controller.abort();root.replaceChildren();root.classList.remove('lab-canvas');}};
 }
-
-
