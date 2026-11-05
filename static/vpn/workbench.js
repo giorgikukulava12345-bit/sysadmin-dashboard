@@ -93,10 +93,25 @@ export function mountWorkbench(vpnRoot){
     renderContext();
   }
   function paintPresetBanner(){
-    const active=Boolean(selection[side].router.internet_access),banner=find('[data-preset-banner]');banner.hidden=!active;
+    const active=Boolean(selection[side].router.internet_access),banner=find('[data-preset-banner]');
+    const site=lab[side],router=selection[side].router,data=values[side].router.internet_access;
+    const vpnActive=Boolean(active&&router.vpn&&data?.officeVpn);
+    const subinterfacesActive=Boolean(active&&site.officeSubinterfaces&&site.vlan2Enabled==='on');
+    const states=[
+      [find('[data-office-preset]'),active&&officePreset[side]&&!customOffice[side]&&!vpnActive&&!subinterfacesActive],
+      [find('[data-subinterface-preset]'),subinterfacesActive],
+      [find('[data-office-vpn-preset]'),vpnActive],
+      ...Array.from(shell.querySelectorAll('[data-routing-preset]'),button=>[button,Boolean(router[button.dataset.routingPreset])])
+    ];
+    for(const [button,isActive] of states){
+      const pressed=role==='router'&&isActive;
+      button.setAttribute('aria-pressed',String(pressed));
+      button.classList.toggle('noc-copied',pressed);
+    }
+    banner.hidden=!active;
     if(!active)return;
     const custom=customOffice[side],parts=gatewayParts(gatewayData());
-    find('[data-preset-heading]').textContent=(custom?'Custom configuration':selected().vpn&&gatewayData().officeVpn?'Office Internet Gateway + VPN active':'Office Internet Gateway active')+(role==='router'&&submitted&&!result.errors.length&&!result.empty?' / Configuration ready':role==='router'&&submitted&&result.errors.length?' / Review required':' / Draft');
+    find('[data-preset-heading]').textContent=(custom?'Custom configuration':selected().vpn&&gatewayData().officeVpn?'Office Internet Gateway + VPN active':subinterfacesActive?'Office Subinterfaces active':'Office Internet Gateway active')+(role==='router'&&submitted&&!result.errors.length&&!result.empty?' / Configuration ready':role==='router'&&submitted&&result.errors.length?' / Review required':' / Draft');
     const components=Object.entries(GATEWAY_PARTS).filter(([key])=>parts[key]);
     if(officePreset[side]&&binding[side].switch)components.push(['switch','Switch addressing & access ports']);
     if(selected().vpn&&gatewayData().officeVpn)components.push(['vpn','Site-to-site IPsec + NAT exemption']);
@@ -339,6 +354,11 @@ export function mountWorkbench(vpnRoot){
     site.vlan2Enabled='on';
     site.officeVlans=true;
     site.officeSubinterfaces=true;
+    const network=cidr(site.local),management=ipv4(site.switchIp);
+    if(network&&network.end-network.network>=3&&(management===null||management<=network.network||management>=network.end||site.switchIp===site.lanIp)){
+      const candidate=network.end-1-(ipv4(site.lanIp)===network.end-1?1:0);
+      site.switchIp=[24,16,8,0].map(bit=>(candidate>>>bit)&255).join('.');
+    }
     site.switchVendor='ios';
     if(!site.switchModel||!site.uplink)selectSwitchModel(site,site.routerModel.endsWith('(Packet Tracer)')?'Cisco 2960-24TT (Packet Tracer)':site.routerModel.endsWith('(EVE-NG)')?'Cisco IOL L2 (EVE-NG)':'Cisco Catalyst 2960-24TT-L');
     gatewayData().iosLanMode='subinterfaces';
