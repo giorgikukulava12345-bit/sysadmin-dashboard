@@ -216,7 +216,10 @@ export function mountWorkbench(vpnRoot){
       summary.textContent='Cisco switch and 802.1Q VLANs';
       const fields=document.createElement('div');
       fields.className='noc-fields';
-      panel.append(summary,fields);
+      const wiring=document.createElement('p');
+      wiring.className='noc-note';
+      wiring.textContent='Match the switch trunk port to the cable from the router LAN interface. Match each access port to its client cable before generating.';
+      panel.append(summary,wiring,fields);
       settings.append(panel);
       const modelLabel=document.createElement('label');
       modelLabel.className='noc-field';
@@ -229,7 +232,7 @@ export function mountWorkbench(vpnRoot){
       fields.append(modelLabel);
       mountSelectionMenu(model,abort.signal);
       model.addEventListener('change',()=>{
-        selectSwitchModel(site,model.value);
+        selectSwitchModel(site,model.value,{subinterfaces:true});
         renderSettings();
         renderOutput();
       },{signal:abort.signal});
@@ -360,7 +363,7 @@ export function mountWorkbench(vpnRoot){
       site.switchIp=[24,16,8,0].map(bit=>(candidate>>>bit)&255).join('.');
     }
     site.switchVendor='ios';
-    if(!site.switchModel||!site.uplink)selectSwitchModel(site,site.routerModel.endsWith('(Packet Tracer)')?'Cisco 2960-24TT (Packet Tracer)':site.routerModel.endsWith('(EVE-NG)')?'Cisco IOL L2 (EVE-NG)':'Cisco Catalyst 2960-24TT-L');
+    if(!site.switchModel||!site.uplink)selectSwitchModel(site,site.routerModel.endsWith('(Packet Tracer)')?'Cisco 2960-24TT (Packet Tracer)':site.routerModel.endsWith('(EVE-NG)')?'Cisco IOL L2 (EVE-NG)':'Cisco Catalyst 2960-24TT-L',{subinterfaces:true});
     gatewayData().iosLanMode='subinterfaces';
     binding[side].switch=true;
     renderContext();
