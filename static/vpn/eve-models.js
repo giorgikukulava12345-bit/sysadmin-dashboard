@@ -6,6 +6,7 @@ export const EVE_MODELS=[
  make('Cisco IOS 1710 (Dynamips)','ios','router',['FastEthernet0','Ethernet0']),
  make('Cisco IOS 3725 (Dynamips)','ios','router',['FastEthernet0/0','FastEthernet0/1','FastEthernet1/0','FastEthernet2/0']),
  make('Cisco IOS 7206VXR (Dynamips)','ios','router',['FastEthernet0/0','FastEthernet1/0','Ethernet1/0','Ethernet1/1','Ethernet1/2','Ethernet1/3']),
+ make('Cisco IOL L2','ios','switch',eth),
  make('Cisco IOL','ios','router',eth,'Cisco IOL image family from the supplied screenshot. This router profile uses example IOL Ethernet adapters; enter the exact names and verify that the running image is Layer 3 IOS.'),
  {...make('Cisco Firepower NGIPS 7','ios','router',[],'Firepower NGIPS is not Cisco IOS / IOS XE. This entry identifies the EVE-NG appliance only; the router CLI generator cannot configure NGIPS.'),cli_supported:false},
  ...['mikrotik-6.49.19'].map(name=>make(name,'mikrotik','router',Array.from({length:4},(_,i)=>'ether'+(i+1)),'Four Ethernet adapters as shown in the supplied EVE-NG node. Interface names remain editable. Match generated features to the installed RouterOS version; some features require RouterOS 7.')),
