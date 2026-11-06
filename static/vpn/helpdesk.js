@@ -61,6 +61,12 @@ function randomPassword(length) {
   return Array.from(crypto.getRandomValues(new Uint8Array(+length)), byte => alphabet[byte & 63]).join('');
 }
 
+async function sha256(input) {
+  if (!crypto.subtle) throw Error('SHA-256 calculation requires HTTPS.');
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', input));
+  return Array.from(bytes, byte => byte.toString(16).padStart(2,'0')).join('');
+}
+
 function formatJson(input, compact) {
   try { JSON.parse(input); }
   catch { throw Error('Invalid JSON. Check quotes, commas, and matching brackets.'); }
@@ -112,7 +118,59 @@ const styles = `
 .helpdesk-wires li{display:grid;grid-template-columns:1rem 1rem 1fr;align-items:center;gap:6px;font-size:.76rem;overflow-wrap:anywhere}
 .helpdesk-wires i{display:block;width:1rem;height:.8rem;border:1px solid #ffffff55;border-radius:2px}
 .helpdesk-hub h3{margin-top:18px}
+.helpdesk-command{margin:12px 0;padding:8px 0;border-top:1px solid #334155}
+.helpdesk-steps{display:grid;gap:10px;padding-inline-start:1.4rem;list-style:decimal}
 @media(max-width:860px){.helpdesk-grid{grid-template-columns:minmax(0,1fr)}}
+`;
+
+const command = (text, note) => `
+  <div class="helpdesk-command"><p class="noc-muted">${note}</p>
+    <pre class="helpdesk-output"><code>${text}</code></pre>
+    <button type="button" data-copy-windows>Copy command</button>
+    <p class="noc-note" role="status"></p>
+  </div>`;
+
+const windowsTools = `
+    <h3>Windows Repair &amp; Diagnostics</h3>
+    <div class="helpdesk-grid">
+      <details class="noc-feature-settings"><summary>System files &amp; disk</summary>
+        <p class="noc-muted">Open Windows Terminal or Command Prompt as administrator. For suspected system file corruption, run DISM first and wait for it to complete successfully before running SFC.</p>
+        ${command('DISM.exe /Online /Cleanup-Image /RestoreHealth','Repair the Windows component store. DISM may use Windows Update for repair files.')}
+        ${command('sfc /scannow','Scan protected system files and repair them using the component store.')}
+        ${command('chkdsk C: /scan','Start with an online scan of the NTFS system volume. Adjust the drive letter if needed.')}
+        ${command('chkdsk C: /f','Use if the scan reports errors that need repair. Save work and back up important files first. Windows may schedule the repair for the next restart.')}
+        <p><a href="https://support.microsoft.com/en-gb/windows/deployment/updates-lifecycle/troubleshoot-problems-updating-windows" target="_blank" rel="noopener noreferrer">Microsoft system repair</a> · <a href="https://learn.microsoft.com/windows-server/administration/windows-commands/chkdsk" target="_blank" rel="noopener noreferrer">CHKDSK reference</a></p>
+      </details>
+      <details class="noc-feature-settings"><summary>Network recovery</summary>
+        <p class="noc-muted">Run commands individually in an administrator terminal. Retest the original symptom after each step.</p>
+        ${command('ipconfig /flushdns','Clear cached DNS answers when a record has changed or the client has cached a failed lookup.')}
+        ${command('netsh winsock reset','Reset the Winsock catalog when applications still fail to connect and a socket provider issue is suspected. Restart afterward.')}
+        ${command('netsh int ip reset resetlog.txt','Reset TCP/IP as a later recovery step. Record static IP, gateway, and DNS settings first. Use a local console because remote access can drop. Restart afterward and reapply settings if needed.')}
+        <p><a href="https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh-winsock" target="_blank" rel="noopener noreferrer">Winsock reference</a> · <a href="https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/reset-tcp-ip-net-shell" target="_blank" rel="noopener noreferrer">TCP/IP reset reference</a></p>
+      </details>
+      <details class="noc-feature-settings"><summary>Temporary files &amp; cache</summary>
+        <p class="noc-muted">Start in Settings → System → Storage → Temporary files. Review the categories, especially Downloads and Recycle Bin, before removing anything. Storage Sense can automate routine cleanup.</p>
+        ${command('%temp%','Paste into Win + R to inspect your user temp folder. Close the affected app first and skip files Windows reports as in use.')}
+        ${command('%windir%\\Temp','Paste into Win + R to inspect the system temp folder. Prefer Storage settings for cleanup.')}
+        <p class="noc-muted"><strong>Prefetch:</strong> Windows manages this cache to speed up app startup. Leave it in place during routine cleanup.</p>
+        <a href="https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/manage-drive-space-with-storage-sense" target="_blank" rel="noopener noreferrer">Microsoft Storage Sense guide</a>
+      </details>
+    </div>
+    <h3>PC Performance &amp; Slowdown Guide</h3>
+    <div class="helpdesk-grid">
+      <details class="noc-feature-settings"><summary>Triage a slow Windows PC</summary>
+        <ol class="helpdesk-steps">
+          <li><strong>Reproduce and measure.</strong> Open Task Manager with <kbd>Ctrl + Shift + Esc</kbd>. In Processes, sort by CPU, Memory and Disk while the slowdown occurs. Note the top process and whether the spike persists.</li>
+          <li><strong>CPU stays high.</strong> Identify the busy app or service. Check for updates, scanning or sync activity, then retest when it completes. Close only a known app after saving its work.</li>
+          <li><strong>Memory stays high.</strong> Check Available and Committed in Performance → Memory. Reduce tabs or workloads, then compare again. Keep the Windows pagefile system managed and leave space on the system drive for it to grow.</li>
+          <li><strong>Disk stays at 100% active time.</strong> Open Resource Monitor (<code>resmon.exe</code>) and inspect the Disk tab for the process and response time. Check free space on C: and use Storage settings. If I/O errors recur, back up data and check drive health with the vendor utility.</li>
+          <li><strong>Startup is slow.</strong> In Task Manager → Startup apps, disable one nonessential item at a time. Keep security and device management agents enabled. Restart and compare.</li>
+          <li><strong>Performance drops as the PC heats up.</strong> Compare CPU clock speed and temperature during the same workload using the device vendor utility. Falling clocks alongside rising temperatures may indicate thermal throttling. Check vents, fans and airflow.</li>
+          <li><strong>Verify the improvement.</strong> Repeat the original workload and record before/after resource use and elapsed time. Escalate recurring disk errors, crashes or thermal shutdowns.</li>
+        </ol>
+        <a href="https://support.microsoft.com/en-gb/windows/experience/performance-optimization/tips-to-improve-pc-performance-in-windows" target="_blank" rel="noopener noreferrer">Microsoft Windows performance guide</a>
+      </details>
+    </div>
 `;
 
 const actions = label => `<div class="noc-actions"><button type="submit">${label}</button><button type="button" data-copy disabled>Copy result</button><button type="reset">Clear</button></div>
@@ -157,12 +215,16 @@ export function mountHelpdesk(root) {
         <form data-tool="json"><label class="noc-field">JSON payload<textarea name="text" rows="5" maxlength="50000" required></textarea></label>
         <label class="noc-field">Output format<select name="format"><option value="pretty">Indented</option><option value="compact">Compact</option></select></label>${actions('Validate and format')}</form>
       </details>
+      <details class="noc-feature-settings"><summary>SHA-256 Text Hash</summary>
+        <form data-tool="text-hash"><label class="noc-field">Text (UTF-8)<textarea name="text" rows="4" maxlength="100000"></textarea></label>${actions('Generate SHA-256')}</form>
+      </details>
       <details class="noc-feature-settings"><summary>SHA-256 File Checksum</summary>
         <p class="noc-muted">Compare a local file with the SHA-256 checksum published by its supplier. Supports files up to 32 MiB.</p>
         <form data-tool="checksum"><label class="noc-field">File<input type="file" name="file" required></label>
         <label class="noc-field">Expected SHA-256 (optional)<input name="expected" maxlength="64" placeholder="64 hexadecimal characters"></label>${actions('Calculate checksum')}</form>
       </details>
-    </div>`;
+    </div>
+    ${windowsTools}`;
   const stopPlanner = mountPlanner(root.querySelector('[data-planner]'));
   const wireControls = [];
   for (const end of ['1','2']) {
@@ -198,19 +260,28 @@ export function mountHelpdesk(root) {
   for (const {select} of wireControls) select.addEventListener('change', showPins, options);
   showPins();
 
+  root.addEventListener('click', async event => {
+    const button = event.target.closest('[data-copy-windows]');
+    if (!button) return;
+    const block = button.closest('.helpdesk-command');
+    let message = 'Copied.';
+    try { await navigator.clipboard.writeText(block.querySelector('code').textContent); }
+    catch { message = 'Clipboard unavailable. Select and copy the command manually.'; }
+    if (!abort.signal.aborted) block.querySelector('[role=status]').textContent = message;
+  }, options);
+
   const handlers = {
     cidr: data => inspectCidr(data.get('network'), data.get('member')),
     codec: data => transformText(data.get('text'), data.get('format'), data.get('operation')),
     password: data => randomPassword(data.get('length')),
     diagnostics: data => diagnosticCommands(data.get('host'), data.get('port'), data.get('type')),
     json: data => ({text: formatJson(data.get('text'), data.get('format') === 'compact'), status: 'Valid JSON.'}),
+    'text-hash': data => sha256(new TextEncoder().encode(data.get('text'))),
     async checksum(data) {
       const file = data.get('file'), expected = data.get('expected').trim().toLowerCase();
       if (file.size > MAX_FILE) throw Error('Select a file no larger than 32 MiB.');
       if (expected && !/^[a-f0-9]{64}$/.test(expected)) throw Error('Expected SHA-256 must have 64 hexadecimal characters.');
-      if (!crypto.subtle) throw Error('Checksum calculation requires HTTPS.');
-      const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
-      const text = Array.from(bytes, byte => byte.toString(16).padStart(2,'0')).join('');
+      const text = await sha256(await file.arrayBuffer());
       return {text, status: expected ? (text === expected ? 'Checksum matches.' : 'Checksum does not match.') : 'SHA-256 calculated.'};
     },
   };
