@@ -3,6 +3,14 @@ import { cidr } from './address.js';
 export function vtiConfig(c, s, peer, classicVti = false) {
   const local = cidr(s.local), remote = cidr(s.remote), legacy = Boolean(c.referenceVti || c.vtiLegacy);
   const encryption = c.referenceVti ? '256' : c.encryption;
+  const vlan=c.referenceVti&&s.lanVlan?Number(s.lanVlan):null;
+  const inside=vlan?`interface ${s.lan}
+ no shutdown
+ exit
+interface ${s.lan}.${vlan}
+ encapsulation dot1Q ${vlan}
+ ip address ${s.lanIp} ${local.mask}
+ no shutdown`:`interface ${s.lan}`;
   const nat = c.officeManagedNat ? '' : `
 ! 5. NAT Exemption ACL
 ! Rebuilds the named NAT ACL; merge any other existing translation entries first.
@@ -17,7 +25,7 @@ ip nat inside source list NAT interface ${s.wan} overload
 interface ${s.wan}
  ip nat outside
  exit
-interface ${s.lan}
+${inside}
  ip nat inside
  exit`;
   return `configure terminal

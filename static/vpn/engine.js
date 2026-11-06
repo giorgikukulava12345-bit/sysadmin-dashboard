@@ -1,3 +1,4 @@
+import {isCiscoPhysical} from './port-options.js';
 import {cliProfile,legacyCiscoPair,profileCLI,profileErrors} from './cli-profile.js';
 import juniper from './vendors/juniper.js';
 import { ipv4, cidr } from './address.js';
@@ -61,6 +62,12 @@ export function validate(c) {
     if(['juniper','paloalto'].includes(s.vendor)){for(const field of ['zone','vpnZone',...(s.vendor==='juniper'?['wanZone']:[])])if(!/^[A-Za-z][A-Za-z0-9_-]{0,30}$/.test(s[field]||''))errors.push(`${label}: invalid ${field} name.`);if(s.zone===s.vpnZone||s.vendor==='juniper'&&[s.zone,s.vpnZone].includes(s.wanZone))errors.push(`${label}: LAN, VPN and WAN zones must be distinct.`);if(!/^\d+$/.test(s.vpnUnit||'')||+s.vpnUnit<1||+s.vpnUnit>9999)errors.push(`${label}: VPN logical unit must be 1–9999.`);}
     const contextFields = c.protocol === 'wireguard' ? [] : s.vendor === 'paloalto' ? ['wan', 'zone', 'vr'] : ['wan', 'lan'];
     for (const field of contextFields) if (!/^[A-Za-z][A-Za-z0-9._/-]{0,45}$/.test(s[field])) errors.push(`${label}: invalid ${field} name.`);
+    if(c.protocol==='vti'&&c.referenceVti&&s.lanVlan){
+      if(!/^\d{1,4}$/.test(s.lanVlan)||+s.lanVlan<1||+s.lanVlan>4094||(+s.lanVlan>=1002&&+s.lanVlan<=1005))errors.push(`${label}: enter a valid LAN VLAN ID (1–4094, excluding 1002–1005).`);
+      const lan=cidr(s.local),host=ipv4(s.lanIp);
+      if(!lan||host===null||host<=lan.network||host>=lan.end)errors.push(`${label}: the subinterface needs a usable LAN gateway IP.`);
+      if(!isCiscoPhysical(s.lan)||s.lan.toLowerCase()===s.wan.toLowerCase())errors.push(`${label}: select a physical LAN Ethernet port distinct from WAN.`);
+    }
     if (c.protocol !== 'wireguard' && ['ios','asa'].includes(s.vendor) && ipv4(s.gateway) === null) errors.push(`${label}: a valid WAN next-hop is required.`);
     if (c.protocol !== 'wireguard' && !/^[A-Za-z0-9_@%+=:,.-]{4,}$/.test(s.psk)) errors.push(`${label}: PSK must contain at least 4 CLI-safe characters (letters, digits, _ @ % + = : , . -).`);
     if (['gre','wireguard','vti'].includes(c.protocol)) {

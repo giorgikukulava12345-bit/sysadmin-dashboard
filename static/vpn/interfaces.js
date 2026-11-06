@@ -41,7 +41,7 @@ export function validateInterfaces(config, sides=['a','b']) {
 }
 
 // Addressing is explicitly enabled by the user; never change existing interfaces silently.
-export function interfaceConfig(s) {
+export function interfaceConfig(s,{wanOnly=false}={}) {
   const wan = cidr(`${s.ip}/${s.wanPrefix}`), lan = cidr(s.local);
   switch (s.vendor) {
     case 'ios': return `configure terminal
@@ -49,11 +49,11 @@ interface ${s.wan}
  ip address ${s.ip} ${wan.mask}
  no shutdown
  exit
-interface ${s.lan}
+${wanOnly?'':`interface ${s.lan}
  ip address ${s.lanIp} ${lan.mask}
  no shutdown
  exit
-end
+`}end
 `;
     case 'asa': return `configure terminal
 interface ${s.wanPort}
