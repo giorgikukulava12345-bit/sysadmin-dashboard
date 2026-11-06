@@ -1,7 +1,8 @@
 import { cidr } from './address.js';
 
 export function vtiConfig(c, s, peer, classicVti = false) {
-  const local = cidr(s.local), remote = cidr(s.remote), legacy = Boolean(c.vtiLegacy);
+  const local = cidr(s.local), remote = cidr(s.remote), legacy = Boolean(c.referenceVti || c.vtiLegacy);
+  const encryption = c.referenceVti ? '256' : c.encryption;
   const nat = c.officeManagedNat ? '' : `
 ! 5. NAT Exemption ACL
 ! Rebuilds the named NAT ACL; merge any other existing translation entries first.
@@ -22,22 +23,22 @@ interface ${s.lan}
   return `configure terminal
 ! 1. Phase 1 (ISAKMP)
 crypto isakmp policy 1
- encr aes ${c.encryption}
+ encr aes ${encryption}
  hash ${legacy ? 'sha' : 'sha256'}
  authentication pre-share
  group ${legacy ? '2' : c.dh}
- lifetime ${c.lifetime1}
+ lifetime ${c.referenceVti ? '28800' : c.lifetime1}
  exit
 crypto isakmp key ${s.psk} address ${peer.ip}
 
 ! 2. Phase 2 (IPsec Transform-Set & Profile)
-crypto ipsec transform-set TS-VTI esp-aes ${c.encryption} ${legacy ? 'esp-sha-hmac' : 'esp-sha256-hmac'}
+crypto ipsec transform-set TS-VTI esp-aes ${encryption} ${legacy ? 'esp-sha-hmac' : 'esp-sha256-hmac'}
  mode tunnel
  exit
 crypto ipsec profile IPSEC-PROFILE-VTI
- set transform-set TS-VTI
+ set transform-set TS-VTI${c.referenceVti ? '' : `
  set pfs group${classicVti ? '2' : c.pfs}
- set security-association lifetime seconds ${c.lifetime2}
+ set security-association lifetime seconds ${c.lifetime2}`}
  exit
 
 ! 3. VTI Tunnel Interface Optimization (MTU/MSS)
