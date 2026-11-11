@@ -55,10 +55,106 @@ function transformText(input, format, operation) {
   }
 }
 
-function randomPassword(length) {
-  if (!/^\d+$/.test(length) || +length < 16 || +length > 128) throw Error('Choose a length from 16 to 128.');
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-  return Array.from(crypto.getRandomValues(new Uint8Array(+length)), byte => alphabet[byte & 63]).join('');
+const passwordLength = {min: 8, max: 128, initial: 24};
+const passwordSets = [
+  ['Uppercase', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'],
+  ['Lowercase', 'abcdefghijklmnopqrstuvwxyz'],
+  ['Numbers', '0123456789'],
+  ['Symbols', '!@#$%^&*()-_=+[]{}:;,.?'],
+];
+
+function randomPassword(length, sets) {
+  const alphabet = sets.join('');
+  const limit = 256 - (256 % alphabet.length);
+  const bytes = new Uint8Array(length);
+  // Reject extra byte values and candidates missing a selected character type.
+  for (;;) {
+    let candidate = '';
+    while (candidate.length < length) {
+      for (const byte of crypto.getRandomValues(bytes)) {
+        if (byte >= limit) continue;
+        candidate += alphabet[byte % alphabet.length];
+        if (candidate.length === length) break;
+      }
+    }
+    if (sets.every(set => [...candidate].some(char => set.includes(char)))) return candidate;
+  }
+}
+
+function mountPassword(panel, options) {
+  const form = panel.querySelector('form');
+  const length = form.elements.lengthRange;
+  const count = form.querySelector('[data-password-count]');
+  const checks = [...form.querySelectorAll('input[type=checkbox]')];
+  const result = form.querySelector('[data-password-result]');
+  const meter = form.querySelector('meter');
+  const strength = form.querySelector('[data-password-strength]');
+  const copy = form.querySelector('[data-password-copy]');
+  const status = form.querySelector('[role=status]');
+  let revision = 0;
+  const selectedSets = () => passwordSets.filter((_, i) => checks[i].checked).map(([, chars]) => chars);
+
+  function generate() {
+    revision++;
+    status.textContent = '';
+    copy.textContent = 'Copy password';
+    const size = Number(length.value);
+    const sets = selectedSets();
+    count.textContent = size;
+    // This is an estimate based on the length and available characters.
+    const bits = size * Math.log2(sets.join('').length);
+    const level = bits < 45 ? 1 : bits < 70 ? 2 : bits < 100 ? 3 : 4;
+    try {
+      result.textContent = randomPassword(size, sets);
+      meter.value = level;
+      strength.textContent = ['Weak', 'Fair', 'Strong', 'Very strong'][level - 1];
+      form.dataset.strength = level;
+      copy.disabled = false;
+    } catch {
+      result.textContent = 'Password unavailable';
+      meter.value = 0;
+      strength.textContent = 'Unavailable';
+      delete form.dataset.strength;
+      copy.disabled = true;
+      status.textContent = 'Secure password generation is unavailable in this browser.';
+    }
+  }
+
+  panel.addEventListener('toggle', () => {
+    if (panel.open) generate();
+    else {
+      revision++;
+      result.textContent = '';
+      status.textContent = '';
+      copy.disabled = true;
+    }
+  }, options);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    generate();
+  }, options);
+  length.addEventListener('input', generate, options);
+  for (const check of checks) check.addEventListener('change', () => {
+    if (!selectedSets().length) {
+      check.checked = true;
+      status.textContent = 'Keep at least one character type selected.';
+      return;
+    }
+    generate();
+  }, options);
+  copy.addEventListener('click', async () => {
+    const version = revision;
+    try {
+      await navigator.clipboard.writeText(result.textContent);
+      if (version !== revision || options.signal.aborted) return;
+      copy.textContent = 'Copied!';
+      status.textContent = 'Password copied.';
+    } catch {
+      if (version !== revision || options.signal.aborted) return;
+      status.textContent = 'Clipboard unavailable. Select and copy the password manually.';
+      result.focus();
+    }
+  }, options);
 }
 
 async function sha256(input) {
@@ -114,6 +210,38 @@ const styles = `
 .helpdesk-output{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;background:#090b12;color:#a7f3d0;padding:10px;border-radius:8px}
 .helpdesk-grid [role=status]{min-height:1em}
 .helpdesk-grid .noc-field input,.helpdesk-grid .noc-field select{min-width:0;max-width:100%}
+.helpdesk-grid .helpdesk-password{grid-column:1/-1;border:1px solid #28566a;border-radius:12px;padding:0 14px;background:#10202b}
+.helpdesk-grid .helpdesk-password>summary{min-height:44px;padding:12px 0;font-size:1.125rem;font-weight:750;color:#a5f3fc}
+.helpdesk-password .password-panel{gap:12px;margin:0 0 14px;padding:clamp(12px,3vw,26px);border-radius:10px;background:#f4f7f8;color:#101e29;color-scheme:light}
+.password-result-row{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #8b9ba5;border-radius:10px;background:#fff}
+.password-result{flex:1 1 14rem;min-width:0;min-height:1.4em;margin:0;color:#101e29;font:700 clamp(1rem,3vw,1.45rem)/1.4 'JetBrains Mono',monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:all}
+.password-actions{display:flex;flex-wrap:wrap;gap:8px}
+.helpdesk-password .password-actions button{min-height:44px;padding:8px 14px;border:1px solid #8598a3;border-radius:8px;background:#fff;color:#193847;font-family:inherit;font-size:.9rem;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}
+.helpdesk-password .password-actions button:hover{background:#e6f3f7}
+.helpdesk-password .password-actions [data-password-copy]{border-color:#b60d3e;background:#b60d3e;color:#fff}
+.helpdesk-password .password-actions [data-password-copy]:hover{background:#970d36}
+.password-panel :focus-visible,.helpdesk-password>summary:focus-visible{outline:3px solid #1686a3;outline-offset:3px}
+.password-rating{display:flex;align-items:center;gap:12px;font-size:.875rem;font-weight:700;--rating:#40546a;color:var(--rating)}
+.password-panel[data-strength="1"] .password-rating{--rating:#a6253c}
+.password-panel[data-strength="2"] .password-rating{--rating:#985112}
+.password-panel[data-strength="3"] .password-rating{--rating:#176b65}
+.password-panel[data-strength="4"] .password-rating{--rating:#16633a}
+.password-rating meter{flex:1;min-width:0;width:100%;height:.75rem;appearance:none;background:#d6dfe2;border-radius:99px;overflow:hidden}
+.password-rating meter::-webkit-meter-bar{background:#d6dfe2;border:0}
+.password-rating meter::-webkit-meter-optimum-value{background:var(--rating);border-radius:99px}
+.password-rating meter::-moz-meter-bar{background:var(--rating);border-radius:99px}
+.password-controls{display:grid;gap:14px;margin:0;padding:16px;border-radius:10px;background:#e0efe6}
+.password-length{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;font-weight:700}
+.password-length output{display:inline-block;min-width:2.6em;padding:3px 6px;border-radius:6px;background:#fff;text-align:center;font-variant-numeric:tabular-nums}
+.password-length input[type=range]{flex:1 1 180px;min-width:0;height:32px;margin:0;padding:0;border:0;background:transparent;accent-color:#126450;cursor:pointer}
+.password-characters{min-inline-size:0;margin:0;padding:0;border:0}
+.password-characters legend{padding:0;font-weight:700}
+.password-checks{display:flex;flex-wrap:wrap;gap:0 18px}
+.password-checks label{display:flex;align-items:center;gap:7px;min-height:44px;color:#101e29;cursor:pointer}
+.password-checks input[type=checkbox]{width:19px;height:19px;margin:0;accent-color:#126450}
+.password-panel [role=status]{margin:0;color:#244456;font-size:.875rem}
+.password-panel [role=status]:empty{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:580px){.password-result-row{align-items:stretch;flex-direction:column}.password-result{flex:auto}.password-actions button{flex:1}.password-length input[type=range]{flex-basis:100%}}
 .helpdesk-wires{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .helpdesk-wires li{display:grid;grid-template-columns:1rem 1rem 1fr;align-items:center;gap:6px;font-size:.76rem;overflow-wrap:anywhere}
 .helpdesk-wires i{display:block;width:1rem;height:.8rem;border:1px solid #ffffff55;border-radius:2px}
@@ -202,9 +330,6 @@ export function mountHelpdesk(root) {
         <label class="noc-field">Operation<select name="operation"><option value="encode">Encode</option><option value="decode">Decode</option></select></label>
         <label class="noc-field">Input text<textarea name="text" rows="4" maxlength="100000"></textarea></label>${actions('Convert')}</form>
       </details>
-      <details class="noc-feature-settings"><summary>Password Generator</summary>
-        <form data-tool="password" autocomplete="off"><label class="noc-field">Password length (16–128)<input type="number" name="length" min="16" max="128" value="24" required></label>${actions('Generate password')}</form>
-      </details>
       <details class="noc-feature-settings"><summary>DNS &amp; TCP Troubleshooting Commands</summary>
         <p class="noc-muted">Prepare commands for Windows, Linux, or macOS. Run them from the client or network you need to troubleshoot.</p>
         <form data-tool="diagnostics"><label class="noc-field">Hostname or IPv4<input name="host" placeholder="example.com" maxlength="254" required></label>
@@ -223,9 +348,36 @@ export function mountHelpdesk(root) {
         <form data-tool="checksum"><label class="noc-field">File<input type="file" name="file" required></label>
         <label class="noc-field">Expected SHA-256 (optional)<input name="expected" maxlength="64" placeholder="64 hexadecimal characters"></label>${actions('Calculate checksum')}</form>
       </details>
+      <details class="noc-feature-settings helpdesk-password"><summary>Password Generator</summary>
+        <form class="password-panel" autocomplete="off">
+          <div class="password-result-row">
+            <pre class="password-result" data-password-result tabindex="0" aria-label="Generated password"></pre>
+            <div class="password-actions">
+              <button type="submit">Regenerate</button>
+              <button type="button" data-password-copy disabled>Copy password</button>
+            </div>
+          </div>
+          <div class="password-rating">
+            <meter min="0" max="4" value="0" aria-label="Estimated password strength"></meter>
+            <span>Strength: <span data-password-strength></span></span>
+          </div>
+          <div class="password-controls">
+            <label class="password-length">
+              <span>Password length <output data-password-count>${passwordLength.initial}</output></span>
+              <input name="lengthRange" type="range" min="${passwordLength.min}" max="${passwordLength.max}" value="${passwordLength.initial}" aria-label="Password length">
+            </label>
+            <fieldset class="password-characters">
+              <legend>Character types</legend>
+              <div class="password-checks">${passwordSets.map(([label]) => `<label><input type="checkbox" checked> ${label}</label>`).join('')}</div>
+            </fieldset>
+          </div>
+          <p role="status"></p>
+        </form>
+      </details>
     </div>
     ${windowsTools}`;
   const stopPlanner = mountPlanner(root.querySelector('[data-planner]'));
+  mountPassword(root.querySelector('.helpdesk-password'), options);
   const wireControls = [];
   for (const end of ['1','2']) {
     const label = document.createElement('label');
@@ -273,7 +425,6 @@ export function mountHelpdesk(root) {
   const handlers = {
     cidr: data => inspectCidr(data.get('network'), data.get('member')),
     codec: data => transformText(data.get('text'), data.get('format'), data.get('operation')),
-    password: data => randomPassword(data.get('length')),
     diagnostics: data => diagnosticCommands(data.get('host'), data.get('port'), data.get('type')),
     json: data => ({text: formatJson(data.get('text'), data.get('format') === 'compact'), status: 'Valid JSON.'}),
     'text-hash': data => sha256(new TextEncoder().encode(data.get('text'))),
